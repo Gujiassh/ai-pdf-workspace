@@ -8,9 +8,13 @@
 - `../ssot/system-architecture.md`：系统级高层架构裁决
 - `detailed-system-architecture.md`：可指导开发的详细架构设计
 - `feature-map.md`：系统功能地图与拆分入口
+- `database-design.md`：数据库设计、表职责与 ER 图
+- `learning-roadmap.md`：项目学习路线、分阶段掌握点与练习建议
 
 建议阅读顺序：
 
 1. `../ssot/product-design.md`
 2. `../ssot/system-architecture.md`
 3. `detailed-system-architecture.md`
+4. `database-design.md`
+5. `learning-roadmap.md`

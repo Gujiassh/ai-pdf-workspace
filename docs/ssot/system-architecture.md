@@ -40,6 +40,9 @@ V1 架构不追求：
 - 跨 Workspace 联邦检索
 - 多模型 Agent 编排平台
 - 超高吞吐搜索集群
+- 扫描件 OCR、图表/表格/图片物体理解等多模态文档能力
+
+当前范围只支持可直接提取文本的 PDF。扫描件、图片 PDF 和页内视觉理解能力不进入当前架构范围。
 
 ## 3. 顶层架构
 
@@ -122,7 +125,6 @@ FastAPI 主业务服务。
 - 原始 PDF 文件
 - 页面预览图
 - 解析中间产物
-- 可选的 OCR / page artifact
 
 #### `redis`
 
@@ -348,8 +350,10 @@ V1 采用：
    - chat_messages
    - message_citations
    - notes
+   - note_sources
    - tags
-   - tag_bindings
+   - document_tags
+   - note_tags
 
 4. `Provider Metadata`
    - embedding_model
@@ -400,7 +404,6 @@ V1 使用 `MinIO` 作为本地 S3 兼容对象存储。
 - 原始 PDF
 - 页面截图 / 预览图
 - 解析 JSON 产物
-- 可选的 OCR 产物
 - 后续可选导出文件
 
 ### 7.3 路径规范
@@ -688,7 +691,6 @@ V1 支持两类：
 
 ### V2
 
-- OCR fallback
 - rerank
 - hybrid search
 - 索引重建面板

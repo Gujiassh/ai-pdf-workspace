@@ -49,6 +49,21 @@ AI PDF Workspace
    └─ 部署 / 观测
 ```
 
+### 2.1 当前范围说明
+
+当前功能地图只覆盖 `文本 PDF 工作流`：
+
+- 可直接提取文本的 PDF
+- 文本 chunk
+- 文本检索与问答
+
+暂不纳入：
+
+- 扫描件 OCR
+- 图表 / 表格 / 图片区域理解
+- 多模态 chunk
+- 页内区域级 citation
+
 ## 3. 模块说明
 
 ### 3.1 账号与 Workspace
@@ -156,14 +171,24 @@ V1 必须完成的功能链路是：
 
 V2 再补：
 
-- OCR fallback
 - rerank
 - hybrid search
 - embedding provider 切换 UI
 - Prompt 版本管理
 - 索引重建面板
 
-## 6. 这份地图怎么用
+## 6. 后续可选方向
+
+如果未来确认要做多模态，再单独新增：
+
+- OCR fallback
+- 图表 / 表格 / 图片区域检测
+- visual chunk
+- region-level citation
+
+这部分当前不进入系统主线。
+
+## 7. 这份地图怎么用
 
 后续拆文档时按这个顺序走：
 

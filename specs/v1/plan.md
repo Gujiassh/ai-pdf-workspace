@@ -148,7 +148,9 @@ Must:
 - message_citations
 - notes
 - tags
-- tag_bindings
+- note_sources
+- document_tags
+- note_tags
 - ingestion_jobs
 
 ## 8. API 边界
