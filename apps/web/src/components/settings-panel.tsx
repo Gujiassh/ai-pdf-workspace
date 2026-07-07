@@ -98,7 +98,7 @@ export function SettingsPanel() {
           </button>
         </form>
 
-        <div className="h-px bg-zinc-150 dark:bg-zinc-850" />
+        <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
 
         {/* Model adapter */}
         <div className="space-y-4">
@@ -129,7 +129,7 @@ export function SettingsPanel() {
           </div>
         </div>
 
-        <div className="h-px bg-zinc-150 dark:bg-zinc-850" />
+        <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
 
         {/* Hyperparameters */}
         <div className="space-y-4">
@@ -140,7 +140,7 @@ export function SettingsPanel() {
 
           <div className="space-y-4 text-xs">
             <div>
-              <div className="flex justify-between text-[10px] font-semibold text-zinc-550 dark:text-zinc-400">
+              <div className="flex justify-between text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
                 <span>{t("settings.topKLabel")}</span>
                 <span className="font-bold text-zinc-900 dark:text-white">{topK} chunks</span>
               </div>
@@ -156,7 +156,7 @@ export function SettingsPanel() {
             </div>
 
             <div>
-              <div className="flex justify-between text-[10px] font-semibold text-zinc-550 dark:text-zinc-400">
+              <div className="flex justify-between text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">
                 <span>{t("settings.chunkSizeLabel")}</span>
                 <span className="font-bold text-zinc-900 dark:text-white">{chunkSize} tokens</span>
               </div>
@@ -173,11 +173,11 @@ export function SettingsPanel() {
           </div>
         </div>
 
-        <div className="h-px bg-zinc-150 dark:bg-zinc-850" />
+        <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
 
         {/* Metrics checks */}
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-900/10 p-3.5">
-          <h5 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5">
+          <h5 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5 text-zinc-400" />
             {t("settings.healthChecks")}
           </h5>

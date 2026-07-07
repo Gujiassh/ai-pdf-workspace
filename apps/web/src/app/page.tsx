@@ -143,7 +143,7 @@ export default function Home() {
           {/* Theme switcher */}
           <button
             onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 dark:border-zinc-850 dark:bg-zinc-900 hover:text-zinc-950 dark:hover:text-white transition active:scale-95"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 hover:text-zinc-950 dark:hover:text-white transition active:scale-95"
             title="主题切换"
           >
             {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
@@ -152,7 +152,7 @@ export default function Home() {
           {/* i18n switcher */}
           <button
             onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-600 dark:border-zinc-850 dark:bg-zinc-900 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition active:scale-95"
+            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition active:scale-95"
           >
             <Globe className="h-3.5 w-3.5" />
             {locale === "zh" ? "English" : "中文"}
@@ -163,7 +163,7 @@ export default function Home() {
             <img 
               src={user.avatarUrl} 
               alt={user.name} 
-              className="h-8.5 w-8.5 rounded-xl bg-zinc-100 border border-zinc-250 dark:border-zinc-700" 
+              className="h-8.5 w-8.5 rounded-xl bg-zinc-100 border border-zinc-200 dark:border-zinc-700" 
             />
             <div className="hidden md:block text-left text-xs font-bold">
               <div className="text-zinc-900 dark:text-white truncate max-w-[80px]">{user.name}</div>

@@ -48,7 +48,7 @@ export function WorkspaceList() {
     <div className="space-y-6 text-zinc-800 dark:text-zinc-300">
       
       {/* Search & Add Action Header */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center border-b border-zinc-150 dark:border-zinc-850 pb-4">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center border-b border-zinc-100 dark:border-zinc-800 pb-4">
         {/* Flat Search Input */}
         <div className="relative flex-1 max-w-md flex items-center">
           <Search className="absolute left-3 h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
@@ -64,7 +64,7 @@ export function WorkspaceList() {
         {/* Inline Create Trigger Button */}
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-zinc-950 dark:bg-white px-4 py-2.5 text-xs font-bold text-white dark:text-zinc-955 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition active:scale-95 shrink-0 cursor-pointer"
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-zinc-950 dark:bg-white px-4 py-2.5 text-xs font-bold text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition active:scale-95 shrink-0 cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           {t("dashboard.createBtn")}
@@ -110,7 +110,7 @@ export function WorkspaceList() {
             <button
               type="button"
               onClick={() => setShowAddForm(false)}
-              className="rounded-xl border border-zinc-205 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-850 transition cursor-pointer"
+              className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
             >
               取消
             </button>
@@ -138,7 +138,7 @@ export function WorkspaceList() {
 
         {/* Workspaces list rows */}
         {filteredWorkspaces.length === 0 ? (
-          <div className="py-12 text-center text-zinc-450">
+          <div className="py-12 text-center text-zinc-400">
             <AlertCircle className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-700" />
             <p className="mt-3 text-xs font-semibold">{t("dashboard.empty")}</p>
           </div>
@@ -179,7 +179,7 @@ export function WorkspaceList() {
                   </div>
 
                   {/* Column 3: Metrics summary */}
-                  <div className="w-full md:w-1/5 flex items-center gap-3.5 text-[10px] text-zinc-400 dark:text-zinc-550 font-bold mt-2 md:mt-0">
+                  <div className="w-full md:w-1/5 flex items-center gap-3.5 text-[10px] text-zinc-400 dark:text-zinc-500 font-bold mt-2 md:mt-0">
                     <span className="flex items-center gap-0.5" title={`${docCount} documents`}>
                       <FileText className="h-3 w-3 text-zinc-300 dark:text-zinc-700 shrink-0" />
                       {docCount}
@@ -209,7 +209,7 @@ export function WorkspaceList() {
                           deleteWorkspace(ws.id);
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-450 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition duration-150 cursor-pointer"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition duration-150 cursor-pointer"
                       title="删除此工作区"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

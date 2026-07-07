@@ -214,13 +214,13 @@ export function PdfViewer() {
             <div className="absolute top-0 right-0 h-40 w-40 bg-indigo-500/5 blur-3xl rounded-full" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t("viewer.noDocTitle")}</span>
             <h1 className="mt-2.5 text-2xl font-black text-zinc-900 dark:text-white tracking-tight">{currentWorkspace?.name}</h1>
-            <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-450">{currentWorkspace?.description || "暂无描述"}</p>
+            <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{currentWorkspace?.description || "暂无描述"}</p>
             
             <div className="mt-5 flex gap-4">
               {!leftSidebarOpen && (
                 <button
                   onClick={() => setLeftSidebarOpen(true)}
-                  className="flex items-center gap-1.5 rounded-xl bg-white border border-zinc-200 px-3.5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-850 transition"
+                  className="flex items-center gap-1.5 rounded-xl bg-white border border-zinc-200 px-3.5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800 transition"
                 >
                   <ChevronRightIcon className="h-4 w-4 shrink-0" />
                   展开侧边栏
@@ -229,7 +229,7 @@ export function PdfViewer() {
               {!rightPanelOpen && (
                 <button
                   onClick={() => setRightPanelOpen(true)}
-                  className="flex items-center gap-1.5 rounded-xl bg-white border border-zinc-200 px-3.5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-850 transition"
+                  className="flex items-center gap-1.5 rounded-xl bg-white border border-zinc-200 px-3.5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800 transition"
                 >
                   <ArrowRightLeft className="h-4 w-4 shrink-0" />
                   展开问答板
@@ -243,17 +243,17 @@ export function PdfViewer() {
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
               <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.docs")}</dt>
               <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsDocsCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-650 font-bold">支持多标签同时浏览</dd>
+              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-600 font-bold">支持多标签同时浏览</dd>
             </div>
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
               <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.notes")}</dt>
               <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsNotesCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-655 font-bold">双击/一键极速抓取</dd>
+              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-600 font-bold">双击/一键极速抓取</dd>
             </div>
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
               <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.threads")}</dt>
               <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsThreadsCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-655 font-bold">智能问答上下文隔离</dd>
+              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-600 font-bold">智能问答上下文隔离</dd>
             </div>
           </div>
 
@@ -294,7 +294,7 @@ export function PdfViewer() {
                 className={`group flex items-center gap-1.5 border-r border-zinc-200 dark:border-zinc-900 px-4 py-3 text-xs cursor-pointer transition select-none ${
                   isActive
                     ? "bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white font-bold"
-                    : "text-zinc-450 hover:bg-zinc-50/50 hover:text-zinc-800 dark:hover:bg-zinc-900/30 dark:hover:text-zinc-100"
+                    : "text-zinc-400 hover:bg-zinc-50/50 hover:text-zinc-800 dark:hover:bg-zinc-900/30 dark:hover:text-zinc-100"
                 }`}
               >
                 <FileText className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
@@ -304,7 +304,7 @@ export function PdfViewer() {
                     e.stopPropagation();
                     closeDocument(docId);
                   }}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-450 hover:text-zinc-900 dark:hover:text-white transition shrink-0"
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition shrink-0"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -349,14 +349,14 @@ export function PdfViewer() {
           <div className="flex items-center gap-1 border-r border-zinc-200 dark:border-zinc-800 pr-3">
             <button
               onClick={() => setZoom(Math.max(50, zoom - 10))}
-              className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-white transition rounded"
+              className="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition rounded"
             >
               <ZoomOut className="h-3.5 w-3.5" />
             </button>
             <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 w-10 text-center">{percentage}%</span>
             <button
               onClick={() => setZoom(Math.min(180, zoom + 10))}
-              className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-white transition rounded"
+              className="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition rounded"
             >
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
@@ -366,7 +366,7 @@ export function PdfViewer() {
             <button
               onClick={handlePrevPage}
               disabled={activePdfPage <= 1}
-              className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
+              className="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -376,7 +376,7 @@ export function PdfViewer() {
             <button
               onClick={handleNextPage}
               disabled={activePdfPage >= activeDoc.pagesCount}
-              className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
+              className="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -394,7 +394,7 @@ export function PdfViewer() {
             className="w-[720px] rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-12 shadow-md dark:shadow-2xl select-text relative transition-all duration-200"
           >
             {/* Header pagination */}
-            <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-900 pb-3.5 text-[9px] text-zinc-450 dark:text-zinc-500 font-bold uppercase tracking-wider">
+            <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-900 pb-3.5 text-[9px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider">
               <span>{activeDoc.name}</span>
               <span>Page {activePdfPage} of {activeDoc.pagesCount}</span>
             </div>
@@ -402,7 +402,7 @@ export function PdfViewer() {
             {/* Content text */}
             <div className="mt-8 space-y-4">
               <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">{pageContent.title}</h2>
-              <p className="text-xs leading-6 text-zinc-650 dark:text-zinc-400 text-justify">
+              <p className="text-xs leading-6 text-zinc-600 dark:text-zinc-400 text-justify">
                 {pageContent.content}
               </p>
 
@@ -410,7 +410,7 @@ export function PdfViewer() {
               {pageContent.highlight && (
                 <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 dark:bg-amber-500/10 p-4 animate-in fade-in duration-300">
                   <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider block">{t("viewer.highlightTitle")}</span>
-                  <p className="mt-1 text-xs leading-6 font-semibold text-zinc-850 dark:text-zinc-300 italic">
+                  <p className="mt-1 text-xs leading-6 font-semibold text-zinc-800 dark:text-zinc-300 italic">
                     "{pageContent.highlight}"
                   </p>
                 </div>
@@ -418,7 +418,7 @@ export function PdfViewer() {
 
               {/* Bottom margins notes */}
               <div className="mt-8 border-t border-zinc-100 dark:border-zinc-900 pt-5">
-                <span className="text-[9px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider block">{t("viewer.annotationTitle")}</span>
+                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">{t("viewer.annotationTitle")}</span>
                 <p className="mt-1 text-xs leading-6 text-zinc-500 font-semibold">
                   {pageContent.notes}
                 </p>

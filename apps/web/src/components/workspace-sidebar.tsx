@@ -185,7 +185,7 @@ export function WorkspaceSidebar() {
 
   // 2. EXPANDED SIDEBAR (Full Width)
   return (
-    <div className="flex h-full w-72 flex-col border-r border-zinc-850 bg-zinc-950 shrink-0 transition-all duration-300 text-zinc-300">
+    <div className="flex h-full w-72 flex-col border-r border-zinc-800 bg-zinc-950 shrink-0 transition-all duration-300 text-zinc-300">
       
       {/* Expanded Header */}
       <div className="relative border-b border-zinc-800/80 p-4 flex items-center justify-between gap-3">
@@ -226,8 +226,8 @@ export function WorkspaceSidebar() {
                       switchWorkspace(ws.id);
                       setShowWsMenu(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition hover:bg-zinc-855 ${
-                      ws.id === currentWorkspace?.id ? "bg-zinc-850 font-semibold text-white" : "text-zinc-400"
+                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition hover:bg-zinc-800 ${
+                      ws.id === currentWorkspace?.id ? "bg-zinc-800 font-semibold text-white" : "text-zinc-400"
                     }`}
                   >
                     <div className="truncate pr-2">
@@ -244,7 +244,7 @@ export function WorkspaceSidebar() {
               <div className="mt-2 border-t border-zinc-800 pt-2">
                 <button
                   onClick={() => setShowCreateWs(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-zinc-950 px-2 py-2 text-xs font-bold text-white transition hover:bg-zinc-850"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-zinc-950 px-2 py-2 text-xs font-bold text-white transition hover:bg-zinc-800"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   {t("dashboard.createBtn")}
@@ -298,7 +298,7 @@ export function WorkspaceSidebar() {
                     className={`group relative flex cursor-pointer items-center justify-between rounded-xl px-2.5 py-2 transition ${
                       isActive
                         ? "bg-zinc-900 text-white font-semibold"
-                        : "text-zinc-450 hover:bg-zinc-900/40 hover:text-zinc-200"
+                        : "text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-200"
                     }`}
                   >
                     <div className="flex min-w-0 flex-1 items-start gap-2">
@@ -377,7 +377,7 @@ export function WorkspaceSidebar() {
                     className={`flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-[9px] font-bold transition ${
                       isSelected
                         ? "text-zinc-950 font-black"
-                        : "bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-350 hover:border-zinc-700"
+                        : "bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
                     }`}
                     style={{ backgroundColor: isSelected ? tag.color : undefined }}
                   >
@@ -404,7 +404,7 @@ export function WorkspaceSidebar() {
 
           <div className="mt-2.5 space-y-0.5">
             {wsThreads.length === 0 ? (
-              <span className="text-[10px] text-zinc-650 block">{t("sidebar.noThreads")}</span>
+              <span className="text-[10px] text-zinc-600 block">{t("sidebar.noThreads")}</span>
             ) : (
               wsThreads.map((th) => (
                 <div
@@ -438,7 +438,7 @@ export function WorkspaceSidebar() {
       </div>
 
       {/* Footer controls with language & theme selector */}
-      <div className="border-t border-zinc-850 p-3 bg-zinc-950 flex items-center justify-between text-xs shrink-0">
+      <div className="border-t border-zinc-800 p-3 bg-zinc-950 flex items-center justify-between text-xs shrink-0">
         <div className="flex items-center gap-2">
           {user && (
             <img 
@@ -487,7 +487,7 @@ export function WorkspaceSidebar() {
       {/* New Workspace modal overlay */}
       {showCreateWs && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl border border-zinc-805 bg-zinc-900 p-6 shadow-2xl text-zinc-300">
+          <div className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl text-zinc-300">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t("dashboard.createBtn")}</h3>
             <p className="mt-1 text-[10px] text-zinc-500">隔离专有的 PDF 文档、模型 Prompt 和对话记忆上下文。</p>
             <form onSubmit={handleCreateWorkspace} className="mt-4 space-y-3.5">

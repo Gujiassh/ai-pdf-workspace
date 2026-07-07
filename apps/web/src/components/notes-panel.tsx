@@ -90,7 +90,7 @@ export function NotesPanel() {
         {/* Selected tag filters info */}
         {selectedTagIds.length > 0 && (
           <div className="mt-2 flex items-center gap-1.5">
-            <span className="text-[9px] font-bold text-zinc-450 dark:text-zinc-550 uppercase tracking-wider">过滤标签:</span>
+            <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">过滤标签:</span>
             <div className="flex flex-wrap gap-1">
               {selectedTagIds.map((tagId) => {
                 const tag = tags.find((t) => t.id === tagId);
@@ -115,32 +115,32 @@ export function NotesPanel() {
           <form onSubmit={handleSubmit} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 space-y-3.5 animate-in slide-in-from-top-1 duration-150 text-zinc-800 dark:text-zinc-200">
             <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">{t("notes.formTitle")}</h4>
             <div>
-              <label className="block text-[9px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider">{t("notes.formTitleLabel")}</label>
+              <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{t("notes.formTitleLabel")}</label>
               <input
                 type="text"
                 required
                 placeholder="输入笔记小标题..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-805 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none focus:border-zinc-400"
+                className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none focus:border-zinc-400"
               />
             </div>
             <div>
-              <label className="block text-[9px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider">{t("notes.formContentLabel")}</label>
+              <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{t("notes.formContentLabel")}</label>
               <textarea
                 required
                 placeholder={t("notes.formPlaceholder")}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
-                className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-805 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none focus:border-zinc-400 resize-none"
+                className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none focus:border-zinc-400 resize-none"
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-805 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-500 hover:bg-zinc-100 transition cursor-pointer"
+                className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-500 hover:bg-zinc-100 transition cursor-pointer"
               >
                 {t("chat.cancel")}
               </button>
@@ -156,9 +156,9 @@ export function NotesPanel() {
 
         {filteredNotes.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center p-6 pt-16">
-            <BookOpen className="h-8 w-8 text-zinc-350 dark:text-zinc-700" />
+            <BookOpen className="h-8 w-8 text-zinc-300 dark:text-zinc-700" />
             <h4 className="mt-3 text-xs font-semibold text-zinc-700 dark:text-zinc-400">{t("notes.emptyTitle")}</h4>
-            <p className="mt-1 w-64 text-[10px] leading-5 text-zinc-450 dark:text-zinc-500">
+            <p className="mt-1 w-64 text-[10px] leading-5 text-zinc-400 dark:text-zinc-500">
               {t("notes.emptyDesc")}
             </p>
           </div>
@@ -166,7 +166,7 @@ export function NotesPanel() {
           filteredNotes.map((note) => (
             <div
               key={note.id}
-              className="rounded-2xl border border-zinc-100 dark:border-zinc-805 bg-zinc-50/20 dark:bg-zinc-900/10 p-4 space-y-3 transition hover:border-zinc-200 hover:bg-zinc-50/50 dark:hover:border-zinc-800"
+              className="rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-900/10 p-4 space-y-3 transition hover:border-zinc-200 hover:bg-zinc-50/50 dark:hover:border-zinc-800"
             >
               <div className="flex items-start justify-between gap-3">
                 <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-snug">{note.title}</h4>
@@ -184,18 +184,18 @@ export function NotesPanel() {
               {note.source && (
                 <div 
                   onClick={() => handleSourceClick(note)}
-                  className="flex items-center justify-between rounded-xl bg-white dark:bg-zinc-950 border border-zinc-150 dark:border-zinc-800 p-2.5 cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-700 transition duration-150"
+                  className="flex items-center justify-between rounded-xl bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 p-2.5 cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-700 transition duration-150"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 text-[8px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
                       <FileText className="h-2.5 w-2.5 shrink-0" />
                       <span>{t("notes.source")}：{note.source.documentName.split(".pdf")[0]} p.{note.source.pageNumber}</span>
                     </div>
-                    <p className="mt-0.5 truncate text-[10px] text-zinc-400 dark:text-zinc-550 italic">
+                    <p className="mt-0.5 truncate text-[10px] text-zinc-400 dark:text-zinc-500 italic">
                       "{note.source.snippet}"
                     </p>
                   </div>
-                  <ExternalLink className="h-3 w-3 text-zinc-400 dark:text-zinc-650 shrink-0 ml-2" />
+                  <ExternalLink className="h-3 w-3 text-zinc-400 dark:text-zinc-600 shrink-0 ml-2" />
                 </div>
               )}
 
