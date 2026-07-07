@@ -180,36 +180,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Grid Quick summary of features */}
-      <section className="mt-8 grid gap-5 sm:grid-cols-3">
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400">
-            <Layers className="h-4.5 w-4.5" />
-          </div>
-          <h3 className="mt-3 text-xs font-bold text-zinc-900 dark:text-white">工作区数据安全</h3>
-          <p className="mt-1 text-[10px] leading-5 text-zinc-500 dark:text-zinc-400">
-            各个 Workspace 文档独立切片、独立向量库隔离，防止学术数据与合同串库。
-          </p>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400">
-            <FileText className="h-4.5 w-4.5" />
-          </div>
-          <h3 className="mt-3 text-xs font-bold text-zinc-900 dark:text-white">全库联合文档检索</h3>
-          <p className="mt-1 text-[10px] leading-5 text-zinc-500 dark:text-zinc-400">
-            AI 提问将联合检索工作区内所有已就绪文档。点击 Citation 智能开启新文件标签并跳页。
-          </p>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400">
-            <BookOpen className="h-4.5 w-4.5" />
-          </div>
-          <h3 className="mt-3 text-xs font-bold text-zinc-900 dark:text-white">划词选段与快速沉淀</h3>
-          <p className="mt-1 text-[10px] leading-5 text-zinc-500 dark:text-zinc-400">
-            在 PDF 浏览器中自由选择文本即可唤起悬浮浮窗，一键问 AI 或直接记录卡片笔记。
-          </p>
-        </div>
-      </section>
+
 
       {/* Dynamic Workspace management list */}
       <section className="mt-12">
