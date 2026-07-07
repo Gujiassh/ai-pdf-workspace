@@ -17,7 +17,7 @@
 
 ## 2. 当前总状态
 
-当前项目状态：`应用骨架已初始化，进入本地启动验证阶段`
+当前项目状态：`Workspace 最小业务骨架已接通，进入真实鉴权接入阶段`
 
 说明：
 
@@ -35,8 +35,8 @@
 | 阶段 | 内容 | 状态 | 说明 |
 | --- | --- | --- | --- |
 | 1 | 项目定位与架构总览 | 已完成 | 产品设计、系统架构、详细架构已落文档 |
-| 2 | 前端骨架与 BFF | 进行中 | Web 基础工程已初始化，BFF 业务接口尚未接入 |
-| 3 | 鉴权与 Workspace 隔离 | 未开始 | 依赖项目骨架 |
+| 2 | 前端骨架与 BFF | 进行中 | Web 基础工程已初始化，Workspace 列表/详情的最小 BFF 已接入 |
+| 3 | 鉴权与 Workspace 隔离 | 进行中 | 先用占位 Workspace 数据打通边界，真实登录和成员关系未接入 |
 | 4 | 对象存储与上传链路 | 未开始 | 依赖 Web/API/Worker 基础框架 |
 | 5 | Worker 与任务状态机 | 进行中 | Worker 占位入口已建立，任务逻辑尚未接入 |
 | 6 | PDF 解析与 chunk | 未开始 | 依赖 Worker 和文档链落地 |
@@ -70,7 +70,7 @@
 
 ## 6. 当前正在做什么
 
-当前：`应用骨架已初始化，准备打通本地启动与健康检查`
+当前：`Workspace 最小业务边界已接入，准备继续接真实鉴权与成员关系`
 
 收口结果：
 
@@ -79,29 +79,29 @@
 - 文档已完成一次交叉评审
 - `apps / packages / infra` 目录骨架已经建立
 - `apps/web`、`apps/api`、`apps/worker` 基础工程已初始化
+- Workspace 列表与详情的最小 API/BFF/页面链路已建立
 
 ## 7. 下一步
 
-下一步：`打通本地启动与最小健康检查链`
+下一步：`接入真实鉴权与 Workspace 成员关系`
 
 具体建议从这些内容开始：
 
-1. 验证 `apps/web` 可本地启动
-   - Next.js 开发服务器
-   - 最小页面可访问
+1. 接入登录方案占位
+   - 选定 Auth.js 目录结构
+   - 准备 session 获取入口
 
-2. 验证 `apps/api` 可本地启动
-   - FastAPI `/health` 可访问
+2. 接入 Workspace 成员关系占位
+   - 让 BFF 不再直接返回匿名 mock，而是消费“当前用户可见工作区”结构
 
-3. 验证 `apps/worker` 可本地执行
-   - 最小启动脚本可运行
+3. 补 API 与 Web 的上下文边界
+   - `x-user-id`
+   - `x-workspace-id`
+   - 内部调用占位
 
-4. 验证 `infra/docker/compose.yml`
-   - Postgres / Redis / MinIO 配置可用
-
-5. 进入下一条业务主链
-   - 鉴权与 Workspace
-   - 上传 session / finalize
+4. 然后进入上传链
+   - upload-session
+   - finalize-upload
 
 ## 8. 当前不进入主线
 
