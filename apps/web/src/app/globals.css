@@ -6,6 +6,8 @@
   --border: #e4e4e7;
   --card-bg: #ffffff;
   --primary-accent: #6366f1;
+  --scrollbar-thumb: rgba(120, 120, 120, 0.25);
+  --scrollbar-thumb-hover: rgba(120, 120, 120, 0.45);
 }
 
 .dark {
@@ -14,6 +16,8 @@
   --border: #27272a;
   --card-bg: #18181b;
   --primary-accent: #818cf8;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 }
 
 @theme inline {
@@ -33,7 +37,7 @@ body {
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-/* Custom scrollbars for dark panel simplicity */
+/* Custom scrollbars that adapt perfectly to light/dark themes */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -44,18 +48,11 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 120, 120, 0.15);
+  background: var(--scrollbar-thumb);
   border-radius: 9999px;
+  transition: background-color 0.15s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 120, 120, 0.3);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--scrollbar-thumb-hover);
 }
