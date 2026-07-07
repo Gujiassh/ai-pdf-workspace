@@ -125,7 +125,7 @@ export default function Home() {
 
   // 2. WORKSPACES PORTAL VIEW (If logged in)
   return (
-    <main className="mx-auto min-h-screen w-full max-w-7xl px-6 py-12 md:px-8 bg-background dark:bg-zinc-950 transition-colors duration-200">
+    <main className="min-h-screen w-full px-8 py-12 bg-background dark:bg-zinc-950 transition-colors duration-200">
       
       {/* Header with profile and switcher */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200 dark:border-zinc-800 pb-6 gap-4">
@@ -133,9 +133,6 @@ export default function Home() {
           <h1 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-3xl">
             {t("dashboard.title")}
           </h1>
-          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-            {t("dashboard.subtitle")}
-          </p>
         </div>
 
         {/* Header Controls and user profile */}
