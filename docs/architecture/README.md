@@ -12,6 +12,7 @@
 - `api-contracts.md`：浏览器、BFF、FastAPI 之间的接口契约设计
 - `job-state-machine.md`：文档入库、重试、重建索引、删除的状态机设计
 - `implementation-roadmap.md`：项目实施路线与阶段目标
+- `implementation-progress.md`：当前实施进度、下一步与阶段状态
 
 建议阅读顺序：
 
@@ -22,3 +23,4 @@
 5. `api-contracts.md`
 6. `job-state-machine.md`
 7. `implementation-roadmap.md`
+8. `implementation-progress.md`
