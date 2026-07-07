@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useWorkspace, Document } from "@/lib/mock-context";
+import { useTranslation } from "@/lib/i18n-context";
 import { 
   ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText, 
   X, Sparkles, Layout, ChevronRight as ChevronRightIcon,
@@ -16,15 +17,12 @@ export function PdfViewer() {
     notes,
     threads,
     tags,
-    
-    // Adaptive Layout states
     openDocumentIds,
     activeDocumentId,
     activePdfPage,
     leftSidebarOpen,
     rightPanelOpen,
     selectionText,
-    
     openDocument,
     closeDocument,
     setActivePdfPage,
@@ -37,6 +35,8 @@ export function PdfViewer() {
     sendMessage,
     createNote,
   } = useWorkspace();
+
+  const { t } = useTranslation();
 
   const [zoom, setZoom] = useState(100);
   const [showTagDropdown, setShowTagDropdown] = useState(false);
@@ -71,14 +71,12 @@ export function PdfViewer() {
     setNewTagName("");
   };
 
-  // Selection popup handler simulation
   const handleTextSelection = (e: React.MouseEvent) => {
     const selection = window.getSelection();
     const text = selection ? selection.toString().trim() : "";
     
     if (text.length > 5) {
       setSelectionText(text);
-      // Calculate coordinates relative to container
       if (paperRef.current) {
         const rect = paperRef.current.getBoundingClientRect();
         setPopupPos({
@@ -93,7 +91,6 @@ export function PdfViewer() {
     }
   };
 
-  // Ask AI about selection
   const handleAskAIAboutSelection = async () => {
     if (!selectionText) return;
     const text = selectionText;
@@ -101,14 +98,12 @@ export function PdfViewer() {
     setSelectionText(null);
     window.getSelection()?.removeAllRanges();
 
-    // Trigger AI Chat
     setActiveTab("chat");
     if (!rightPanelOpen) setRightPanelOpen(true);
     
-    await sendMessage(`请解析文档这段文字的具体含义：\n"${text}"`);
+    await sendMessage(`请解释一下文档这段文字的具体含义汪：\n"${text}"`);
   };
 
-  // Capture Note from selection
   const handleCaptureNoteFromSelection = () => {
     if (!selectionText || !activeDoc) return;
     const text = selectionText;
@@ -212,33 +207,32 @@ export function PdfViewer() {
     const wsThreadsCount = threads.filter((t) => t.workspaceId === currentWorkspace?.id).length;
 
     return (
-      <div className="flex h-full flex-1 flex-col bg-zinc-950 p-8 overflow-y-auto text-zinc-300">
+      <div className="flex h-full flex-1 flex-col overflow-y-auto bg-zinc-50 dark:bg-zinc-950 p-8 text-zinc-600 dark:text-zinc-300 transition-colors duration-200">
         <div className="mx-auto w-full max-w-3xl space-y-6">
           {/* Dashboard Header */}
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/40 p-8 shadow-2xl relative overflow-hidden">
+          <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-8 shadow-md dark:shadow-2xl relative overflow-hidden transition">
             <div className="absolute top-0 right-0 h-40 w-40 bg-indigo-500/5 blur-3xl rounded-full" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">自研分屏协同版</span>
-            <h1 className="mt-2.5 text-3xl font-extrabold text-white tracking-tight">{currentWorkspace?.name}</h1>
-            <p className="mt-2 text-xs leading-6 text-zinc-400">{currentWorkspace?.description || "暂无描述"}</p>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t("viewer.noDocTitle")}</span>
+            <h1 className="mt-2.5 text-2xl font-black text-zinc-900 dark:text-white tracking-tight">{currentWorkspace?.name}</h1>
+            <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-450">{currentWorkspace?.description || "暂无描述"}</p>
             
             <div className="mt-5 flex gap-4">
-              {/* Collapsed left sidebar toggle if collapsed */}
               {!leftSidebarOpen && (
                 <button
                   onClick={() => setLeftSidebarOpen(true)}
-                  className="flex items-center gap-1.5 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-xs text-white hover:bg-zinc-850"
+                  className="flex items-center gap-1.5 rounded-xl bg-white border border-zinc-200 px-3.5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-850 transition"
                 >
-                  <ChevronRightIcon className="h-4 w-4" />
-                  展开左导航
+                  <ChevronRightIcon className="h-4 w-4 shrink-0" />
+                  展开侧边栏
                 </button>
               )}
               {!rightPanelOpen && (
                 <button
                   onClick={() => setRightPanelOpen(true)}
-                  className="flex items-center gap-1.5 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-xs text-white hover:bg-zinc-850"
+                  className="flex items-center gap-1.5 rounded-xl bg-white border border-zinc-200 px-3.5 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-850 transition"
                 >
-                  <ArrowRightLeft className="h-4 w-4" />
-                  开启右对话
+                  <ArrowRightLeft className="h-4 w-4 shrink-0" />
+                  展开问答板
                 </button>
               )}
             </div>
@@ -246,30 +240,30 @@ export function PdfViewer() {
 
           {/* Metric list */}
           <div className="grid grid-cols-3 gap-5">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5">
-              <dt className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">上传文档数</dt>
-              <dd className="mt-1 text-3xl font-bold text-white tracking-tight">{wsDocsCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-600 font-semibold">支持多标签同时浏览</dd>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
+              <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.docs")}</dt>
+              <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsDocsCount}</dd>
+              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-650 font-bold">支持多标签同时浏览</dd>
             </div>
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5">
-              <dt className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">沉淀卡片笔记</dt>
-              <dd className="mt-1 text-3xl font-bold text-white tracking-tight">{wsNotesCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-600 font-semibold">双击/一键极速抓取</dd>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
+              <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.notes")}</dt>
+              <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsNotesCount}</dd>
+              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-655 font-bold">双击/一键极速抓取</dd>
             </div>
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 p-5">
-              <dt className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">已隔离会话</dt>
-              <dd className="mt-1 text-3xl font-bold text-white tracking-tight">{wsThreadsCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-600 font-semibold">Prompt 角色深度融合</dd>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
+              <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.threads")}</dt>
+              <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsThreadsCount}</dd>
+              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-655 font-bold">智能问答上下文隔离</dd>
             </div>
           </div>
 
           {/* Empty guide panel */}
           {openDocumentIds.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/10 p-12 text-center">
-              <MousePointerSquareDashed className="h-8 w-8 text-zinc-700" />
-              <h4 className="mt-3 text-xs font-semibold text-white">开启自研分屏工作流</h4>
-              <p className="mt-1.5 w-80 text-[10px] leading-5 text-zinc-500">
-                请在左侧边栏上传或打开 PDF 文档。开启后中栏支持多标签管理，并能在 PDF 画布中任意“划词提问”或“生成笔记”汪！
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/10 p-12 text-center transition">
+              <MousePointerSquareDashed className="h-8 w-8 text-zinc-400" />
+              <h4 className="mt-3 text-xs font-bold text-zinc-900 dark:text-white">{t("viewer.noDocTitle")}</h4>
+              <p className="mt-1.5 w-80 text-[10px] leading-5 text-zinc-500 dark:text-zinc-400">
+                {t("viewer.noDocDesc")}
               </p>
             </div>
           )}
@@ -283,10 +277,10 @@ export function PdfViewer() {
   const percentage = Math.round(zoom);
 
   return (
-    <div className="flex h-full flex-1 flex-col bg-zinc-900 text-zinc-300">
+    <div className="flex h-full flex-1 flex-col bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 transition-colors duration-200">
       
       {/* 1. Chrome-style Tabs Bar */}
-      <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-950 px-2 shrink-0">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 shrink-0 transition">
         <div className="flex items-center overflow-x-auto min-w-0 flex-1 scrollbar-none">
           {openDocumentIds.map((docId) => {
             const doc = wsDocs.find((d) => d.id === docId);
@@ -297,20 +291,20 @@ export function PdfViewer() {
               <div
                 key={docId}
                 onClick={() => openDocument(docId)}
-                className={`group flex items-center gap-1.5 border-r border-zinc-900 px-4 py-2.5 text-xs cursor-pointer transition select-none ${
+                className={`group flex items-center gap-1.5 border-r border-zinc-200 dark:border-zinc-900 px-4 py-3 text-xs cursor-pointer transition select-none ${
                   isActive
-                    ? "bg-zinc-900 text-white font-bold"
-                    : "text-zinc-500 hover:bg-zinc-900/30 hover:text-zinc-300"
+                    ? "bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white font-bold"
+                    : "text-zinc-450 hover:bg-zinc-50/50 hover:text-zinc-800 dark:hover:bg-zinc-900/30 dark:hover:text-zinc-100"
                 }`}
               >
-                <FileText className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                <FileText className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                 <span className="truncate max-w-[120px]">{doc.name}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     closeDocument(docId);
                   }}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded-md hover:bg-zinc-850 hover:text-white transition shrink-0"
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-450 hover:text-zinc-900 dark:hover:text-white transition shrink-0"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -324,45 +318,45 @@ export function PdfViewer() {
           {!leftSidebarOpen && (
             <button
               onClick={() => setLeftSidebarOpen(true)}
-              className="p-1 text-zinc-500 hover:text-white rounded transition"
-              title="展开左导航"
+              className="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded transition"
+              title="展开侧边栏"
             >
-              <Layout className="h-3.5 w-3.5" />
+              <Layout className="h-4.5 w-4.5" />
             </button>
           )}
           {!rightPanelOpen && (
             <button
               onClick={() => setRightPanelOpen(true)}
-              className="p-1 text-zinc-500 hover:text-white rounded transition"
-              title="展开右对话"
+              className="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded transition"
+              title="展开问答板"
             >
-              <ArrowRightLeft className="h-3.5 w-3.5" />
+              <ArrowRightLeft className="h-4.5 w-4.5" />
             </button>
           )}
         </div>
       </div>
 
       {/* 2. Viewer control toolbar */}
-      <div className="flex items-center justify-between border-b border-zinc-800/80 bg-zinc-900/30 px-5 py-2 shrink-0">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/30 px-5 py-2 shrink-0 backdrop-blur-xs transition">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-[9px] font-bold text-indigo-400">
-            Active Doc
+          <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-[9px] font-bold text-indigo-500 dark:text-indigo-400 shrink-0">
+            {t("viewer.activeDoc")}
           </span>
-          <span className="text-xs truncate font-semibold text-zinc-300">{activeDoc.name}</span>
+          <span className="text-xs truncate font-semibold text-zinc-800 dark:text-zinc-300">{activeDoc.name}</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 border-r border-zinc-800 pr-3">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-1 border-r border-zinc-200 dark:border-zinc-800 pr-3">
             <button
               onClick={() => setZoom(Math.max(50, zoom - 10))}
-              className="p-1 text-zinc-500 hover:text-white transition rounded"
+              className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-white transition rounded"
             >
               <ZoomOut className="h-3.5 w-3.5" />
             </button>
-            <span className="text-[10px] font-bold text-zinc-400 w-10 text-center">{percentage}%</span>
+            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 w-10 text-center">{percentage}%</span>
             <button
               onClick={() => setZoom(Math.min(180, zoom + 10))}
-              className="p-1 text-zinc-500 hover:text-white transition rounded"
+              className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-white transition rounded"
             >
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
@@ -372,17 +366,17 @@ export function PdfViewer() {
             <button
               onClick={handlePrevPage}
               disabled={activePdfPage <= 1}
-              className="p-1 text-zinc-500 hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
+              className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-[10px] font-bold text-zinc-400">
-              {activePdfPage} / {activeDoc.pagesCount} 页
+            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
+              {activePdfPage} / {activeDoc.pagesCount} {t("viewer.pages")}
             </span>
             <button
               onClick={handleNextPage}
               disabled={activePdfPage >= activeDoc.pagesCount}
-              className="p-1 text-zinc-500 hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
+              className="p-1 text-zinc-450 hover:text-zinc-900 dark:hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -392,46 +386,46 @@ export function PdfViewer() {
 
       {/* 3. Simulated PDF paper viewport */}
       <div className="flex-1 overflow-auto p-8 flex justify-center items-start">
-        <div className="relative origin-top" style={{ transform: `scale(${zoom / 100})` }}>
+        <div className="relative origin-top transition-all duration-200" style={{ transform: `scale(${zoom / 100})` }}>
           
           <div 
             ref={paperRef}
             onMouseUp={handleTextSelection}
-            className="w-[720px] rounded-2xl border border-zinc-800 bg-zinc-950 p-12 shadow-2xl select-text relative"
+            className="w-[720px] rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-12 shadow-md dark:shadow-2xl select-text relative transition-all duration-200"
           >
             {/* Header pagination */}
-            <div className="flex justify-between border-b border-zinc-900 pb-3.5 text-[9px] text-zinc-500 font-bold uppercase tracking-wider">
+            <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-900 pb-3.5 text-[9px] text-zinc-450 dark:text-zinc-500 font-bold uppercase tracking-wider">
               <span>{activeDoc.name}</span>
               <span>Page {activePdfPage} of {activeDoc.pagesCount}</span>
             </div>
 
             {/* Content text */}
             <div className="mt-8 space-y-4">
-              <h2 className="text-lg font-bold text-white tracking-tight">{pageContent.title}</h2>
-              <p className="text-xs leading-6 text-zinc-400 text-justify">
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">{pageContent.title}</h2>
+              <p className="text-xs leading-6 text-zinc-650 dark:text-zinc-400 text-justify">
                 {pageContent.content}
               </p>
 
               {/* RAG highlight */}
               {pageContent.highlight && (
-                <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 p-4 animate-in fade-in duration-300">
-                  <span className="text-[9px] font-bold text-amber-500 uppercase tracking-wider block">向量库命中片段 (pgvector Chunk)</span>
-                  <p className="mt-1 text-xs leading-6 font-semibold text-zinc-300 italic">
+                <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 dark:bg-amber-500/10 p-4 animate-in fade-in duration-300">
+                  <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider block">{t("viewer.highlightTitle")}</span>
+                  <p className="mt-1 text-xs leading-6 font-semibold text-zinc-850 dark:text-zinc-300 italic">
                     "{pageContent.highlight}"
                   </p>
                 </div>
               )}
 
               {/* Bottom margins notes */}
-              <div className="mt-8 border-t border-zinc-900 pt-5">
-                <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider block">系统知识旁注</span>
+              <div className="mt-8 border-t border-zinc-100 dark:border-zinc-900 pt-5">
+                <span className="text-[9px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider block">{t("viewer.annotationTitle")}</span>
                 <p className="mt-1 text-xs leading-6 text-zinc-500 font-semibold">
                   {pageContent.notes}
                 </p>
               </div>
             </div>
 
-            <div className="mt-12 text-center text-[9px] text-zinc-600 font-bold tracking-wider">
+            <div className="mt-12 text-center text-[9px] text-zinc-400 dark:text-zinc-600 font-bold tracking-wider">
               CONFIDENTIAL • DEVELOPMENT MOCK VIEW
             </div>
           </div>
@@ -439,23 +433,23 @@ export function PdfViewer() {
           {/* 4. Selection Popover action popover menu */}
           {showSelectionPopup && selectionText && (
             <div
-              className="absolute z-30 flex items-center gap-1.5 rounded-xl border border-zinc-850 bg-zinc-950 px-2 py-1.5 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150"
+              className="absolute z-30 flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2 py-1.5 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150"
               style={{ left: `${popupPos.x}px`, top: `${popupPos.y}px` }}
-              onMouseDown={(e) => e.preventDefault()} // prevents input unfocus
+              onMouseDown={(e) => e.preventDefault()}
             >
               <button
                 onClick={handleAskAIAboutSelection}
-                className="flex items-center gap-1 rounded-lg bg-zinc-900 hover:bg-zinc-850 px-2.5 py-1 text-[10px] font-bold text-white transition active:scale-95"
+                className="flex items-center gap-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-2.5 py-1 text-[10px] font-bold text-white transition active:scale-95 cursor-pointer"
               >
                 <MessageSquareHeart className="h-3 w-3 text-cyan-400 shrink-0" />
-                问 AI
+                {t("viewer.selectionAsk")}
               </button>
               <button
                 onClick={handleCaptureNoteFromSelection}
-                className="flex items-center gap-1 rounded-lg bg-zinc-900 hover:bg-zinc-850 px-2.5 py-1 text-[10px] font-bold text-white transition active:scale-95"
+                className="flex items-center gap-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-2.5 py-1 text-[10px] font-bold text-white transition active:scale-95 cursor-pointer"
               >
                 <BookmarkPlus className="h-3 w-3 text-indigo-400 shrink-0" />
-                记笔记
+                {t("viewer.selectionNote")}
               </button>
             </div>
           )}

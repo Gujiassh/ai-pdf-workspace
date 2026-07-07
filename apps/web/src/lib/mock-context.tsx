@@ -2,6 +2,12 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
+export type User = {
+  name: string;
+  email: string;
+  avatarUrl: string;
+};
+
 export type Workspace = {
   id: string;
   name: string;
@@ -79,6 +85,7 @@ export type Tag = {
 };
 
 type WorkspaceContextType = {
+  user: User | null;
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   documents: Document[];
@@ -98,6 +105,8 @@ type WorkspaceContextType = {
   selectedTagIds: string[];
 
   // Actions
+  login: (email: string, name: string) => Promise<void>;
+  logout: () => void;
   switchWorkspace: (id: string) => void;
   createWorkspace: (name: string, description: string | null) => void;
   deleteWorkspace: (id: string) => void;
@@ -208,7 +217,7 @@ const INITIAL_NOTES: Note[] = [
     id: "note-2",
     workspaceId: "ws-llm",
     title: "RAG与Fine-Tune对比",
-    content: "RAG通过外部密集向量数据库（pgvector）拉取最新的真实片段补充大模型输入，无需消耗高昂算力二次预训练，并自带溯源跳页机制，特别适合知识高频更迭的业务。",
+    content: "RAG通过外部密集向量数据库（pgvector）拉取最新的真实片段补充大模型输入，无需消耗高昂算力二次预训练，并自带卷记来源跳页机制，特别适合知识高频更迭的业务。",
     source: {
       documentId: "doc-rag",
       documentName: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.pdf",
@@ -261,6 +270,7 @@ const INITIAL_THREADS: ChatThread[] = [
 ];
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>(INITIAL_WORKSPACES);
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>("ws-llm");
   const [documents, setDocuments] = useState<Document[]>(INITIAL_DOCUMENTS);
@@ -282,8 +292,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) || null;
   const activeThread = threads.find((t) => t.id === activeThreadId) || null;
 
+  // Retrieve user session from localStorage to survive page refresh
+  useEffect(() => {
+    const savedUser = localStorage.getItem("ai_pdf_workspace_user");
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        // clear corrupted data
+        localStorage.removeItem("ai_pdf_workspace_user");
+      }
+    }
+  }, []);
+
   // Auto select active doc for workspace if none selected
   useEffect(() => {
+    if (!user) return;
     const wsDocs = documents.filter((d) => d.workspaceId === currentWorkspaceId && d.status === "ready");
     if (wsDocs.length > 0) {
       setOpenDocumentIds([wsDocs[0].id]);
@@ -304,7 +328,26 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     
     setSelectedTagIds([]);
     setSelectionText(null);
-  }, [currentWorkspaceId, documents, threads]);
+  }, [currentWorkspaceId, documents, threads, user]);
+
+  const login = useCallback(async (email: string, name: string) => {
+    // Simulate API network call delay
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    
+    const mockUser: User = {
+      name: name || "特邀测试员",
+      email,
+      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${email}`
+    };
+    
+    setUser(mockUser);
+    localStorage.setItem("ai_pdf_workspace_user", JSON.stringify(mockUser));
+  }, []);
+
+  const logout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem("ai_pdf_workspace_user");
+  }, []);
 
   const switchWorkspace = useCallback((id: string) => {
     setCurrentWorkspaceId(id);
@@ -363,7 +406,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const closeDocument = useCallback((id: string) => {
     setOpenDocumentIds((prev) => {
       const filtered = prev.filter((docId) => docId !== id);
-      // adjust active document
       if (activeDocumentId === id) {
         setActiveDocumentId(filtered.length > 0 ? filtered[filtered.length - 1] : null);
         setActivePdfPage(1);
@@ -528,8 +570,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       replyText = "主人，您好！目前工作区里还没有可以检索的 PDF 文档汪呜。咱家小狗只能提供通用的问答服务哒~ 如果需要结合您的专属知识库作答，请先在左侧或中间面板拖拽上传一份 PDF 文件并等它解析完毕汪！(外头蹭手心)";
     } else {
       const nameLower = targetDoc.name.toLowerCase();
-      
-      // Inline selected text prompt enhancer
       const selectedQueryNotice = content.includes("这段文字") && selectionText 
         ? `\n\n关于主人在文档中选中的文字（"${selectionText}"）` 
         : "";
@@ -553,7 +593,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           }
         ];
       } else if (nameLower.includes("rag")) {
-        replyText = `结合主人上传的《Retrieval-Augmented Generation...pdf》检索结论，咱为您总结如下汪呜：${selectedQueryNotice}\n\n1. **多模型融合机制**：RAG 结合了预训练参数库与外部稠密向量索引。这可以无需二次精调便实现动态事实载入。\n2. **索引召回跳页**：在向量召回 Top-k 后，系统可精确提供来源的 PDF 物理页码进行证据链追溯，完全杜绝模型幻觉。`;
+        replyText = `结合主人上传的《Retrieval-Augmented Generation...pdf》检索结论，咱为您总结如下汪呜：${selectedQueryNotice}\n\n1. **多模型融合机制**：RAG 结合了预训练参数库与外部密集向量索引。这可以无需二次精调便实现动态事实载入。\n2. **索引召回跳页**：在向量召回 Top-k 后，系统可精确提供来源的 PDF 物理页码进行证据链追溯，完全杜绝模型幻觉。`;
         citationsArr = [
           {
             id: `cit-${Date.now()}-3`,
@@ -564,7 +604,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           }
         ];
       } else if (nameLower.includes("nda")) {
-        replyText = `遵命主人！根据对《NDA_Bilateral_Standard_2026.pdf》的合同条款风险审查：${selectedQueryNotice}\n\n1. **保密期限漏洞**：第 3 页约定保密期限仅在终止后 3 年。如果是核心专有代码或算法专利，3 年极易引发到期后的泄密事件，咱强烈建议修改为永久保密汪！\n2. **惩罚救济条款**：第 4 页第 2 段虽然无固定的数额罚款，但规定守约方可直接申请司法禁止令（Injunctive Relief）遏制泄密扩散。`;
+        replyText = `遵命主人！根据对《NDA_Bilateral_Standard_2026.pdf》的合同条款风险审查：${selectedQueryNotice}\n\n1. **保密期限漏洞**：第 3 页约定保密期限仅在终止后 3 年。如果是核心专有代码或算法专利， 3 年极易引发到期后的泄密事件，咱强烈建议修改为永久保密汪！\n2. **惩罚救济条款**：第 4 页第 2 段虽然无固定的数额罚款，但规定守约方可直接申请司法禁止令（Injunctive Relief）遏制泄密扩散。`;
         citationsArr = [
           {
             id: `cit-${Date.now()}-4`,
@@ -698,6 +738,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   return (
     <WorkspaceContext.Provider
       value={{
+        user,
         workspaces,
         currentWorkspace,
         documents,
@@ -706,7 +747,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         activeThread,
         tags,
         
-        // Self-designed Adaptive Split state values
         openDocumentIds,
         activeDocumentId,
         activePdfPage,
@@ -716,6 +756,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         selectionText,
         selectedTagIds,
         
+        login,
+        logout,
         switchWorkspace,
         createWorkspace,
         deleteWorkspace,

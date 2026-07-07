@@ -1,0 +1,212 @@
+"use client";
+
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+type Locale = "zh" | "en";
+
+const translations = {
+  zh: {
+    "login.title": "AI PDF 知识工作台",
+    "login.subtitle": "基于多工作区隔离的学术论文与合同分析平台",
+    "login.emailPlaceholder": "输入您的电子邮箱...",
+    "login.usernamePlaceholder": "输入您的昵称 (可选)...",
+    "login.button": "进入工作区大盘",
+    "login.buttonLoading": "正在登录...",
+    "login.guestNotice": "提示：输入任意邮箱即可体验全套自研交互，无需密码",
+    "dashboard.title": "工作区主门户",
+    "dashboard.subtitle": "管理独立隔离的知识库切片、系统提示词与对话上下文",
+    "dashboard.createBtn": "创建新工作区",
+    "dashboard.docs": "关联文档",
+    "dashboard.notes": "沉淀笔记",
+    "dashboard.threads": "会话历史",
+    "dashboard.empty": "当前工作区为空，请点击右上角按钮创建第一个工作区汪！",
+    "dashboard.recentDocs": "最近上传文档状态",
+    "dashboard.actions": "快捷动作",
+    "dashboard.role": "角色",
+    "dashboard.confirmDelete": "确定要删除此工作区吗？这将清理所有关联文件和笔记。",
+    "sidebar.docsHeader": "文档库 (标签式开启)",
+    "sidebar.uploadBtn": "上传 PDF",
+    "sidebar.tagsHeader": "标签分类过滤器",
+    "sidebar.threadsHeader": "历史问答会话",
+    "sidebar.newThread": "新会话",
+    "sidebar.logout": "退出登录",
+    "sidebar.placeholder": "新增标签名称",
+    "sidebar.add": "添加",
+    "sidebar.noTags": "暂无标签",
+    "sidebar.noThreads": "暂无历史会话",
+    "viewer.activeDoc": "当前活跃",
+    "viewer.pages": "页",
+    "viewer.tabDashboard": "工作大盘",
+    "viewer.zoom": "缩放",
+    "viewer.noDocTitle": "自研分屏协同模式",
+    "viewer.noDocDesc": "请在左侧侧边栏上传或打开 PDF 文档。在右侧 AI 会话或笔记中可进行多文档联合检索。在 PDF 中划词即可触发悬浮窗动作！",
+    "viewer.highlightTitle": "向量库命中片段 (pgvector Chunk)",
+    "viewer.annotationTitle": "系统知识旁注",
+    "viewer.selectionAsk": "问 AI",
+    "viewer.selectionNote": "记笔记",
+    "chat.header": "大模型学术对话",
+    "chat.scope": "知识检索范围",
+    "chat.scopeAll": "全库已就绪文档联合检索",
+    "chat.placeholder": "针对当前工作区所有就绪文档提问...",
+    "chat.emptyTitle": "新学术对话会话",
+    "chat.emptyDesc": "大模型将根据您选中的 PDF 文本段落或全局向量切片给出带有源页码的可信答疑。",
+    "chat.sourceTitle": "知识来源 (Citations)",
+    "chat.quickNote": "一键记笔记",
+    "chat.noteEditorTitle": "引文存为笔记 (双击保存)",
+    "chat.cancel": "取消",
+    "chat.save": "保存笔记",
+    "chat.inputPlaceholderEmpty": "请先在左侧新建问答会话",
+    "chat.inputPlaceholderNoDocs": "当前工作区无文档就绪，请先上传",
+    "chat.selectionContext": "已载入划词提问上下文",
+    "notes.header": "知识沉淀笔记",
+    "notes.search": "搜索工作区笔记...",
+    "notes.createBtn": "新建笔记",
+    "notes.emptyTitle": "没有找到笔记",
+    "notes.emptyDesc": "您还没有在当前工作区记录笔记。你可以手动新建，或者在问答回答的来源引用中一键生成。",
+    "notes.source": "来源归属",
+    "notes.formTitle": "新建笔记卡片",
+    "notes.formTitleLabel": "标题",
+    "notes.formContentLabel": "正文",
+    "notes.formPlaceholder": "记录灵感、重点摘录或待办要点...",
+    "notes.formSave": "保存",
+    "settings.header": "工作区系统配置",
+    "settings.subtitle": "自定义 AI 的回答角色风格、检索分块和向量提取模型",
+    "settings.promptLabel": "系统提示词 (System Prompt)",
+    "settings.promptPlaceholder": "编写指示来定义 AI 的回复性格和风格...",
+    "settings.saveBtn": "保存系统配置",
+    "settings.saved": "已保存",
+    "settings.providerLabel": "向量化模型适配器 (Embedding Adapter)",
+    "settings.providerOption": "模型提供商",
+    "settings.providerModel": "向量提取模型",
+    "settings.hyperParams": "向量检索超参数 (RAG Hyperparameters)",
+    "settings.topKLabel": "检索召回段数 (Top-k Chunks)",
+    "settings.chunkSizeLabel": "单分段最大字符数 (Chunk Size)",
+    "settings.healthChecks": "健康状态检查 (Health Checks)",
+    "settings.dbStatus": "向量数据库",
+    "settings.s3Status": "对象存储",
+    "settings.connected": "已连接",
+  },
+  en: {
+    "login.title": "AI PDF Workspace",
+    "login.subtitle": "Multi-workspace Isolated Academic & Contract Analysis Platform",
+    "login.emailPlaceholder": "Enter your email address...",
+    "login.usernamePlaceholder": "Your nickname (optional)...",
+    "login.button": "Enter Dashboard",
+    "login.buttonLoading": "Signing in...",
+    "login.guestNotice": "Tip: Enter any email to experience full mock features, no password required",
+    "dashboard.title": "Workspaces Portal",
+    "dashboard.subtitle": "Manage isolated knowledge bases, system prompts, and chat contexts",
+    "dashboard.createBtn": "Create Workspace",
+    "dashboard.docs": "Documents",
+    "dashboard.notes": "Notes Captured",
+    "dashboard.threads": "Conversations",
+    "dashboard.empty": "No workspaces found. Click top right button to create your first workspace!",
+    "dashboard.recentDocs": "Recent Document Statuses",
+    "dashboard.actions": "Quick Actions",
+    "dashboard.role": "Role",
+    "dashboard.confirmDelete": "Are you sure you want to delete this workspace? This will clear all files and notes.",
+    "sidebar.docsHeader": "Documents (Tabbed Open)",
+    "sidebar.uploadBtn": "Upload PDF",
+    "sidebar.tagsHeader": "Tag Filters",
+    "sidebar.threadsHeader": "Chat Threads",
+    "sidebar.newThread": "New Chat",
+    "sidebar.logout": "Sign Out",
+    "sidebar.placeholder": "New tag name",
+    "sidebar.add": "Add",
+    "sidebar.noTags": "No tags",
+    "sidebar.noThreads": "No threads yet",
+    "viewer.activeDoc": "Active Doc",
+    "viewer.pages": "Pages",
+    "viewer.tabDashboard": "Dashboard",
+    "viewer.zoom": "Zoom",
+    "viewer.noDocTitle": "Adaptive Split-Screen",
+    "viewer.noDocDesc": "Please upload or open a PDF document in the left sidebar. AI Q&A will perform joint retrieval across all ready documents in the workspace. Highlight text in PDF to trigger actions!",
+    "viewer.highlightTitle": "pgvector Chunk Highlight",
+    "viewer.annotationTitle": "System Notes",
+    "viewer.selectionAsk": "Ask AI",
+    "viewer.selectionNote": "Clip Note",
+    "chat.header": "AI Academic Chat",
+    "chat.scope": "Knowledge Scope",
+    "chat.scopeAll": "Joint retrieval across all ready documents",
+    "chat.placeholder": "Ask about all ready documents in this workspace...",
+    "chat.emptyTitle": "New Chat Session",
+    "chat.emptyDesc": "AI will retrieve answers from vector database slices and provide clickable source page numbers.",
+    "chat.sourceTitle": "Knowledge Sources (Citations)",
+    "chat.quickNote": "Clip to Note",
+    "chat.noteEditorTitle": "Save Citation as Note (Double Click)",
+    "chat.cancel": "Cancel",
+    "chat.save": "Save Note",
+    "chat.inputPlaceholderEmpty": "Create a new thread first",
+    "chat.inputPlaceholderNoDocs": "No ready documents in this workspace. Upload first.",
+    "chat.selectionContext": "Context loaded from selection",
+    "notes.header": "Captured Notes",
+    "notes.search": "Search notes...",
+    "notes.createBtn": "New Note",
+    "notes.emptyTitle": "No notes found",
+    "notes.emptyDesc": "You haven't recorded any notes in this workspace. Create manually or click Clip to Note on citations.",
+    "notes.source": "Source Origin",
+    "notes.formTitle": "New Note Card",
+    "notes.formTitleLabel": "Title",
+    "notes.formContentLabel": "Content",
+    "notes.formPlaceholder": "Record thoughts, quotes or tasks...",
+    "notes.formSave": "Save",
+    "settings.header": "Workspace Settings",
+    "settings.subtitle": "Customize AI personality, system prompt, and RAG index setups",
+    "settings.promptLabel": "System Prompt",
+    "settings.promptPlaceholder": "Type instructions to guide the AI's persona...",
+    "settings.saveBtn": "Save Configs",
+    "settings.saved": "Saved",
+    "settings.providerLabel": "Embedding Adapter",
+    "settings.providerOption": "Model Provider",
+    "settings.providerModel": "Embedding Model",
+    "settings.hyperParams": "RAG Hyperparameters",
+    "settings.topKLabel": "Top-k Chunks Recall",
+    "settings.chunkSizeLabel": "Max Chunk Size",
+    "settings.healthChecks": "Health Status",
+    "settings.dbStatus": "Vector Database",
+    "settings.s3Status": "Object Storage",
+    "settings.connected": "Connected",
+  }
+};
+
+type I18nContextType = {
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  t: (key: keyof typeof translations.zh) => string;
+};
+
+const I18nContext = createContext<I18nContextType | undefined>(undefined);
+
+export function I18nProvider({ children }: { children: React.ReactNode }) {
+  const [locale, setLocaleState] = useState<Locale>("zh");
+
+  useEffect(() => {
+    const savedLocale = localStorage.getItem("ai_pdf_workspace_locale") as Locale | null;
+    if (savedLocale) {
+      setLocaleState(savedLocale);
+    }
+  }, []);
+
+  const setLocale = (nextLocale: Locale) => {
+    setLocaleState(nextLocale);
+    localStorage.setItem("ai_pdf_workspace_locale", nextLocale);
+  };
+
+  const t = (key: keyof typeof translations.zh): string => {
+    return translations[locale][key] || translations["zh"][key] || String(key);
+  };
+
+  return (
+    <I18nContext.Provider value={{ locale, setLocale, t }}>
+      {children}
+    </I18nContext.Provider>
+  );
+}
+
+export function useTranslation() {
+  const context = useContext(I18nContext);
+  if (context === undefined) {
+    throw new Error("useTranslation must be used within an I18nProvider");
+  }
+  return context;
+}

@@ -17,6 +17,7 @@ export default function WorkspaceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { 
+    user,
     workspaces, 
     currentWorkspace, 
     switchWorkspace, 
@@ -27,18 +28,21 @@ export default function WorkspaceDetailPage() {
 
   const workspaceId = params?.workspaceId as string;
 
-  // Sync route param with context state
+  // Sync route param with context state & check authentication
   useEffect(() => {
+    if (!user) {
+      router.push("/");
+      return;
+    }
     if (workspaceId) {
       const exists = workspaces.some((w) => w.id === workspaceId);
       if (exists) {
         switchWorkspace(workspaceId);
       } else {
-        // Redirect to workspaces list if ID is invalid
-        router.push("/workspaces");
+        router.push("/");
       }
     }
-  }, [workspaceId, workspaces, switchWorkspace, router]);
+  }, [workspaceId, workspaces, switchWorkspace, router, user]);
 
   if (!currentWorkspace) {
     return (

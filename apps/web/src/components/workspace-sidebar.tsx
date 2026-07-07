@@ -2,15 +2,19 @@
 
 import React, { useState, useRef } from "react";
 import { useWorkspace, Workspace, Document } from "@/lib/mock-context";
+import { useTheme } from "@/lib/theme-context";
+import { useTranslation } from "@/lib/i18n-context";
 import { 
   FolderOpen, FileText, Plus, Trash2, MessageSquare, 
   Tag as TagIcon, ChevronDown, UploadCloud, Loader2, 
   CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight,
-  Database, Activity, HelpCircle, Layout
+  Sun, Moon, Globe, LogOut
 } from "lucide-react";
 
 export function WorkspaceSidebar() {
   const {
+    user,
+    logout,
     workspaces,
     currentWorkspace,
     documents,
@@ -33,6 +37,9 @@ export function WorkspaceSidebar() {
     setLeftSidebarOpen,
     setSelectedTagIds,
   } = useWorkspace();
+
+  const { theme, toggleTheme } = useTheme();
+  const { locale, setLocale, t } = useTranslation();
 
   const [showWsMenu, setShowWsMenu] = useState(false);
   const [showCreateWs, setShowCreateWs] = useState(false);
@@ -92,9 +99,9 @@ export function WorkspaceSidebar() {
 
   const getStatusLabel = (doc: Document) => {
     switch (doc.status) {
-      case "uploaded": return `解析中 (${doc.progress}%)`;
-      case "parsing": return `切片中 (${doc.progress}%)`;
-      case "chunking": return `词嵌入 (${doc.progress}%)`;
+      case "uploaded": return `已上传 (${doc.progress}%)`;
+      case "parsing": return `解析文本 (${doc.progress}%)`;
+      case "chunking": return `智能分段 (${doc.progress}%)`;
       case "embedding": return `向量索引 (${doc.progress}%)`;
       case "ready": return "就绪";
       default: return "失败";
@@ -110,6 +117,7 @@ export function WorkspaceSidebar() {
           <button
             onClick={() => setLeftSidebarOpen(true)}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition active:scale-95"
+            title="展开侧边栏"
           >
             <ChevronRight className="h-4.5 w-4.5" />
           </button>
@@ -148,15 +156,28 @@ export function WorkspaceSidebar() {
           <button
             onClick={createThread}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition active:scale-95"
-            title="新会话"
+            title={t("sidebar.newThread")}
           >
             <MessageSquare className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Bottom health dot */}
+        {/* Bottom controls */}
         <div className="flex flex-col items-center gap-4">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" title="V1 DB Ready" />
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-white transition"
+            title="主题切换"
+          >
+            {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </button>
+          <button
+            onClick={logout}
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-500 transition"
+            title={t("sidebar.logout")}
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     );
@@ -178,7 +199,7 @@ export function WorkspaceSidebar() {
             </div>
             <div className="min-w-0">
               <div className="truncate text-xs font-bold text-white">{currentWorkspace?.name}</div>
-              <div className="text-[10px] text-zinc-500 font-semibold">{currentWorkspace?.role}</div>
+              <div className="text-[10px] text-zinc-500 font-semibold">{t("dashboard.role")}: {currentWorkspace?.role}</div>
             </div>
           </div>
           <ChevronDown className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
@@ -188,6 +209,7 @@ export function WorkspaceSidebar() {
         <button
           onClick={() => setLeftSidebarOpen(false)}
           className="p-1.5 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition shrink-0"
+          title="收起侧边栏"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
@@ -204,7 +226,7 @@ export function WorkspaceSidebar() {
                       switchWorkspace(ws.id);
                       setShowWsMenu(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition hover:bg-zinc-850 ${
+                    className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition hover:bg-zinc-855 ${
                       ws.id === currentWorkspace?.id ? "bg-zinc-850 font-semibold text-white" : "text-zinc-400"
                     }`}
                   >
@@ -225,7 +247,7 @@ export function WorkspaceSidebar() {
                   className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-zinc-950 px-2 py-2 text-xs font-bold text-white transition hover:bg-zinc-850"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  新建工作区
+                  {t("dashboard.createBtn")}
                 </button>
               </div>
             </div>
@@ -239,13 +261,13 @@ export function WorkspaceSidebar() {
         {/* Documents section (Tab enabled) */}
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">文档库 (标签式开启)</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-505">{t("sidebar.docsHeader")}</span>
             <button
               onClick={triggerUpload}
               className="flex items-center gap-1 rounded-lg bg-zinc-900 border border-zinc-800 px-2 py-1 text-[10px] font-bold text-white hover:bg-zinc-800 transition active:scale-95"
             >
               <Plus className="h-3 w-3" />
-              上传
+              {t("sidebar.uploadBtn")}
             </button>
             <input
               type="file"
@@ -267,7 +289,6 @@ export function WorkspaceSidebar() {
               </div>
             ) : (
               wsDocs.map((doc) => {
-                const isOpen = openDocumentIds.includes(doc.id);
                 const isActive = activeDocumentId === doc.id;
                 
                 return (
@@ -277,17 +298,17 @@ export function WorkspaceSidebar() {
                     className={`group relative flex cursor-pointer items-center justify-between rounded-xl px-2.5 py-2 transition ${
                       isActive
                         ? "bg-zinc-900 text-white font-semibold"
-                        : "text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-200"
+                        : "text-zinc-450 hover:bg-zinc-900/40 hover:text-zinc-200"
                     }`}
                   >
                     <div className="flex min-w-0 flex-1 items-start gap-2">
                       <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${getStatusColor(doc.status)}`} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-xs">{doc.name}</div>
-                        <div className="mt-0.5 flex items-center gap-1.5 text-[9px] text-zinc-500 font-medium">
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[9px] text-zinc-500 font-semibold">
                           <span>{doc.size}</span>
                           <span>•</span>
-                          <span>{doc.pagesCount} 页</span>
+                          <span>{doc.pagesCount} {t("viewer.pages")}</span>
                           {doc.status !== "ready" && (
                             <>
                               <span>•</span>
@@ -326,26 +347,26 @@ export function WorkspaceSidebar() {
 
         {/* Tags management */}
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">标签分类过滤器</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-505">{t("sidebar.tagsHeader")}</span>
           <form onSubmit={handleAddTag} className="mt-2.5 flex gap-1.5">
             <input
               type="text"
-              placeholder="新增标签"
+              placeholder={t("sidebar.placeholder")}
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
-              className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs outline-none text-white focus:border-zinc-700"
+              className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs outline-none text-white focus:border-zinc-700"
             />
             <button 
               type="submit" 
               className="rounded-lg bg-zinc-900 border border-zinc-800 px-2 py-1 text-[10px] font-bold text-white hover:bg-zinc-800 active:scale-95"
             >
-              新增
+              {t("sidebar.add")}
             </button>
           </form>
 
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {wsTags.length === 0 ? (
-              <span className="text-[10px] text-zinc-600">暂无标签</span>
+              <span className="text-[10px] text-zinc-600">{t("sidebar.noTags")}</span>
             ) : (
               wsTags.map((tag) => {
                 const isSelected = selectedTagIds.includes(tag.id);
@@ -356,7 +377,7 @@ export function WorkspaceSidebar() {
                     className={`flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-[9px] font-bold transition ${
                       isSelected
                         ? "text-zinc-950 font-black"
-                        : "bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
+                        : "bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-350 hover:border-zinc-700"
                     }`}
                     style={{ backgroundColor: isSelected ? tag.color : undefined }}
                   >
@@ -372,10 +393,10 @@ export function WorkspaceSidebar() {
         {/* Chat History section */}
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">历史问答会话</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-505">{t("sidebar.threadsHeader")}</span>
             <button
               onClick={createThread}
-              className="flex items-center gap-0.5 rounded-lg bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-[10px] font-semibold text-white hover:bg-zinc-800 active:scale-95"
+              className="flex items-center gap-0.5 rounded-lg bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-zinc-800 active:scale-95"
             >
               <Plus className="h-3 w-3" />
             </button>
@@ -383,7 +404,7 @@ export function WorkspaceSidebar() {
 
           <div className="mt-2.5 space-y-0.5">
             {wsThreads.length === 0 ? (
-              <span className="text-[10px] text-zinc-600 block">暂无历史会话</span>
+              <span className="text-[10px] text-zinc-650 block">{t("sidebar.noThreads")}</span>
             ) : (
               wsThreads.map((th) => (
                 <div
@@ -397,7 +418,7 @@ export function WorkspaceSidebar() {
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <MessageSquare className="h-3 w-3 text-zinc-600" />
-                    <span className="truncate text-xs">{th.title || "新会话"}</span>
+                    <span className="truncate text-xs">{th.title || t("sidebar.newThread")}</span>
                   </div>
                   <button
                     onClick={(e) => {
@@ -416,11 +437,58 @@ export function WorkspaceSidebar() {
 
       </div>
 
+      {/* Footer controls with language & theme selector */}
+      <div className="border-t border-zinc-850 p-3 bg-zinc-950 flex items-center justify-between text-xs shrink-0">
+        <div className="flex items-center gap-2">
+          {user && (
+            <img 
+              src={user.avatarUrl} 
+              alt={user.name} 
+              className="h-7 w-7 rounded-lg bg-zinc-800 border border-zinc-800" 
+            />
+          )}
+          <div className="text-left leading-none">
+            <div className="text-[10px] font-bold text-white truncate max-w-[80px]">{user?.name}</div>
+            <div className="text-[9px] text-zinc-500 truncate max-w-[80px] mt-0.5">{user?.email}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          {/* Language Switch */}
+          <button
+            onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+            className="p-1 rounded-lg hover:bg-zinc-900 hover:text-white transition text-zinc-500 font-bold text-[10px] flex items-center gap-0.5"
+            title={locale === "zh" ? "Switch to English" : "切换为中文"}
+          >
+            <Globe className="h-3.5 w-3.5" />
+            {locale === "zh" ? "EN" : "中"}
+          </button>
+
+          {/* Theme Switch */}
+          <button
+            onClick={toggleTheme}
+            className="p-1 rounded-lg hover:bg-zinc-900 hover:text-white transition text-zinc-500"
+            title="主题切换"
+          >
+            {theme === "light" ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+          </button>
+
+          {/* Logout */}
+          <button
+            onClick={logout}
+            className="p-1 rounded-lg hover:bg-zinc-900 hover:text-rose-400 transition text-zinc-500"
+            title={t("sidebar.logout")}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
       {/* New Workspace modal overlay */}
       {showCreateWs && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl text-zinc-300">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">新建知识库工作区</h3>
+          <div className="w-full max-w-md rounded-3xl border border-zinc-805 bg-zinc-900 p-6 shadow-2xl text-zinc-300">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t("dashboard.createBtn")}</h3>
             <p className="mt-1 text-[10px] text-zinc-500">隔离专有的 PDF 文档、模型 Prompt 和对话记忆上下文。</p>
             <form onSubmit={handleCreateWorkspace} className="mt-4 space-y-3.5">
               <div>
@@ -428,10 +496,10 @@ export function WorkspaceSidebar() {
                 <input
                   type="text"
                   required
-                  placeholder="例如: 财务报表风控、大模型开发文档"
+                  placeholder="例如: 财务报表风控、大模型开发文档..."
                   value={newWsName}
                   onChange={(e) => setNewWsName(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs outline-none text-white focus:border-zinc-700"
+                  className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs outline-none text-white focus:border-zinc-700"
                 />
               </div>
               <div>
@@ -441,7 +509,7 @@ export function WorkspaceSidebar() {
                   value={newWsDesc}
                   onChange={(e) => setNewWsDesc(e.target.value)}
                   rows={2}
-                  className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs outline-none text-white focus:border-zinc-700 resize-none"
+                  className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs outline-none text-white focus:border-zinc-700 resize-none"
                 />
               </div>
               <div className="mt-5 flex justify-end gap-2">

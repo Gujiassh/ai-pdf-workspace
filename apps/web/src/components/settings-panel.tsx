@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useWorkspace } from "@/lib/mock-context";
+import { useTranslation } from "@/lib/i18n-context";
 import { 
   Save, Cpu, Layers, Sliders, Check, SlidersHorizontal, 
   Settings2, Activity
@@ -12,6 +13,8 @@ export function SettingsPanel() {
     currentWorkspace,
     updateSystemPrompt,
   } = useWorkspace();
+
+  const { t } = useTranslation();
 
   const [prompt, setPrompt] = useState("");
   const [isSaved, setIsSaved] = useState(false);
@@ -49,12 +52,12 @@ export function SettingsPanel() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-white dark:bg-zinc-950 transition-colors duration-200">
       {/* Header */}
-      <div className="border-b border-zinc-200/80 px-4 py-3">
-        <h3 className="text-sm font-bold text-zinc-900">工作区配置配置</h3>
-        <span className="text-[10px] text-zinc-400 font-medium">
-          自定义 AI 的回答角色风格、检索分块和向量提取模型
+      <div className="border-b border-zinc-200 dark:border-zinc-800 px-4 py-3 transition">
+        <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t("settings.header")}</h3>
+        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold block mt-0.5">
+          {t("settings.subtitle")}
         </span>
       </div>
 
@@ -65,14 +68,14 @@ export function SettingsPanel() {
         <form onSubmit={handleSave} className="space-y-3">
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Settings2 className="h-3.5 w-3.5 text-zinc-400" />
-                系统提示词 (System Prompt)
+                {t("settings.promptLabel")}
               </label>
               {isSaved && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 animate-in fade-in duration-200">
                   <Check className="h-3 w-3" />
-                  已保存
+                  {t("settings.saved")}
                 </span>
               )}
             </div>
@@ -81,36 +84,36 @@ export function SettingsPanel() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={6}
-              placeholder="编写指示来定义 AI 的回复性格和风格..."
-              className="mt-2 w-full rounded-xl border border-zinc-200 bg-zinc-50/30 px-3 py-2.5 text-xs outline-none focus:border-zinc-400 focus:bg-white transition leading-5 resize-none"
+              placeholder={t("settings.promptPlaceholder")}
+              className="mt-2 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950 px-3 py-2.5 text-xs outline-none text-zinc-800 dark:text-zinc-200 focus:border-zinc-400 dark:focus:border-zinc-700 focus:bg-white dark:focus:bg-zinc-950 transition leading-5 resize-none"
             />
           </div>
 
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-zinc-800 active:scale-98"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 dark:bg-white px-4 py-2.5 text-xs font-bold text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition active:scale-98 cursor-pointer"
           >
             <Save className="h-3.5 w-3.5" />
-            保存系统提示词
+            {t("settings.saveBtn")}
           </button>
         </form>
 
-        <div className="h-px bg-zinc-100" />
+        <div className="h-px bg-zinc-150 dark:bg-zinc-850" />
 
-        {/* Model and parameters settings */}
+        {/* Model adapter */}
         <div className="space-y-4">
-          <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+          <h4 className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
             <Cpu className="h-3.5 w-3.5 text-zinc-400" />
-            向量化模型适配器 (Embedding Adapter)
+            {t("settings.providerLabel")}
           </h4>
 
           <div className="grid gap-3.5 text-xs">
             <div>
-              <label className="block text-[10px] font-semibold text-zinc-500">模型提供商</label>
+              <label className="block text-[10px] font-semibold text-zinc-500">{t("settings.providerOption")}</label>
               <select
                 value={modelType}
                 onChange={handleModelChange}
-                className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 py-2 outline-none focus:border-zinc-400 focus:bg-white transition"
+                className="mt-1.5 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900 px-2.5 py-2 text-xs outline-none text-zinc-800 dark:text-zinc-200 focus:border-zinc-400 focus:bg-white dark:focus:bg-zinc-950 transition"
               >
                 <option value="openai">OpenAI (SaaS 托管)</option>
                 <option value="ollama">Ollama (本地运行运行时)</option>
@@ -118,28 +121,28 @@ export function SettingsPanel() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold text-zinc-500">向量提取模型</label>
-              <div className="mt-1.5 rounded-xl border border-zinc-150 bg-zinc-50/50 p-2.5 font-mono text-[10px] text-zinc-600">
+              <label className="block text-[10px] font-semibold text-zinc-500">{t("settings.providerModel")}</label>
+              <div className="mt-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900 px-2.5 py-2 font-mono text-[9px] text-zinc-500 dark:text-zinc-400">
                 {embeddingModel}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="h-px bg-zinc-100" />
+        <div className="h-px bg-zinc-150 dark:bg-zinc-850" />
 
-        {/* Retrieval hyperparameters */}
+        {/* Hyperparameters */}
         <div className="space-y-4">
-          <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+          <h4 className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
             <Sliders className="h-3.5 w-3.5 text-zinc-400" />
-            向量检索超参数 (RAG Hyperparameters)
+            {t("settings.hyperParams")}
           </h4>
 
           <div className="space-y-4 text-xs">
             <div>
-              <div className="flex justify-between text-[10px] font-semibold text-zinc-500">
-                <span>检索召回段数 (Top-k Chunks)</span>
-                <span className="font-bold text-zinc-900">{topK} 个段落</span>
+              <div className="flex justify-between text-[10px] font-semibold text-zinc-550 dark:text-zinc-400">
+                <span>{t("settings.topKLabel")}</span>
+                <span className="font-bold text-zinc-900 dark:text-white">{topK} chunks</span>
               </div>
               <input
                 type="range"
@@ -148,14 +151,14 @@ export function SettingsPanel() {
                 step="1"
                 value={topK}
                 onChange={(e) => setTopK(Number(e.target.value))}
-                className="mt-2 w-full accent-zinc-900"
+                className="mt-2 w-full accent-zinc-900 dark:accent-white"
               />
             </div>
 
             <div>
-              <div className="flex justify-between text-[10px] font-semibold text-zinc-500">
-                <span>单分段最大字符数 (Chunk Size)</span>
-                <span className="font-bold text-zinc-900">{chunkSize} tokens</span>
+              <div className="flex justify-between text-[10px] font-semibold text-zinc-550 dark:text-zinc-400">
+                <span>{t("settings.chunkSizeLabel")}</span>
+                <span className="font-bold text-zinc-900 dark:text-white">{chunkSize} tokens</span>
               </div>
               <input
                 type="range"
@@ -164,33 +167,33 @@ export function SettingsPanel() {
                 step="50"
                 value={chunkSize}
                 onChange={(e) => setChunkSize(Number(e.target.value))}
-                className="mt-2 w-full accent-zinc-900"
+                className="mt-2 w-full accent-zinc-900 dark:accent-white"
               />
             </div>
           </div>
         </div>
 
-        <div className="h-px bg-zinc-100" />
+        <div className="h-px bg-zinc-150 dark:bg-zinc-850" />
 
-        {/* System metrics overview */}
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50/30 p-3.5">
-          <h5 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+        {/* Metrics checks */}
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-900/10 p-3.5">
+          <h5 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-wider flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5 text-zinc-400" />
-            健康状态检查 (Health Checks)
+            {t("settings.healthChecks")}
           </h5>
-          <dl className="mt-2.5 grid grid-cols-2 gap-2 text-[10px] text-zinc-500 font-medium">
+          <dl className="mt-2.5 grid grid-cols-2 gap-2 text-[9px] text-zinc-500 dark:text-zinc-400 font-semibold">
             <div>
-              <dt>向量数据库</dt>
-              <dd className="text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+              <dt>{t("settings.dbStatus")}</dt>
+              <dd className="text-emerald-600 dark:text-emerald-500 font-bold flex items-center gap-1 mt-0.5">
                 <Check className="h-3 w-3 shrink-0" />
-                pgvector (Connected)
+                {t("settings.connected")}
               </dd>
             </div>
             <div>
-              <dt>对象存储</dt>
-              <dd className="text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+              <dt>{t("settings.s3Status")}</dt>
+              <dd className="text-emerald-600 dark:text-emerald-500 font-bold flex items-center gap-1 mt-0.5">
                 <Check className="h-3 w-3 shrink-0" />
-                MinIO (Connected)
+                {t("settings.connected")}
               </dd>
             </div>
           </dl>
