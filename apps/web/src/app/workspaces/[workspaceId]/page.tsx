@@ -108,18 +108,6 @@ export default function WorkspaceDetailPage() {
             {activeTab === "notes" && <NotesPanel />}
             {activeTab === "settings" && <SettingsPanel />}
           </div>
-
-          {/* Global Exit home Link */}
-          <div className="border-t border-zinc-100 dark:border-zinc-800 p-3 bg-zinc-50/50 dark:bg-zinc-900/30 flex justify-between items-center text-[10px] text-zinc-450 dark:text-zinc-500 font-medium shrink-0">
-            <Link 
-              href="/workspaces" 
-              className="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-300 transition"
-            >
-              <Home className="h-3 w-3" />
-              返回主大盘
-            </Link>
-            <span>v1.0 Self-Design Edition</span>
-          </div>
         </div>
       )}
     </div>

@@ -155,12 +155,9 @@ export function NotesPanel() {
         )}
 
         {filteredNotes.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-center p-6 pt-16">
-            <BookOpen className="h-8 w-8 text-zinc-300 dark:text-zinc-700" />
-            <h4 className="mt-3 text-xs font-semibold text-zinc-700 dark:text-zinc-400">{t("notes.emptyTitle")}</h4>
-            <p className="mt-1 w-64 text-[10px] leading-5 text-zinc-400 dark:text-zinc-500">
-              {t("notes.emptyDesc")}
-            </p>
+          <div className="flex h-full flex-col items-center justify-center text-center p-6 text-zinc-300 dark:text-zinc-700">
+            <BookOpen className="h-6 w-6 animate-pulse" />
+            <span className="mt-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-600">{t("notes.emptyTitle")}</span>
           </div>
         ) : (
           filteredNotes.map((note) => (

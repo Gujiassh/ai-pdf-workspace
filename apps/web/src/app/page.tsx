@@ -186,12 +186,6 @@ export default function Home() {
       <section className="mt-12">
         <WorkspaceList />
       </section>
-
-      {/* Footer copyright */}
-      <footer className="mt-16 border-t border-zinc-200 dark:border-zinc-800 pt-6 flex justify-between items-center text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold">
-        <span>© 2026 AI PDF Workspace • 纯前端 Mock 演示工程</span>
-        <span>Developer Mode</span>
-      </footer>
     </main>
   );
 }

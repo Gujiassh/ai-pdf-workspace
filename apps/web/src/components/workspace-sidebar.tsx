@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Link from "next/link";
 import { useWorkspace, Workspace, Document } from "@/lib/mock-context";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "@/lib/i18n-context";
@@ -8,7 +9,7 @@ import {
   FolderOpen, FileText, Plus, Trash2, MessageSquare, 
   Tag as TagIcon, ChevronDown, UploadCloud, Loader2, 
   CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight,
-  Sun, Moon, Globe, LogOut
+  Sun, Moon, Globe, LogOut, Home
 } from "lucide-react";
 
 export function WorkspaceSidebar() {
@@ -188,7 +189,16 @@ export function WorkspaceSidebar() {
     <div className="flex h-full w-72 flex-col border-r border-zinc-800 bg-zinc-950 shrink-0 transition-all duration-300 text-zinc-300">
       
       {/* Expanded Header */}
-      <div className="relative border-b border-zinc-800/80 p-4 flex items-center justify-between gap-3">
+      <div className="relative border-b border-zinc-800/80 p-4 flex items-center justify-between gap-2.5">
+        {/* Home icon button - Return to Home */}
+        <Link
+          href="/"
+          className="p-1.5 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition shrink-0 cursor-pointer flex items-center justify-center"
+          title="返回主页"
+        >
+          <Home className="h-4 w-4" />
+        </Link>
+
         <button
           onClick={() => setShowWsMenu(!showWsMenu)}
           className="flex-1 flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-left shadow-sm transition hover:border-zinc-700 hover:bg-zinc-900 active:scale-[0.98]"

@@ -111,14 +111,9 @@ export function ChatPanel() {
       {/* Messages list */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {!activeThread || activeThread.messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-center p-6 pt-16">
-            <MessageCircleQuestion className="h-8 w-8 text-zinc-300 dark:text-zinc-700 animate-pulse" />
-            <h4 className="mt-3 text-xs font-semibold text-zinc-700 dark:text-zinc-400">{t("chat.emptyTitle")}</h4>
-            <p className="mt-1 w-60 text-[10px] leading-5 text-zinc-400 dark:text-zinc-500">
-              {docsReady 
-                ? t("chat.emptyDesc")
-                : t("chat.inputPlaceholderNoDocs")}
-            </p>
+          <div className="flex h-full flex-col items-center justify-center text-center p-6 text-zinc-300 dark:text-zinc-700">
+            <MessageCircleQuestion className="h-6 w-6 animate-pulse" />
+            <span className="mt-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-600">{t("chat.emptyTitle")}</span>
           </div>
         ) : (
           activeThread.messages.map((msg) => (
