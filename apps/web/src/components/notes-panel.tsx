@@ -122,18 +122,18 @@ export function NotesPanel() {
                 placeholder="输入笔记小标题..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none focus:border-zinc-400"
+                className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
               />
             </div>
             <div>
-              <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{t("notes.formContentLabel")}</label>
+              <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-wider">{t("notes.formContentLabel")}</label>
               <textarea
                 required
                 placeholder={t("notes.formPlaceholder")}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
-                className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none focus:border-zinc-400 resize-none"
+                className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none text-zinc-800 dark:text-zinc-100 focus:border-zinc-400 resize-none"
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">

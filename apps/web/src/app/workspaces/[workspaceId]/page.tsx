@@ -46,7 +46,7 @@ export default function WorkspaceDetailPage() {
 
   if (!currentWorkspace) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 font-medium">
+      <div className="flex h-screen w-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950 text-sm text-zinc-500 font-medium">
         正在载入工作区环境...
       </div>
     );
