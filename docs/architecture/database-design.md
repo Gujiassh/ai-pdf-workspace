@@ -338,7 +338,7 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `mime_type`
 - `byte_size`
 - `page_count nullable`
-- `status`，例如 `uploaded/parsing/chunking/embedding/ready/failed`
+- `status`，例如 `pending_upload/uploaded/parsing/chunking/embedding/ready/failed/deleting/deleted`
 - `current_index_version int default 1`
 - `latest_ingestion_job_id nullable`
 - `last_error_code nullable`
@@ -402,17 +402,18 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `char_end int nullable`
 - `index_version int`
 - `embedding vector(1024)`
+- `embedding_dimensions int`
 - `embedding_provider`
 - `embedding_model`
 - `embedding_version`
 - `created_at`
 
-为什么这里直接用 `vector(1024)`：
+为什么这里同时保留 `vector(1024)` 和 `embedding_dimensions`：
 
 - 当前本地 `qwen3-embedding:0.6b` 是 `1024` 维
 - OpenAI 也可以在调用时收敛到 `1024` 维
-- 统一维度后，V1 可以只维护一套 pgvector 索引
-- 这样数据库设计和检索路径都简单很多
+- V1 的在线向量列仍统一为 `1024` 维，便于只维护一套 pgvector 索引
+- 同时保留 `embedding_dimensions` 字段，是为了把“当时用的维度”作为元数据记录下来，避免后续 provider 或维度策略变化时丢失上下文
 
 关键约束：
 
@@ -809,6 +810,7 @@ erDiagram
         int chunk_index
         int index_version
         vector embedding
+        int embedding_dimensions
     }
 
     INGESTION_JOBS {

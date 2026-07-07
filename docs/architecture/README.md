@@ -9,7 +9,9 @@
 - `detailed-system-architecture.md`：可指导开发的详细架构设计
 - `feature-map.md`：系统功能地图与拆分入口
 - `database-design.md`：数据库设计、表职责与 ER 图
-- `learning-roadmap.md`：项目学习路线、分阶段掌握点与练习建议
+- `api-contracts.md`：浏览器、BFF、FastAPI 之间的接口契约设计
+- `job-state-machine.md`：文档入库、重试、重建索引、删除的状态机设计
+- `implementation-roadmap.md`：项目实施路线与阶段目标
 
 建议阅读顺序：
 
@@ -17,4 +19,6 @@
 2. `../ssot/system-architecture.md`
 3. `detailed-system-architecture.md`
 4. `database-design.md`
-5. `learning-roadmap.md`
+5. `api-contracts.md`
+6. `job-state-machine.md`
+7. `implementation-roadmap.md`
