@@ -11,7 +11,7 @@ import {
   CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight,
   Sun, Moon, Globe, LogOut, Home
 } from "lucide-react";
-
+import { CreateWorkspaceDialog } from "./create-workspace-dialog";
 export function WorkspaceSidebar() {
   const {
     user,
@@ -44,8 +44,6 @@ export function WorkspaceSidebar() {
 
   const [showWsMenu, setShowWsMenu] = useState(false);
   const [showCreateWs, setShowCreateWs] = useState(false);
-  const [newWsName, setNewWsName] = useState("");
-  const [newWsDesc, setNewWsDesc] = useState("");
   const [newTagName, setNewTagName] = useState("");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -67,15 +65,7 @@ export function WorkspaceSidebar() {
     fileInputRef.current?.click();
   };
 
-  const handleCreateWorkspace = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newWsName.trim()) return;
-    createWorkspace(newWsName, newWsDesc || null);
-    setNewWsName("");
-    setNewWsDesc("");
-    setShowCreateWs(false);
-    setShowWsMenu(false);
-  };
+
 
   const handleAddTag = (e: React.FormEvent) => {
     e.preventDefault();
@@ -495,52 +485,15 @@ export function WorkspaceSidebar() {
       </div>
 
       {/* New Workspace modal overlay */}
-      {showCreateWs && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl text-zinc-300">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t("dashboard.createBtn")}</h3>
-            <p className="mt-1 text-[10px] text-zinc-500">隔离专有的 PDF 文档、模型 Prompt 和对话记忆上下文。</p>
-            <form onSubmit={handleCreateWorkspace} className="mt-4 space-y-3.5">
-              <div>
-                <label className="block text-[10px] font-semibold text-zinc-500">工作区名称</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="例如: 财务报表风控、大模型开发文档..."
-                  value={newWsName}
-                  onChange={(e) => setNewWsName(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs outline-none text-white focus:border-zinc-700"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-semibold text-zinc-500">用途描述</label>
-                <textarea
-                  placeholder="该工作区主要收纳的文件类型说明..."
-                  value={newWsDesc}
-                  onChange={(e) => setNewWsDesc(e.target.value)}
-                  rows={2}
-                  className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs outline-none text-white focus:border-zinc-700 resize-none"
-                />
-              </div>
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateWs(false)}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-800"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition"
-                >
-                  创建并进入
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateWorkspaceDialog
+        show={showCreateWs}
+        onClose={() => setShowCreateWs(false)}
+        onCreate={(name, desc) => {
+          createWorkspace(name, desc);
+          setShowWsMenu(false);
+        }}
+        t={t}
+      />
     </div>
   );
 }

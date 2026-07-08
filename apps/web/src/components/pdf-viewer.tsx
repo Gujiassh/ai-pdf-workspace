@@ -7,11 +7,11 @@ import {
   ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText, 
   X, Layout, ChevronRight as ChevronRightIcon,
   ArrowRightLeft, MousePointerSquareDashed,
-  BookmarkPlus, MessageSquareHeart, AlignLeft, Layers
+  AlignLeft, Layers
 } from "lucide-react";
 
 import { OutlineTree } from "./outline-tree";
-
+import { SelectionPopover } from "./selection-popover";
 export function PdfViewer() {
   const {
     currentWorkspace,
@@ -510,28 +510,14 @@ export function PdfViewer() {
             </div>
 
             {/* Selection Popover action popover menu */}
-            {showSelectionPopup && selectionText && (
-              <div
-                className="absolute z-30 flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2 py-1.5 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150"
-                style={{ left: `${popupPos.x}px`, top: `${popupPos.y}px` }}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <button
-                  onClick={handleAskAIAboutSelection}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-2.5 py-1 text-[10px] font-bold text-white transition active:scale-95 cursor-pointer"
-                >
-                  <MessageSquareHeart className="h-3 w-3 text-cyan-400 shrink-0" />
-                  {t("viewer.selectionAsk")}
-                </button>
-                <button
-                  onClick={handleCaptureNoteFromSelection}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-2.5 py-1 text-[10px] font-bold text-white transition active:scale-95 cursor-pointer"
-                >
-                  <BookmarkPlus className="h-3 w-3 text-indigo-400 shrink-0" />
-                  {t("viewer.selectionNote")}
-                </button>
-              </div>
-            )}
+            <SelectionPopover
+              show={showSelectionPopup}
+              text={selectionText}
+              pos={popupPos}
+              onAskAI={handleAskAIAboutSelection}
+              onCaptureNote={handleCaptureNoteFromSelection}
+              t={t}
+            />
 
           </div>
         </div>
