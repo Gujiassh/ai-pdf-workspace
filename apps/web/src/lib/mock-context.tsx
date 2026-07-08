@@ -270,6 +270,35 @@ const SEED_THREADS: ChatThread[] = [
   }
 ];
 
+const isUserValid = (u: any): u is User => {
+  return u && typeof u.email === "string" && typeof u.name === "string" && typeof u.avatarUrl === "string";
+};
+
+const areWorkspacesValid = (arr: any): arr is Workspace[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(w => w && typeof w.id === "string" && typeof w.name === "string" && typeof w.systemPrompt === "string");
+};
+
+const areDocumentsValid = (arr: any): arr is Document[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(d => d && typeof d.id === "string" && typeof d.workspaceId === "string" && typeof d.name === "string" && typeof d.pagesCount === "number");
+};
+
+const areNotesValid = (arr: any): arr is Note[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(n => n && typeof n.id === "string" && typeof n.workspaceId === "string" && typeof n.title === "string" && typeof n.content === "string");
+};
+
+const areThreadsValid = (arr: any): arr is ChatThread[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(t => t && typeof t.id === "string" && typeof t.workspaceId === "string" && typeof t.title === "string" && Array.isArray(t.messages));
+};
+
+const areTagsValid = (arr: any): arr is Tag[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(t => t && typeof t.id === "string" && typeof t.workspaceId === "string" && typeof t.name === "string");
+};
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { locale } = useTranslation();
   
@@ -299,7 +328,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const savedUser = localStorage.getItem("ai_pdf_workspace_user");
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        if (isUserValid(parsed)) {
+          setUser(parsed);
+        } else {
+          localStorage.removeItem("ai_pdf_workspace_user");
+        }
       } catch (e) {
         localStorage.removeItem("ai_pdf_workspace_user");
       }
@@ -309,7 +343,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const localWs = localStorage.getItem("db_workspaces");
     if (localWs) {
       try {
-        setWorkspaces(JSON.parse(localWs));
+        const parsed = JSON.parse(localWs);
+        if (areWorkspacesValid(parsed)) {
+          setWorkspaces(parsed);
+        } else {
+          setWorkspaces(SEED_WORKSPACES);
+          localStorage.setItem("db_workspaces", JSON.stringify(SEED_WORKSPACES));
+        }
       } catch (e) {
         setWorkspaces(SEED_WORKSPACES);
       }
@@ -322,7 +362,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const localDocs = localStorage.getItem("db_documents");
     if (localDocs) {
       try {
-        setDocuments(JSON.parse(localDocs));
+        const parsed = JSON.parse(localDocs);
+        if (areDocumentsValid(parsed)) {
+          setDocuments(parsed);
+        } else {
+          setDocuments(SEED_DOCUMENTS);
+          localStorage.setItem("db_documents", JSON.stringify(SEED_DOCUMENTS));
+        }
       } catch (e) {
         setDocuments(SEED_DOCUMENTS);
       }
@@ -335,7 +381,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const localNotes = localStorage.getItem("db_notes");
     if (localNotes) {
       try {
-        setNotes(JSON.parse(localNotes));
+        const parsed = JSON.parse(localNotes);
+        if (areNotesValid(parsed)) {
+          setNotes(parsed);
+        } else {
+          setNotes(SEED_NOTES);
+          localStorage.setItem("db_notes", JSON.stringify(SEED_NOTES));
+        }
       } catch (e) {
         setNotes(SEED_NOTES);
       }
@@ -348,7 +400,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const localThreads = localStorage.getItem("db_threads");
     if (localThreads) {
       try {
-        setThreads(JSON.parse(localThreads));
+        const parsed = JSON.parse(localThreads);
+        if (areThreadsValid(parsed)) {
+          setThreads(parsed);
+        } else {
+          setThreads(SEED_THREADS);
+          localStorage.setItem("db_threads", JSON.stringify(SEED_THREADS));
+        }
       } catch (e) {
         setThreads(SEED_THREADS);
       }
@@ -361,7 +419,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const localTags = localStorage.getItem("db_tags");
     if (localTags) {
       try {
-        setTags(JSON.parse(localTags));
+        const parsed = JSON.parse(localTags);
+        if (areTagsValid(parsed)) {
+          setTags(parsed);
+        } else {
+          setTags(SEED_TAGS);
+          localStorage.setItem("db_tags", JSON.stringify(SEED_TAGS));
+        }
       } catch (e) {
         setTags(SEED_TAGS);
       }
