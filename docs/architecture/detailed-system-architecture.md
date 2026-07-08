@@ -215,7 +215,7 @@ ai-pdf-workspace/
 
 > [!IMPORTANT]
 > **当前实现态 (Current Interactive Frontend Prototype)**:  
-> 目前处于高仿真前端原型调试阶段，真实项目依赖仅有 `next` / `react` / `react-dom` / `lucide-react`。数据与会话状态由自定义的 [mock-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/mock-context.tsx) (LocalStorage 沙盒)、`theme-context` 和 `i18n-context` 统一模拟，尚未接入网络 I/O。
+> 目前处于高仿真前端原型调试阶段，真实项目依赖仅有 `next` / `react` / `react-dom` / `lucide-react`。主页面与工作区控制台主体的数据、会话与交互状态仍主要由自定义的 `mock-context.tsx`（LocalStorage 沙盒）、`theme-context` 和 `i18n-context` 统一模拟；同时，最小 `workspace` BFF 路由已经落地，用于工作区列表/详情的真实接口边界验证。
 > 
 > **规划目标态 (Target Production Architecture)**:  
 > 后续对接真实 FastAPI 服务时，将全面引入并升级至以下生产级模块架构：
@@ -297,8 +297,10 @@ apps/web/src/
         chat/page.tsx
         notes/page.tsx
         settings/page.tsx
-    api/                 # [规划目标，暂未落地]
-      internal/
+    api/                 # [当前已落地最小 workspace BFF；其余业务路由仍属目标态]
+      workspaces/route.ts
+      workspaces/[workspaceId]/route.ts
+      internal/          # [规划目标，暂未落地]
         chat/route.ts
         upload-session/route.ts
         finalize-upload/route.ts

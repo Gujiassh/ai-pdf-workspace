@@ -23,7 +23,21 @@
 
 ## 2. 运行与编译 (Development)
 
-运行开发服务器：
+### 在仓库根目录运行
+
+启动 Web 开发服务器：
+```bash
+pnpm dev
+```
+
+构建 Web：
+```bash
+pnpm build:web
+```
+
+### 在 `apps/web` 目录内单独运行
+
+启动开发服务器：
 ```bash
 pnpm dev
 ```
