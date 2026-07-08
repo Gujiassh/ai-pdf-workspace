@@ -145,71 +145,52 @@ FastAPI 主业务服务。
 
 ## 4. 前端架构
 
-### 4.1 组成
+### 4.1 组成与组件划分
 
-前端采用 `Next.js App Router + React Query + AI SDK UI + shadcn/ui`。
+前端采用 `Next.js App Router + React Context (SSoT State Hub) + Tailwind CSS + Lucide Icons`。
+为严格执行“单文件物理行数 ≤ 500 行”规范，模块架构划分为：
 
-前端分为四块：
-
-1. `Shell`
-   - 顶部导航
-   - Workspace 切换
-   - 全局状态入口
+1. `Shell & Navigation`
+   - [WorkspaceSidebar](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/workspace-sidebar.tsx)：折叠/抽屉式导航栏。
+   - [CreateWorkspaceDialog](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/create-workspace-dialog.tsx)：工作区创建 Modal 对话框。
+   - [WorkspaceList](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/workspace-list.tsx)：主门户 100% 宽度 cardless 行列表。
 
 2. `Document Workspace UI`
-   - 文档列表
-   - PDF Viewer
-   - 检索结果面板
+   - [PdfViewer](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/pdf-viewer.tsx)：标签式多 PDF 阅读器。
+   - [OutlineTree](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/outline-tree.tsx)：文档章节目录大纲树，支持基于 `${activeDocumentId}-${node.page}-${node.title}` 复合 Key 进行无冲突折叠。
+   - [SelectionPopover](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/selection-popover.tsx)：划词即时问答/记录笔记浮空菜单。
 
 3. `Knowledge UI`
-   - Chat
-   - Notes
-   - Tags
-   - Prompt Settings
+   - [ChatPanel](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/chat-panel.tsx)：流式问答管理器。
+   - [ChatBubble](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/chat-bubble.tsx)：对话气泡与行内快速笔记沉淀面板。
+   - [NotesPanel](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/notes-panel.tsx)：沉淀笔记仓库。
+   - [SettingsPanel](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/settings-panel.tsx)：Prompt 参数调优。
 
-4. `BFF Layer`
-   - 所有浏览器请求先到 Next.js
-   - 由 Next.js 注入用户会话与 workspace 上下文后再转发到 FastAPI
+4. `BFF & Data Layer`
+   - Next.jsbff 路由转发。
+   - 统一数据状态总线（[mock-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/mock-context.tsx)）。
 
-### 4.2 前端职责边界
+### 4.2 前端自适应布局引擎 (Responsive Drawer Engine)
 
-前端只负责：
+采用纯 CSS Breakpoints 实现大屏并排、小屏绝对定位浮出抽屉：
+* 屏幕宽幅 $\ge 1024px$ 时：侧边栏与问答板在水平方向并排展示（`lg:relative`）。
+* 屏幕宽幅 $< 1024px$ 时：侧边栏与问答面板自动重映射为 `absolute` 绝对定位浮层，增加半透明毛玻璃蒙层（Backdrop Blur overlay）控制点击外部空白区自动闭合抽屉，避免挤压中间阅读视窗。
+* 屏幕宽幅 $< 768px$ 时：窄轨图标边栏被 `hidden md:flex` 隐藏，为手机屏幕腾出 100% 显示宽度。
 
-- 展示
-- 交互
-- 流式体验
-- 乐观刷新与任务轮询
+### 4.3 状态划分与解析防御 (State & Sandbox Serialization)
 
-前端不负责：
+前端状态分类与持久化定义：
 
-- 直接做 RAG
-- 直接操作向量库
-- 直接调用 embedding provider
-- 直接信任浏览器传来的 `workspace_id`
-
-### 4.3 状态划分
-
-前端状态分为三类：
-
-1. `Server State`
-   - Workspace 列表
-   - 文档列表
-   - 任务状态
-   - 笔记和标签
-   - 聊天历史
-   - 由 React Query 管理
-
-2. `UI Runtime State`
-   - 当前页码
-   - 选中的 citation
-   - Viewer 展开状态
-   - 当前激活侧栏 tab
-   - 仅存在前端，不入库
-
-3. `Stream State`
-   - 当前回答流
-   - citation 流完成前的临时展示
-   - 由 AI SDK UI 负责
+1. `Server State & Local Sandbox`
+   - 工作区、文档处理列表、沉淀笔记、会话历史与独立标签等数据通过统一的数据提供器（[mock-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/mock-context.tsx)）序列化存入本地 `LocalStorage` 沙盒中，刷新后保持状态。
+2. `LocalStorage Validation guards`
+   - 组件挂载（Mount）初始化加载时，必须经过类型安全检测防腐函数（如 `areWorkspacesValid` / `isUserValid`）做属性约束检测，检测失败自动丢弃受损缓存，防范由脏数据读取引发的 React 运行时白屏闪退风险。
+3. `UI Runtime State`
+   - 当前文档激活页码、划词位置坐标、缩放比、侧栏折叠状态。
+4. `Micro-Interaction Animations`
+   - **纸张更新**：`activePdfPage` 作为 Content Key，翻页时触发 `animate-in fade-in` 动效。
+   - **引用聚焦**：点击 Citation 引用链接回跳跳页时，命中的向量 Chunk 卡片浮现 `.animate-citation-pulse` 黄金脉冲波动特效。
+   - **气泡滑入**：新对话产生时，组件以滑入渐显入场。
 
 ## 5. 后端架构
 

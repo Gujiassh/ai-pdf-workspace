@@ -197,23 +197,22 @@ Note 是 Workspace 内的知识沉淀单元，支持：
 
 ### 7.1 页面清单
 
-- Workspace 列表页
-- Workspace 概览页
-- Workspace 文档页
-- 文档详情 / PDF 浏览页
-- Workspace Chat 页
-- Workspace Notes 页
-- Workspace Settings 页
+- **工作区大盘门户页 (`/` page.tsx)**：采用 100% 浏览器全屏宽度展现，取消卡片式边框，使用 SaaS 极简扁平表格行列表展示所有工作区。
+- **工作区控制台详情页 (`/workspaces/[workspaceId]` page.tsx)**：三栏分屏协同工作台。
+- **文档大纲导航抽屉 (`/components/outline-tree.tsx`)**：收折式左子分栏，支持目录跳页。
+- **对话面板 (`/components/chat-panel.tsx`)**：流式对话、卡片级随手记编辑器与 Citation 原文跳页。
+- **随手记面板 (`/components/notes-panel.tsx`)**：笔记流沉淀管理。
+- **配置面板 (`/components/settings-panel.tsx`)**：工作区系统 Prompt 配置管理。
 
 ### 7.2 推荐主界面布局
 
-推荐采用三栏布局：
+采用自适应三栏/四栏分屏协同布局：
 
-- 左栏：Workspace、文档列表、线程、标签
-- 中栏：PDF Viewer / 文档内容
-- 右栏：Chat、检索结果、引用、笔记面板
+- **左侧滑轨 (WorkspaceSidebar)**：管理 Workspace 基础切换。支持在桌面端并排展示，在 tablet/mobile 窄视窗下自动转换为 `absolute` 绝对定位浮动抽屉与遮罩，在手机上自动隐藏 Collapsed 窄边栏以释放屏幕像素。
+- **中侧视窗 (PdfViewer)**：包含页签 Tabs 标签栏、收折式 OutlineTree 目录树组件，以及 coordinates-aligned SelectionPopover 划词浮动菜单。
+- **右侧协同面板 (Copilot Panel)**：集成 ChatPanel (对话气泡 ChatBubble)、NotesPanel 和 SettingsPanel，支持一键彻底隐藏以拉伸 PDF 阅读器至 100% 宽度。
 
-这套布局最适合演示 `浏览 -> 提问 -> 引用 -> 记笔记` 的连续工作流。
+这套布局最适合演示 `浏览 -> 划词 -> 提问 -> 引用 -> 记笔记` 的闭环交互。
 
 ## 8. 版本演进
 
