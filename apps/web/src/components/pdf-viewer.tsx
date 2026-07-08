@@ -109,7 +109,7 @@ export function PdfViewer() {
     setActiveTab("chat");
     if (!rightPanelOpen) setRightPanelOpen(true);
     
-    await sendMessage(`请解释一下文档这段文字的具体含义汪：\n"${text}"`);
+    await sendMessage(t("pdf.explainSelection").replace("{text}", text));
   };
 
   const handleCaptureNoteFromSelection = () => {
@@ -120,8 +120,8 @@ export function PdfViewer() {
     window.getSelection()?.removeAllRanges();
 
     createNote(
-      `基于《${activeDoc.name}》划词选段的摘录`,
-      `引文原文：\n"${text}"\n\n我的备忘结论：\n`,
+      t("pdf.selectionTitleTemplate").replace("{doc}", activeDoc.name),
+      t("chat.noteContentTemplate").replace("{snippet}", text),
       {
         documentId: activeDoc.id,
         documentName: activeDoc.name,

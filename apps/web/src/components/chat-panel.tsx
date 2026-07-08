@@ -64,8 +64,8 @@ export function ChatPanel() {
 
   const openQuickNoteEditor = (citation: Citation) => {
     setShowNoteEditorId(citation.id);
-    setQuickNoteTitle(`引自《${citation.documentName}》第 ${citation.pageNumber} 页的笔记`);
-    setQuickNoteContent(`引文原文：\n"${citation.snippet}"\n\n我的备忘结论：\n`);
+    setQuickNoteTitle(t("chat.noteTitleTemplate").replace("{doc}", citation.documentName).replace("{page}", String(citation.pageNumber)));
+    setQuickNoteContent(t("chat.noteContentTemplate").replace("{snippet}", citation.snippet));
   };
 
   const handleSaveQuickNote = (citation: Citation) => {
@@ -102,7 +102,7 @@ export function ChatPanel() {
         <button
           onClick={() => setRightPanelOpen(false)}
           className="p-1 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900 transition shrink-0 cursor-pointer"
-          title="隐藏侧边板"
+          title={t("chat.hideSidebar")}
         >
           <ChevronRight className="h-4.5 w-4.5" />
         </button>

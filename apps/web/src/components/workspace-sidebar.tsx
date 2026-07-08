@@ -90,12 +90,12 @@ export function WorkspaceSidebar() {
 
   const getStatusLabel = (doc: Document) => {
     switch (doc.status) {
-      case "uploaded": return `已上传 (${doc.progress}%)`;
-      case "parsing": return `解析文本 (${doc.progress}%)`;
-      case "chunking": return `智能分段 (${doc.progress}%)`;
-      case "embedding": return `向量索引 (${doc.progress}%)`;
-      case "ready": return "就绪";
-      default: return "失败";
+      case "uploaded": return `${t("sidebar.statusUploaded")} (${doc.progress}%)`;
+      case "parsing": return `${t("sidebar.statusParsing")} (${doc.progress}%)`;
+      case "chunking": return `${t("sidebar.statusChunking")} (${doc.progress}%)`;
+      case "embedding": return `${t("sidebar.statusEmbedding")} (${doc.progress}%)`;
+      case "ready": return t("sidebar.statusReady");
+      default: return t("sidebar.statusFailed");
     }
   };
 
@@ -108,7 +108,7 @@ export function WorkspaceSidebar() {
           <button
             onClick={() => setLeftSidebarOpen(true)}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition active:scale-95"
-            title="展开侧边栏"
+            title={t("sidebar.expandTooltip")}
           >
             <ChevronRight className="h-4.5 w-4.5" />
           </button>
@@ -128,7 +128,7 @@ export function WorkspaceSidebar() {
           <button
             onClick={triggerUpload}
             className="group relative flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition active:scale-95"
-            title="上传 PDF"
+            title={t("sidebar.uploadTooltip")}
           >
             <UploadCloud className="h-4 w-4" />
             {isAnyDocProcessing && (
@@ -158,7 +158,7 @@ export function WorkspaceSidebar() {
           <button
             onClick={toggleTheme}
             className="p-1.5 rounded-lg text-zinc-500 hover:text-white transition"
-            title="主题切换"
+            title={t("sidebar.themeTooltip")}
           >
             {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </button>
@@ -184,7 +184,7 @@ export function WorkspaceSidebar() {
         <Link
           href="/"
           className="p-1.5 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition shrink-0 cursor-pointer flex items-center justify-center"
-          title="返回主页"
+          title={t("sidebar.homeTooltip")}
         >
           <Home className="h-4 w-4" />
         </Link>
@@ -209,7 +209,7 @@ export function WorkspaceSidebar() {
         <button
           onClick={() => setLeftSidebarOpen(false)}
           className="p-1.5 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:bg-zinc-900 transition shrink-0"
-          title="收起侧边栏"
+          title={t("sidebar.collapseTooltip")}
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
@@ -232,7 +232,7 @@ export function WorkspaceSidebar() {
                   >
                     <div className="truncate pr-2">
                       <div className="truncate">{ws.name}</div>
-                      <div className="truncate text-[10px] text-zinc-500">{ws.description || "无备注"}</div>
+                      <div className="truncate text-[10px] text-zinc-500">{ws.description || t("sidebar.noDesc")}</div>
                     </div>
                     {ws.id === currentWorkspace?.id && (
                       <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
@@ -285,7 +285,7 @@ export function WorkspaceSidebar() {
                 className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/10 p-5 text-center transition hover:border-zinc-700"
               >
                 <UploadCloud className="h-6 w-6 text-zinc-600 group-hover:text-zinc-400 transition" />
-                <span className="mt-1.5 text-[10px] font-bold text-zinc-500">拖入或上传 PDF 文件</span>
+                <span className="mt-1.5 text-[10px] font-bold text-zinc-500">{t("sidebar.dropzone")}</span>
               </div>
             ) : (
               wsDocs.map((doc) => {
@@ -467,8 +467,8 @@ export function WorkspaceSidebar() {
           {/* Theme Switch */}
           <button
             onClick={toggleTheme}
-            className="p-1 rounded-lg hover:bg-zinc-900 hover:text-white transition text-zinc-500"
-            title="主题切换"
+            className="p-1.5 rounded-lg hover:bg-zinc-900 hover:text-white transition text-zinc-500"
+            title={t("sidebar.themeTooltip")}
           >
             {theme === "light" ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
           </button>

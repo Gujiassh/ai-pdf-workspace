@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ChevronDown, BookOpen } from "lucide-react";
+import { useTranslation } from "@/lib/i18n-context";
 
 export type OutlineNode = {
   title: string;
@@ -57,6 +58,7 @@ export function OutlineTree({
   activePdfPage,
   setActivePdfPage,
 }: OutlineTreeProps) {
+  const { t } = useTranslation();
   const [collapsedNodes, setCollapsedNodes] = React.useState<Record<string, boolean>>({});
 
   const activeOutline = DOCUMENT_OUTLINES[activeDocumentId] || null;
@@ -121,7 +123,7 @@ export function OutlineTree({
     <div className="p-4 flex-1">
       <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
         <BookOpen className="h-3.5 w-3.5" />
-        文档大纲目录 (Outline)
+        {t("outline.title")}
       </span>
       
       <div className="mt-3 space-y-1">
@@ -129,7 +131,7 @@ export function OutlineTree({
           activeOutline.map((node) => renderOutlineNode(node))
         ) : (
           <div className="text-[10px] text-zinc-400 dark:text-zinc-600 italic px-2 py-4">
-            该文档无可用的大纲目录结构汪
+            {t("outline.empty")}
           </div>
         )}
       </div>

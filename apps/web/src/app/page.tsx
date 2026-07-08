@@ -71,7 +71,7 @@ export default function Home() {
 
           <form onSubmit={handleLogin} className="mt-8 space-y-4 relative">
             <div>
-              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">电子邮箱</label>
+              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t("login.emailLabel")}</label>
               <div className="relative mt-1.5 flex items-center">
                 <Mail className="absolute left-3.5 h-4 w-4 text-zinc-400 shrink-0" />
                 <input
@@ -86,7 +86,7 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">昵称</label>
+              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{t("login.usernameLabel")}</label>
               <input
                 type="text"
                 placeholder={t("login.usernamePlaceholder")}
@@ -141,7 +141,7 @@ export default function Home() {
           <button
             onClick={toggleTheme}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 hover:text-zinc-950 dark:hover:text-white transition active:scale-95"
-            title="主题切换"
+            title={t("sidebar.themeTooltip")}
           >
             {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           </button>

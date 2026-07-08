@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWorkspace } from "@/lib/mock-context";
+import { useTranslation } from "@/lib/i18n-context";
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { PdfViewer } from "@/components/pdf-viewer";
 import { ChatPanel } from "@/components/chat-panel";
@@ -26,8 +27,10 @@ export default function WorkspaceDetailPage() {
     leftSidebarOpen,
     rightPanelOpen,
     setLeftSidebarOpen,
-    setRightPanelOpen
+    setRightPanelOpen,
   } = useWorkspace();
+
+  const { t } = useTranslation();
 
   const workspaceId = params?.workspaceId as string;
 
@@ -50,7 +53,7 @@ export default function WorkspaceDetailPage() {
   if (!currentWorkspace) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950 text-sm text-zinc-500 font-medium">
-        正在载入工作区环境...
+        {t("workspace.loading")}
       </div>
     );
   }
@@ -96,7 +99,7 @@ export default function WorkspaceDetailPage() {
               }`}
             >
               <MessageSquare className="h-3.5 w-3.5" />
-              AI 问答
+              {t("workspace.tabChat")}
             </button>
             <button
               onClick={() => setActiveTab("notes")}
@@ -107,7 +110,7 @@ export default function WorkspaceDetailPage() {
               }`}
             >
               <BookOpen className="h-3.5 w-3.5" />
-              笔记 ({currentWorkspace.noteCount})
+              {t("workspace.tabNotes")} ({currentWorkspace.noteCount})
             </button>
             <button
               onClick={() => setActiveTab("settings")}
@@ -118,7 +121,7 @@ export default function WorkspaceDetailPage() {
               }`}
             >
               <Settings2 className="h-3.5 w-3.5" />
-              配置
+              {t("workspace.tabSettings")}
             </button>
           </div>
 

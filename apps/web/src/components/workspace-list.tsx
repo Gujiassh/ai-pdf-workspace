@@ -20,7 +20,7 @@ export function WorkspaceList() {
     deleteWorkspace,
   } = useWorkspace();
 
-  const { t } = useTranslation();
+  const { locale, t } = useTranslation();
   const router = useRouter();
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -54,7 +54,7 @@ export function WorkspaceList() {
           <Search className="absolute left-3 h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
           <input
             type="text"
-            placeholder="搜索工作区名称或备注描述..."
+            placeholder={t("dashboard.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950 py-2.5 pl-10 pr-4 text-xs outline-none focus:border-zinc-400 dark:focus:border-zinc-700 text-zinc-800 dark:text-zinc-100 transition"
@@ -84,21 +84,21 @@ export function WorkspaceList() {
           
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider">工作区名称</label>
+              <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{t("dashboard.wsNameLabel")}</label>
               <input
                 type="text"
                 required
-                placeholder="例如: 大模型研究、保密协议风控..."
+                placeholder={t("dashboard.wsNamePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mt-1.5 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3.5 py-2 text-xs outline-none text-zinc-800 dark:text-zinc-100 focus:border-zinc-400 dark:focus:border-zinc-700"
               />
             </div>
             <div>
-              <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider">描述说明</label>
+              <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{t("dashboard.wsDescLabel")}</label>
               <input
                 type="text"
-                placeholder="简述该工作区收纳的文件类型与RAG问答范围..."
+                placeholder={t("dashboard.wsDescPlaceholder")}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="mt-1.5 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3.5 py-2 text-xs outline-none text-zinc-800 dark:text-zinc-100 focus:border-zinc-400 dark:focus:border-zinc-700"
@@ -112,13 +112,13 @@ export function WorkspaceList() {
               onClick={() => setShowAddForm(false)}
               className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
             >
-              取消
+              {t("chat.cancel")}
             </button>
             <button
               type="submit"
               className="rounded-xl bg-zinc-950 dark:bg-white px-4 py-2 text-xs font-bold text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition cursor-pointer"
             >
-              创建并进入
+              {t("dashboard.createBtn")}
             </button>
           </div>
         </form>
@@ -129,11 +129,11 @@ export function WorkspaceList() {
         
         {/* Table Header Row (Hidden on small screens) */}
         <div className="hidden md:flex items-center px-4 py-2 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider border-b border-zinc-100 dark:border-zinc-900">
-          <div className="w-1/4">工作区名称 / 角色</div>
-          <div className="w-2/5">备注描述</div>
-          <div className="w-1/5">关联指标</div>
-          <div className="w-1/8 text-right pr-6">更新时间</div>
-          <div className="w-[60px] text-center">操作</div>
+          <div className="w-1/4">{t("dashboard.tableWsName")}</div>
+          <div className="w-2/5">{t("dashboard.tableDesc")}</div>
+          <div className="w-1/5">{t("dashboard.tableMetrics")}</div>
+          <div className="w-1/8 text-right pr-6">{t("dashboard.tableUpdated")}</div>
+          <div className="w-[60px] text-center">{t("dashboard.tableActions")}</div>
         </div>
 
         {/* Workspaces list rows */}
@@ -149,7 +149,9 @@ export function WorkspaceList() {
               const noteCount = notes.filter((n) => n.workspaceId === ws.id).length;
               const threadCount = threads.filter((t) => t.workspaceId === ws.id).length;
               const dateObj = new Date(ws.updatedAt);
-              const formattedDate = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+              const formattedDate = locale === "zh" 
+                ? `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`
+                : `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
 
               return (
                 <div
@@ -175,7 +177,7 @@ export function WorkspaceList() {
 
                   {/* Column 2: Description */}
                   <div className="w-full md:w-2/5 text-xs text-zinc-500 dark:text-zinc-400 pr-4 mt-2 md:mt-0 line-clamp-1">
-                    {ws.description ?? "暂无描述"}
+                    {ws.description ?? t("dashboard.noDesc")}
                   </div>
 
                   {/* Column 3: Metrics summary */}
@@ -210,7 +212,7 @@ export function WorkspaceList() {
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition duration-150 cursor-pointer"
-                      title="删除此工作区"
+                      title={t("dashboard.deleteTooltip")}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

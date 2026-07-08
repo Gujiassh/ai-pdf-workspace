@@ -90,7 +90,7 @@ export function NotesPanel() {
         {/* Selected tag filters info */}
         {selectedTagIds.length > 0 && (
           <div className="mt-2 flex items-center gap-1.5">
-            <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">过滤标签:</span>
+            <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{t("notes.filterLabel")}</span>
             <div className="flex flex-wrap gap-1">
               {selectedTagIds.map((tagId) => {
                 const tag = tags.find((t) => t.id === tagId);
@@ -119,7 +119,7 @@ export function NotesPanel() {
               <input
                 type="text"
                 required
-                placeholder="输入笔记小标题..."
+                placeholder={t("notes.searchPlaceholder")}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="mt-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 py-1.5 text-xs outline-none text-zinc-800 dark:text-zinc-100 focus:border-zinc-400"
