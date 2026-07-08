@@ -56,3 +56,19 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
+
+@keyframes citationPulse {
+  0%, 100% {
+    border-color: rgba(245, 158, 11, 0.15);
+    background-color: rgba(245, 158, 11, 0.04);
+  }
+  50% {
+    border-color: rgba(245, 158, 11, 0.6);
+    background-color: rgba(245, 158, 11, 0.15);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+  }
+}
+
+.animate-citation-pulse {
+  animation: citationPulse 2.2s ease-in-out infinite;
+}

@@ -479,7 +479,7 @@ export function PdfViewer() {
               </div>
 
               {/* Content text */}
-              <div className="mt-8 space-y-4">
+              <div key={activePdfPage} className="mt-8 space-y-4 animate-in fade-in duration-350">
                 <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">{pageContent.title}</h2>
                 <p className="text-xs leading-6 text-zinc-655 dark:text-zinc-400 text-justify">
                   {pageContent.content}
@@ -487,7 +487,7 @@ export function PdfViewer() {
 
                 {/* RAG highlight */}
                 {pageContent.highlight && (
-                  <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 dark:bg-amber-500/10 p-4 animate-in fade-in duration-300">
+                  <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 dark:bg-amber-500/10 p-4 animate-in fade-in duration-300 animate-citation-pulse">
                     <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider block">{t("viewer.highlightTitle")}</span>
                     <p className="mt-1 text-xs leading-6 font-semibold text-zinc-800 dark:text-zinc-300 italic">
                       "{pageContent.highlight}"
