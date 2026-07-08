@@ -112,7 +112,7 @@ export function WorkspaceSidebar() {
   // 1. COLLAPSED SIDEBAR (Slim Rail)
   if (!leftSidebarOpen) {
     return (
-      <div className="flex h-full w-16 flex-col items-center justify-between border-r border-zinc-800 bg-zinc-950 py-4 shrink-0 transition-all duration-300">
+      <div className="flex h-full w-16 flex-col items-center justify-between border-r border-zinc-800 bg-zinc-950 py-4 shrink-0 transition-all duration-300 hidden md:flex">
         <div className="flex flex-col items-center gap-6 w-full">
           {/* Expand Toggle */}
           <button
@@ -186,7 +186,7 @@ export function WorkspaceSidebar() {
 
   // 2. EXPANDED SIDEBAR (Full Width)
   return (
-    <div className="flex h-full w-72 flex-col border-r border-zinc-800 bg-zinc-950 shrink-0 transition-all duration-300 text-zinc-300">
+    <div className="flex h-full w-72 flex-col border-r border-zinc-800 bg-zinc-950 shrink-0 transition-all duration-300 text-zinc-300 absolute lg:relative z-40 lg:z-auto h-screen inset-y-0 left-0 shadow-2xl lg:shadow-none">
       
       {/* Expanded Header */}
       <div className="relative border-b border-zinc-800/80 p-4 flex items-center justify-between gap-2.5">

@@ -180,16 +180,21 @@ export function PdfViewer() {
     if (!rightPanelOpen) setRightPanelOpen(true);
   };
 
-  const toggleNode = (nodeTitle: string) => {
+  const getNodeKey = (node: OutlineNode) => {
+    return `${activeDocumentId}-${node.page}-${node.title}`;
+  };
+
+  const toggleNode = (nodeKey: string) => {
     setCollapsedNodes((prev) => ({
       ...prev,
-      [nodeTitle]: !prev[nodeTitle]
+      [nodeKey]: !prev[nodeKey]
     }));
   };
 
   const renderOutlineNode = (node: OutlineNode, depth = 0) => {
     const hasChildren = node.children && node.children.length > 0;
-    const isCollapsed = collapsedNodes[node.title];
+    const nodeKey = getNodeKey(node);
+    const isCollapsed = collapsedNodes[nodeKey];
     const isSelected = activePdfPage === node.page;
 
     return (
@@ -199,7 +204,7 @@ export function PdfViewer() {
           className={`group flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs cursor-pointer transition select-none ${
             isSelected
               ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold"
-              : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-150/50 dark:hover:bg-zinc-900"
+              : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100/50 dark:hover:bg-zinc-900"
           }`}
           style={{ paddingLeft: `${depth * 12 + 8}px` }}
         >
@@ -207,7 +212,7 @@ export function PdfViewer() {
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                toggleNode(node.title);
+                toggleNode(nodeKey);
               }}
               className="p-0.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
             >

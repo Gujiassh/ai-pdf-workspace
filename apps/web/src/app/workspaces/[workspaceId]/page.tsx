@@ -23,7 +23,10 @@ export default function WorkspaceDetailPage() {
     switchWorkspace, 
     activeTab, 
     setActiveTab,
-    rightPanelOpen
+    leftSidebarOpen,
+    rightPanelOpen,
+    setLeftSidebarOpen,
+    setRightPanelOpen
   } = useWorkspace();
 
   const workspaceId = params?.workspaceId as string;
@@ -53,18 +56,35 @@ export default function WorkspaceDetailPage() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950 font-sans antialiased text-zinc-300">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950 font-sans antialiased text-zinc-300 relative">
+      
+      {/* Mobile Sidebar backdrop overlay */}
+      {leftSidebarOpen && (
+        <div 
+          onClick={() => setLeftSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-xs lg:hidden animate-in fade-in duration-200"
+        />
+      )}
+
       {/* 1. Left Column (Sidebar navigation - adjusts to w-72 or w-16 inside) */}
       <WorkspaceSidebar />
 
       {/* 2. Center Column (PDF Viewer & Overview dashboard) */}
-      <div className="flex flex-1 flex-col overflow-hidden border-r border-zinc-800">
+      <div className="flex flex-1 flex-col overflow-hidden border-r border-zinc-800 z-10 lg:z-auto">
         <PdfViewer />
       </div>
 
-      {/* 3. Right Column (Workspace Tabs - collapsible) */}
+      {/* Mobile Right panel backdrop overlay */}
       {rightPanelOpen && (
-        <div className="flex w-[384px] shrink-0 flex-col overflow-hidden bg-white dark:bg-zinc-950 shadow-2xl border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-300">
+        <div 
+          onClick={() => setRightPanelOpen(false)}
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-xs lg:hidden animate-in fade-in duration-200"
+        />
+      )}
+
+      {/* 3. Right Column (Workspace Tabs - collapsible & responsive drawer-like) */}
+      {rightPanelOpen && (
+        <div className="flex w-[384px] max-w-[90vw] shrink-0 flex-col overflow-hidden bg-white dark:bg-zinc-950 shadow-2xl border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-300 absolute lg:relative right-0 inset-y-0 z-40 lg:z-auto">
           {/* Right Tab Bar */}
           <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 p-2 gap-1.5 shrink-0">
             <button
