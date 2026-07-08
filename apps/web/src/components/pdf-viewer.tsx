@@ -71,17 +71,34 @@ export function PdfViewer() {
     setNewTagName("");
   };
 
-  const handleTextSelection = (e: React.MouseEvent) => {
+  const handleTextSelection = () => {
     const selection = window.getSelection();
-    const text = selection ? selection.toString().trim() : "";
-    
-    if (text.length > 5) {
+    if (!selection || selection.isCollapsed) {
+      setShowSelectionPopup(false);
+      setSelectionText(null);
+      return;
+    }
+
+    const text = selection.toString().trim();
+    if (text.length > 5 && selection.rangeCount > 0) {
       setSelectionText(text);
+      const range = selection.getRangeAt(0);
+      const selectionRect = range.getBoundingClientRect();
+      
       if (paperRef.current) {
-        const rect = paperRef.current.getBoundingClientRect();
+        const paperRect = paperRef.current.getBoundingClientRect();
+        
+        // Center popover relative to the selection bounding box
+        const relativeX = selectionRect.left + (selectionRect.width / 2) - paperRect.left - 60;
+        const relativeY = selectionRect.top - paperRect.top - 52;
+        
+        // Clamping to prevent clipping off the left/right boundaries of the paper
+        const clampedX = Math.min(paperRect.width - 160, Math.max(10, relativeX));
+        const clampedY = Math.max(10, relativeY);
+        
         setPopupPos({
-          x: Math.min(rect.width - 150, Math.max(20, e.clientX - rect.left - 60)),
-          y: Math.max(10, e.clientY - rect.top - 65)
+          x: clampedX,
+          y: clampedY
         });
         setShowSelectionPopup(true);
       }
@@ -391,7 +408,7 @@ export function PdfViewer() {
           <div 
             ref={paperRef}
             onMouseUp={handleTextSelection}
-            className="w-[720px] rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-12 shadow-md dark:shadow-2xl select-text relative transition-all duration-200"
+            className="w-full max-w-[720px] rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-12 shadow-md dark:shadow-2xl select-text relative transition-all duration-200"
           >
             {/* Header pagination */}
             <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-900 pb-3.5 text-[9px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider">
