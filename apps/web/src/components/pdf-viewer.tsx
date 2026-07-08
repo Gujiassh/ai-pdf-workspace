@@ -5,10 +5,9 @@ import { useWorkspace, Document } from "@/lib/mock-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
   ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText, 
-  X, Sparkles, Layout, ChevronRight as ChevronRightIcon,
-  Tag as TagIcon, ArrowRightLeft, MousePointerSquareDashed,
-  BookmarkPlus, MessageSquareHeart, AlignLeft, BookOpen,
-  ChevronDown, Layers, FileCode
+  X, Layout, ChevronRight as ChevronRightIcon,
+  ArrowRightLeft, MousePointerSquareDashed,
+  BookmarkPlus, MessageSquareHeart, AlignLeft, Layers
 } from "lucide-react";
 
 import { OutlineTree } from "./outline-tree";
