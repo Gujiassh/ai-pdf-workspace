@@ -211,21 +211,26 @@ ai-pdf-workspace/
 
 ## 5. 前端架构
 
-## 5.1 技术选型
+## 5.1 技术选型与实施状态对比
 
-前端不只是 `Next.js`，而是一套明确分工：
+> [!IMPORTANT]
+> **当前实现态 (Current Interactive Frontend Prototype)**:  
+> 目前处于高仿真前端原型调试阶段，真实项目依赖仅有 `next` / `react` / `react-dom` / `lucide-react`。数据与会话状态由自定义的 [mock-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/mock-context.tsx) (LocalStorage 沙盒)、`theme-context` 和 `i18n-context` 统一模拟，尚未接入网络 I/O。
+> 
+> **规划目标态 (Target Production Architecture)**:  
+> 后续对接真实 FastAPI 服务时，将全面引入并升级至以下生产级模块架构：
 
 - `Next.js App Router`
 - `TypeScript`
 - `Tailwind CSS`
-- `shadcn/ui`
-- `React Query`
-- `Zustand`
-- `AI SDK UI`
-- `react-hook-form`
-- `zod`
-- `react-pdf` 或 `pdf.js` 封装
-- `Auth.js`
+- `shadcn/ui` [规划中，暂未装包]
+- `React Query` [规划中，暂未装包]
+- `Zustand` [规划中，暂未装包]
+- `AI SDK UI` [规划中，暂未装包]
+- `react-hook-form` [规划中，暂未装包]
+- `zod` [规划中，暂未装包]
+- `react-pdf` 或 `pdf.js` 封装 [规划中，暂未装包]
+- `Auth.js` [规划中，暂未装包]
 
 ### 5.1.1 为什么用这些
 
@@ -267,29 +272,37 @@ ai-pdf-workspace/
 
 因为 Workspace 设置、Prompt 配置、Note 编辑都是表单型交互，需要统一校验和提交模型。
 
-### 5.2 前端目录结构
+### 5.2 前端目录结构与路由口径对比
 
-推荐：
+> [!IMPORTANT]
+> **当前实现态 (Current Prototype Routing & Files)**:  
+> * **入口页面 (`/`)**: 承载临时 Mock 登录校验状态与全工作区管理大盘。
+> * **控制台详情页 (`/workspaces/[workspaceId]`)**: 单个工作区的三栏物理分栏主体渲染页。
+> * **页面重定向 (`/workspaces`)**: 自动跳回 `/` 主门户。
+> * **物理组件群**: 集中位于 `src/components/`，状态管理器位于 `src/lib/`。
+> 
+> **规划目标态 (Target Production Routing & Folders)**:  
+> 对接真实微服务 API 时，计划演进并规范为以下独立分层子文件夹：
 
 ```txt
 apps/web/src/
   app/
-    (auth)/
+    (auth)/              # [规划目标，暂未落地]
       login/
     (workspace)/
-      w/[workspaceId]/
+      w/[workspaceId]/   # [规划目标，暂未落地，当前为 /workspaces/[workspaceId]]
         layout.tsx
         page.tsx
         documents/page.tsx
         chat/page.tsx
         notes/page.tsx
         settings/page.tsx
-    api/
+    api/                 # [规划目标，暂未落地]
       internal/
         chat/route.ts
         upload-session/route.ts
         finalize-upload/route.ts
-  features/
+  features/              # [规划目标，暂未落地]
     workspace/
     documents/
     viewer/
@@ -297,14 +310,14 @@ apps/web/src/
     notes/
     tags/
     prompts/
-  components/
+  components/            # [当前实现：承载所有 UI 模块]
     shell/
     layout/
     ui/
-  stores/
+  stores/                # [规划目标，暂未落地]
     viewer-store.ts
     workspace-ui-store.ts
-  lib/
+  lib/                   # [当前实现：承载 i18n/theme/mock-context 状态总线]
     auth/
     bff/
     query/
@@ -438,29 +451,31 @@ apps/web/src/
 
 ### 5.5 前端路由设计
 
-#### `/login`
+> [!IMPORTANT]
+> **当前实现态 (Current Prototype Routes)**:  
+> * **`/`**: 负责登录态控制与工作区管理门户。
+> * **`/workspaces/[workspaceId]`**: 负责 Workspace 主工作台（整合了 Tab 切签，包含了文档浏览器、大纲树、Chat 对话气泡、随手记及设置面板）。
+> * **`/workspaces`**: 重定向跳回首页 `/`。
+> 
+> **规划目标态 (Target Production Routes)**:  
+> 接入正式后端后，计划将 Tab 式切换逻辑沉淀为 Next.js 独立物理子路由：
 
+#### `/login`
 负责登录。
 
 #### `/w/[workspaceId]`
-
-负责 Workspace 主工作台。
-建议作为三栏总布局承载页。
+负责 Workspace 主工作台。建议作为三栏总布局承载页。
 
 #### `/w/[workspaceId]/documents`
-
 负责文档管理。
 
 #### `/w/[workspaceId]/chat`
-
 负责纯聊天视图。
 
 #### `/w/[workspaceId]/notes`
-
 负责笔记和标签视图。
 
 #### `/w/[workspaceId]/settings`
-
 负责 Prompt、Workspace 设置。
 
 ### 5.6 前端 BFF 设计
