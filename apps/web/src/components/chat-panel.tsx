@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useWorkspace, Message, Citation } from "@/lib/mock-context";
+import { useWorkspace, Citation } from "@/lib/mock-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
   Send, MessageCircleQuestion, ChevronRight, X
@@ -142,7 +142,7 @@ export function ChatPanel() {
           <div className="min-w-0 flex-1">
             <span className="text-[8px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider block">{t("chat.selectionContext")}</span>
             <p className="truncate text-[10px] text-zinc-600 dark:text-zinc-400 leading-snug font-semibold mt-0.5">
-              "{selectionText}"
+              &quot;{selectionText}&quot;
             </p>
           </div>
           <button

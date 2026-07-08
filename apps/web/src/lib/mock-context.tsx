@@ -1,12 +1,21 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useCallback, useContext, useState } from "react";
+
 import { useTranslation } from "./i18n-context";
 
 export type User = {
   name: string;
   email: string;
   avatarUrl: string;
+};
+
+type DevAccount = {
+  email: string;
+  password: string;
+  name: string;
+  avatarUrl: string;
+  createdAt: string;
 };
 
 export type Workspace = {
@@ -94,8 +103,6 @@ type WorkspaceContextType = {
   threads: ChatThread[];
   activeThread: ChatThread | null;
   tags: Tag[];
-  
-  // Layout parameters
   openDocumentIds: string[];
   activeDocumentId: string | null;
   activePdfPage: number;
@@ -104,9 +111,8 @@ type WorkspaceContextType = {
   rightPanelOpen: boolean;
   selectionText: string | null;
   selectedTagIds: string[];
-
-  // Actions
-  login: (email: string, name: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, name: string, password: string) => Promise<void>;
   logout: () => void;
   switchWorkspace: (id: string) => void;
   createWorkspace: (name: string, description: string | null) => void;
@@ -136,13 +142,22 @@ type WorkspaceContextType = {
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
+const AUTH_ACCOUNTS_KEY = "ai_pdf_workspace_accounts";
+const AUTH_SESSION_KEY = "ai_pdf_workspace_session_email";
+const DB_WORKSPACES_KEY = "db_workspaces";
+const DB_DOCUMENTS_KEY = "db_documents";
+const DB_NOTES_KEY = "db_notes";
+const DB_THREADS_KEY = "db_threads";
+const DB_TAGS_KEY = "db_tags";
+
 const SEED_WORKSPACES: Workspace[] = [
   {
     id: "ws-llm",
     name: "大模型架构与优化",
     description: "自研大模型前沿学术论文、网络切片与自注意力机制设计规范。",
     role: "Admin",
-    systemPrompt: "你是一个顶尖的人工智能大模型研究专家。请用专业、极简的口吻回答主人的学术问题。必须结合背景文档给出引用来源和对应的页码汪！",
+    systemPrompt:
+      "你是一个顶尖的人工智能大模型研究专家。请用专业、极简的口吻回答主人的学术问题。必须结合背景文档给出引用来源和对应的页码汪！",
     documentCount: 2,
     noteCount: 2,
     threadCount: 1,
@@ -154,13 +169,14 @@ const SEED_WORKSPACES: Workspace[] = [
     name: "法律合同风控中心",
     description: "日常业务保密协议NDA、采购合同合规审核与惩罚性条款预警。",
     role: "Legal Partner",
-    systemPrompt: "你是一个资深商业律师。在帮助主人审查合同时，需以极严谨的口吻指出潜在的合规漏洞与责权风险，并尽量标明合同第几页的条款汪！",
+    systemPrompt:
+      "你是一个资深商业律师。在帮助主人审查合同时，需以极严谨的口吻指出潜在的合规漏洞与责权风险，并尽量标明合同第几页的条款汪！",
     documentCount: 1,
     noteCount: 1,
     threadCount: 1,
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     updatedAt: new Date().toISOString(),
-  }
+  },
 ];
 
 const SEED_DOCUMENTS: Document[] = [
@@ -196,7 +212,7 @@ const SEED_DOCUMENTS: Document[] = [
     progress: 100,
     tags: ["NDA", "Legal"],
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  }
+  },
 ];
 
 const SEED_NOTES: Note[] = [
@@ -204,12 +220,13 @@ const SEED_NOTES: Note[] = [
     id: "note-1",
     workspaceId: "ws-llm",
     title: "自注意力缩放机制目的",
-    content: "Transformer中的Scaled Dot-Product计算中，之所以除以根号dk，是因为在输入维度较高时，点积结果容易非常大，送入softmax会导致梯度饱和并产生消失。这是保障深度学习训练稳定的一个关键小设计。",
+    content:
+      "Transformer中的Scaled Dot-Product计算中，之所以除以根号dk，是因为在输入维度较高时，点积结果容易非常大，送入softmax会导致梯度饱和并产生消失。这是保障深度学习训练稳定的一个关键小设计。",
     source: {
       documentId: "doc-attention",
       documentName: "Attention Is All You Need.pdf",
       pageNumber: 3,
-      snippet: "softmax(QK^T / sqrt(d_k))V"
+      snippet: "softmax(QK^T / sqrt(d_k))V",
     },
     tags: ["Transformer"],
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
@@ -218,16 +235,17 @@ const SEED_NOTES: Note[] = [
     id: "note-2",
     workspaceId: "ws-llm",
     title: "RAG与Fine-Tune对比",
-    content: "RAG通过外部密集向量数据库（pgvector）拉取最新的真实片段补充大模型输入，无需消耗高昂算力二次预训练，并自带卷记来源跳页机制，特别适合知识高频更迭的业务。",
+    content:
+      "RAG通过外部密集向量数据库（pgvector）拉取最新的真实片段补充大模型输入，无需消耗高昂算力二次预训练，并自带卷记来源跳页机制，特别适合知识高频更迭的业务。",
     source: {
       documentId: "doc-rag",
       documentName: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.pdf",
       pageNumber: 1,
-      snippet: "RAG combines pre-trained seq2seq models with dense passage indexes..."
+      snippet: "RAG combines pre-trained seq2seq models with dense passage indexes...",
     },
     tags: ["RAG"],
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  }
+  },
 ];
 
 const SEED_TAGS: Tag[] = [
@@ -253,68 +271,88 @@ const SEED_THREADS: ChatThread[] = [
       {
         id: "msg-2",
         role: "assistant",
-        content: "多头注意力机制（Multi-Head Attention）相当于给模型装备了多个不同的“观测视角”汪！\n\n1. **多子空间表征**：它将 Query, Key, Value 投影到 h 个不同的维度子空间并行计算注意力，这允许模型同时在不同位置学习语法、指代等丰富语义，而不是被单一全局视角所限制。\n2. **计算高效性**：它完美契合 GPU 等硬件的并行矩阵流水线，比传统递归网络的链式逐字计算快上数十倍哒！",
+        content:
+          "多头注意力机制（Multi-Head Attention）相当于给模型装备了多个不同的“观测视角”汪！\n\n1. **多子空间表征**：它将 Query, Key, Value 投影到 h 个不同的维度子空间并行计算注意力，这允许模型同时在不同位置学习语法、指代等丰富语义，而不是被单一全局视角所限制。\n2. **计算高效性**：它完美契合 GPU 等硬件的并行矩阵流水线，比传统递归网络的链式逐字计算快上数十倍哒！",
         citations: [
           {
             id: "cit-1",
             documentId: "doc-attention",
             documentName: "Attention Is All You Need.pdf",
             pageNumber: 5,
-            snippet: "Multi-head attention allows the model to jointly attend to information from different representation subspaces."
-          }
+            snippet:
+              "Multi-head attention allows the model to jointly attend to information from different representation subspaces.",
+          },
         ],
         createdAt: new Date(Date.now() - 86400000 * 4 + 1000).toISOString(),
-      }
+      },
     ],
     createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-  }
+  },
 ];
 
-const isUserValid = (u: any): u is User => {
-  return u && typeof u.email === "string" && typeof u.name === "string" && typeof u.avatarUrl === "string";
+const toUser = (account: DevAccount): User => ({
+  name: account.name,
+  email: account.email,
+  avatarUrl: account.avatarUrl,
+});
+
+const areAccountsValid = (value: unknown): value is DevAccount[] => {
+  if (!Array.isArray(value)) return false;
+
+  return value.every((account) => {
+    if (!account || typeof account !== "object") return false;
+    const candidate = account as Record<string, unknown>;
+    return (
+      typeof candidate.email === "string" &&
+      typeof candidate.password === "string" &&
+      typeof candidate.name === "string" &&
+      typeof candidate.avatarUrl === "string" &&
+      typeof candidate.createdAt === "string"
+    );
+  });
 };
 
-const areWorkspacesValid = (arr: any): arr is Workspace[] => {
-  if (!Array.isArray(arr)) return false;
-  return arr.every(w => w && typeof w.id === "string" && typeof w.name === "string" && typeof w.systemPrompt === "string");
+
+const readJson = <T,>(key: string, fallback: T, validator: (value: unknown) => value is T): T => {
+  if (typeof window === "undefined") return fallback;
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw);
+    return validator(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
 };
 
-const areDocumentsValid = (arr: any): arr is Document[] => {
-  if (!Array.isArray(arr)) return false;
-  return arr.every(d => d && typeof d.id === "string" && typeof d.workspaceId === "string" && typeof d.name === "string" && typeof d.pagesCount === "number");
+const readAccounts = (): DevAccount[] => readJson(AUTH_ACCOUNTS_KEY, [], areAccountsValid);
+const readSessionUser = (accounts: DevAccount[]): User | null => {
+  if (typeof window === "undefined") return null;
+  const savedSessionEmail = localStorage.getItem(AUTH_SESSION_KEY);
+  if (!savedSessionEmail) return null;
+  const matched = accounts.find((account) => account.email.toLowerCase() === savedSessionEmail.toLowerCase());
+  return matched ? toUser(matched) : null;
 };
 
-const areNotesValid = (arr: any): arr is Note[] => {
-  if (!Array.isArray(arr)) return false;
-  return arr.every(n => n && typeof n.id === "string" && typeof n.workspaceId === "string" && typeof n.title === "string" && typeof n.content === "string");
-};
-
-const areThreadsValid = (arr: any): arr is ChatThread[] => {
-  if (!Array.isArray(arr)) return false;
-  return arr.every(t => t && typeof t.id === "string" && typeof t.workspaceId === "string" && typeof t.title === "string" && Array.isArray(t.messages));
-};
-
-const areTagsValid = (arr: any): arr is Tag[] => {
-  if (!Array.isArray(arr)) return false;
-  return arr.every(t => t && typeof t.id === "string" && typeof t.workspaceId === "string" && typeof t.name === "string");
-};
+const getInitialWorkspaceId = () => SEED_WORKSPACES[0]?.id ?? "";
+const getWorkspaceReadyDocs = (workspaceId: string, docs: Document[]) => docs.filter((d) => d.workspaceId === workspaceId && d.status === "ready");
+const getWorkspaceThreads = (workspaceId: string, items: ChatThread[]) => items.filter((t) => t.workspaceId === workspaceId);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { locale } = useTranslation();
-  
-  const [user, setUser] = useState<User | null>(null);
-  
-  // Local storage state initialization
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
 
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>("ws-llm");
-  const [activeThreadId, setActiveThreadId] = useState<string | null>("thread-1");
-  const [openDocumentIds, setOpenDocumentIds] = useState<string[]>([]);
-  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<DevAccount[]>(readAccounts);
+  const [user, setUser] = useState<User | null>(() => readSessionUser(readAccounts()));
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(() => readJson(DB_WORKSPACES_KEY, SEED_WORKSPACES, areWorkspacesValid));
+  const [documents, setDocuments] = useState<Document[]>(() => readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid));
+  const [notes, setNotes] = useState<Note[]>(() => readJson(DB_NOTES_KEY, SEED_NOTES, areNotesValid));
+  const [threads, setThreads] = useState<ChatThread[]>(() => readJson(DB_THREADS_KEY, SEED_THREADS, areThreadsValid));
+  const [tags, setTags] = useState<Tag[]>(() => readJson(DB_TAGS_KEY, SEED_TAGS, areTagsValid));
+
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>(getInitialWorkspaceId);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(() => getWorkspaceThreads(getInitialWorkspaceId(), readJson(DB_THREADS_KEY, SEED_THREADS, areThreadsValid))[0]?.id ?? null);
+  const [openDocumentIds, setOpenDocumentIds] = useState<string[]>(() => { const docs = getWorkspaceReadyDocs(getInitialWorkspaceId(), readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid)); return docs.length > 0 ? [docs[0].id] : []; });
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(() => { const docs = getWorkspaceReadyDocs(getInitialWorkspaceId(), readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid)); return docs[0]?.id ?? null; });
   const [activePdfPage, setActivePdfPage] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<"chat" | "notes" | "settings">("chat");
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
@@ -322,592 +360,597 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [selectionText, setSelectionText] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  // 1. Initial Load from LocalStorage or seed defaults
-  useEffect(() => {
-    // Auth Session
-    const savedUser = localStorage.getItem("ai_pdf_workspace_user");
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        if (isUserValid(parsed)) {
-          setUser(parsed);
-        } else {
-          localStorage.removeItem("ai_pdf_workspace_user");
-        }
-      } catch (e) {
-        localStorage.removeItem("ai_pdf_workspace_user");
-      }
-    }
 
-    // Workspaces database
-    const localWs = localStorage.getItem("db_workspaces");
-    if (localWs) {
-      try {
-        const parsed = JSON.parse(localWs);
-        if (areWorkspacesValid(parsed)) {
-          setWorkspaces(parsed);
-        } else {
-          setWorkspaces(SEED_WORKSPACES);
-          localStorage.setItem("db_workspaces", JSON.stringify(SEED_WORKSPACES));
-        }
-      } catch (e) {
-        setWorkspaces(SEED_WORKSPACES);
-      }
-    } else {
-      setWorkspaces(SEED_WORKSPACES);
-      localStorage.setItem("db_workspaces", JSON.stringify(SEED_WORKSPACES));
-    }
-
-    // Documents database
-    const localDocs = localStorage.getItem("db_documents");
-    if (localDocs) {
-      try {
-        const parsed = JSON.parse(localDocs);
-        if (areDocumentsValid(parsed)) {
-          setDocuments(parsed);
-        } else {
-          setDocuments(SEED_DOCUMENTS);
-          localStorage.setItem("db_documents", JSON.stringify(SEED_DOCUMENTS));
-        }
-      } catch (e) {
-        setDocuments(SEED_DOCUMENTS);
-      }
-    } else {
-      setDocuments(SEED_DOCUMENTS);
-      localStorage.setItem("db_documents", JSON.stringify(SEED_DOCUMENTS));
-    }
-
-    // Notes database
-    const localNotes = localStorage.getItem("db_notes");
-    if (localNotes) {
-      try {
-        const parsed = JSON.parse(localNotes);
-        if (areNotesValid(parsed)) {
-          setNotes(parsed);
-        } else {
-          setNotes(SEED_NOTES);
-          localStorage.setItem("db_notes", JSON.stringify(SEED_NOTES));
-        }
-      } catch (e) {
-        setNotes(SEED_NOTES);
-      }
-    } else {
-      setNotes(SEED_NOTES);
-      localStorage.setItem("db_notes", JSON.stringify(SEED_NOTES));
-    }
-
-    // Threads database
-    const localThreads = localStorage.getItem("db_threads");
-    if (localThreads) {
-      try {
-        const parsed = JSON.parse(localThreads);
-        if (areThreadsValid(parsed)) {
-          setThreads(parsed);
-        } else {
-          setThreads(SEED_THREADS);
-          localStorage.setItem("db_threads", JSON.stringify(SEED_THREADS));
-        }
-      } catch (e) {
-        setThreads(SEED_THREADS);
-      }
-    } else {
-      setThreads(SEED_THREADS);
-      localStorage.setItem("db_threads", JSON.stringify(SEED_THREADS));
-    }
-
-    // Tags database
-    const localTags = localStorage.getItem("db_tags");
-    if (localTags) {
-      try {
-        const parsed = JSON.parse(localTags);
-        if (areTagsValid(parsed)) {
-          setTags(parsed);
-        } else {
-          setTags(SEED_TAGS);
-          localStorage.setItem("db_tags", JSON.stringify(SEED_TAGS));
-        }
-      } catch (e) {
-        setTags(SEED_TAGS);
-      }
-    } else {
-      setTags(SEED_TAGS);
-      localStorage.setItem("db_tags", JSON.stringify(SEED_TAGS));
-    }
-  }, []);
-
-  // 2. Synchronization of state changes into LocalStorage
-  const syncDb = (key: string, data: any) => {
+  const syncDb = (key: string, data: unknown) => {
     localStorage.setItem(key, JSON.stringify(data));
   };
 
   const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) || null;
   const activeThread = threads.find((t) => t.id === activeThreadId) || null;
 
-  // Auto select active doc for workspace if none selected
-  useEffect(() => {
-    if (!user || workspaces.length === 0) return;
-    const wsDocs = documents.filter((d) => d.workspaceId === currentWorkspaceId && d.status === "ready");
-    if (wsDocs.length > 0) {
-      setOpenDocumentIds([wsDocs[0].id]);
-      setActiveDocumentId(wsDocs[0].id);
-      setActivePdfPage(1);
-    } else {
-      setOpenDocumentIds([]);
-      setActiveDocumentId(null);
-      setActivePdfPage(1);
-    }
-
-    const wsThreads = threads.filter((t) => t.workspaceId === currentWorkspaceId);
-    if (wsThreads.length > 0) {
-      setActiveThreadId(wsThreads[0].id);
-    } else {
-      setActiveThreadId(null);
-    }
-    
+  const syncWorkspaceViewState = (workspaceId: string, docs: Document[], threadItems: ChatThread[]) => {
+    const wsDocs = getWorkspaceReadyDocs(workspaceId, docs);
+    setOpenDocumentIds(wsDocs.length > 0 ? [wsDocs[0].id] : []);
+    setActiveDocumentId(wsDocs[0]?.id ?? null);
+    setActivePdfPage(1);
+    const wsThreads = getWorkspaceThreads(workspaceId, threadItems);
+    setActiveThreadId(wsThreads[0]?.id ?? null);
     setSelectedTagIds([]);
     setSelectionText(null);
-  }, [currentWorkspaceId, user, workspaces.length]);
+  };
 
-  const login = useCallback(async (email: string, name: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    
-    const mockUser: User = {
-      name: name || "特邀测试员",
-      email,
-      avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${email}`
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem("ai_pdf_workspace_user", JSON.stringify(mockUser));
-  }, []);
+
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const matchedAccount = accounts.find(
+        (account) => account.email.toLowerCase() === normalizedEmail,
+      );
+
+      if (!matchedAccount) {
+        throw new Error(
+          locale === "en"
+            ? "No account found for this email. Please register first."
+            : "该邮箱尚未注册，请先注册账号。",
+        );
+      }
+
+      if (matchedAccount.password !== password) {
+        throw new Error(locale === "en" ? "Incorrect password." : "密码错误，请重试。");
+      }
+
+      setUser(toUser(matchedAccount));
+      localStorage.setItem(AUTH_SESSION_KEY, matchedAccount.email);
+      syncWorkspaceViewState(currentWorkspaceId, documents, threads);
+    },
+    [accounts, currentWorkspaceId, documents, locale, threads],
+  );
+
+  const register = useCallback(
+    async (email: string, name: string, password: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const exists = accounts.some(
+        (account) => account.email.toLowerCase() === normalizedEmail,
+      );
+
+      if (exists) {
+        throw new Error(
+          locale === "en"
+            ? "This email has already been registered."
+            : "该邮箱已经注册，请直接登录。",
+        );
+      }
+
+      const newAccount: DevAccount = {
+        email: normalizedEmail,
+        password,
+        name: name.trim() || (normalizedEmail.split("@")[0] || "Workspace User"),
+        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${normalizedEmail}`,
+        createdAt: new Date().toISOString(),
+      };
+
+      const nextAccounts = [...accounts, newAccount];
+      setAccounts(nextAccounts);
+      localStorage.setItem(AUTH_ACCOUNTS_KEY, JSON.stringify(nextAccounts));
+    },
+    [accounts, locale],
+  );
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem("ai_pdf_workspace_user");
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    setOpenDocumentIds([]);
+    setActiveDocumentId(null);
+    setActiveThreadId(null);
+    setSelectionText(null);
   }, []);
 
   const switchWorkspace = useCallback((id: string) => {
     setCurrentWorkspaceId(id);
-  }, []);
+    syncWorkspaceViewState(id, documents, threads);
+  }, [documents, threads]);
 
-  const createWorkspace = useCallback((name: string, description: string | null) => {
-    const newWsId = `ws-${Date.now()}`;
-    const newWs: Workspace = {
-      id: newWsId,
-      name,
-      description,
-      role: "Owner",
-      systemPrompt: locale === "en" 
-        ? "You are an AI research assistant. Please read context documents and help owner answer all questions with details!"
-        : "你是一个智能文档助手。请结合上下文帮助主人深入剖析并解答文档相关的所有疑问汪！",
-      documentCount: 0,
-      noteCount: 0,
-      threadCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    const nextList = [...workspaces, newWs];
-    setWorkspaces(nextList);
-    syncDb("db_workspaces", nextList);
-    
-    setCurrentWorkspaceId(newWsId);
-  }, [workspaces, locale]);
+  const createWorkspace = useCallback(
+    (name: string, description: string | null) => {
+      const newWsId = `ws-${Date.now()}`;
+      const newWs: Workspace = {
+        id: newWsId,
+        name,
+        description,
+        role: "Owner",
+        systemPrompt:
+          locale === "en"
+            ? "You are an AI research assistant. Please read context documents and help answer all questions with details."
+            : "你是一个智能文档助手。请结合上下文帮助深入剖析并解答文档相关的所有疑问。",
+        documentCount: 0,
+        noteCount: 0,
+        threadCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-  const deleteWorkspace = useCallback((id: string) => {
-    const nextWs = workspaces.filter((w) => w.id !== id);
-    setWorkspaces(nextWs);
-    syncDb("db_workspaces", nextWs);
+      const nextList = [...workspaces, newWs];
+      setWorkspaces(nextList);
+      syncDb(DB_WORKSPACES_KEY, nextList);
+      setCurrentWorkspaceId(newWsId);
+      syncWorkspaceViewState(newWsId, documents, threads);
+    },
+    [documents, locale, threads, workspaces],
+  );
 
-    const nextDocs = documents.filter((d) => d.workspaceId !== id);
-    setDocuments(nextDocs);
-    syncDb("db_documents", nextDocs);
+  const deleteWorkspace = useCallback(
+    (id: string) => {
+      const nextWs = workspaces.filter((w) => w.id !== id);
+      setWorkspaces(nextWs);
+      syncDb(DB_WORKSPACES_KEY, nextWs);
 
-    const nextNotes = notes.filter((n) => n.workspaceId !== id);
-    setNotes(nextNotes);
-    syncDb("db_notes", nextNotes);
+      const nextDocs = documents.filter((d) => d.workspaceId !== id);
+      setDocuments(nextDocs);
+      syncDb(DB_DOCUMENTS_KEY, nextDocs);
 
-    const nextThreads = threads.filter((t) => t.workspaceId !== id);
-    setThreads(nextThreads);
-    syncDb("db_threads", nextThreads);
+      const nextNotes = notes.filter((n) => n.workspaceId !== id);
+      setNotes(nextNotes);
+      syncDb(DB_NOTES_KEY, nextNotes);
 
-    const nextTags = tags.filter((t) => t.workspaceId !== id);
-    setTags(nextTags);
-    syncDb("db_tags", nextTags);
+      const nextThreads = threads.filter((t) => t.workspaceId !== id);
+      setThreads(nextThreads);
+      syncDb(DB_THREADS_KEY, nextThreads);
 
-    if (currentWorkspaceId === id) {
-      if (nextWs.length > 0) {
-        setCurrentWorkspaceId(nextWs[0].id);
+      const nextTags = tags.filter((t) => t.workspaceId !== id);
+      setTags(nextTags);
+      syncDb(DB_TAGS_KEY, nextTags);
+
+      if (currentWorkspaceId === id) {
+        const fallbackWorkspaceId = nextWs[0]?.id ?? "";
+        setCurrentWorkspaceId(fallbackWorkspaceId);
+        if (fallbackWorkspaceId) {
+          syncWorkspaceViewState(fallbackWorkspaceId, nextDocs, nextThreads);
+        } else {
+          setOpenDocumentIds([]);
+          setActiveDocumentId(null);
+          setActiveThreadId(null);
+          setSelectionText(null);
+          setSelectedTagIds([]);
+        }
       }
-    }
-  }, [workspaces, documents, notes, threads, tags, currentWorkspaceId]);
+    },
+    [currentWorkspaceId, documents, notes, tags, threads, workspaces],
+  );
 
-  const updateSystemPrompt = useCallback((id: string, prompt: string) => {
-    const nextList = workspaces.map((w) => 
-      w.id === id ? { ...w, systemPrompt: prompt, updatedAt: new Date().toISOString() } : w
-    );
-    setWorkspaces(nextList);
-    syncDb("db_workspaces", nextList);
-  }, [workspaces]);
+  const updateSystemPrompt = useCallback(
+    (id: string, prompt: string) => {
+      const nextList = workspaces.map((w) =>
+        w.id === id ? { ...w, systemPrompt: prompt, updatedAt: new Date().toISOString() } : w,
+      );
+      setWorkspaces(nextList);
+      syncDb(DB_WORKSPACES_KEY, nextList);
+    },
+    [workspaces],
+  );
 
   const openDocument = useCallback((id: string) => {
-    setOpenDocumentIds((prev) => {
-      if (prev.includes(id)) return prev;
-      return [...prev, id];
-    });
+    setOpenDocumentIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     setActiveDocumentId(id);
     setActivePdfPage(1);
     setSelectionText(null);
   }, []);
 
-  const closeDocument = useCallback((id: string) => {
-    setOpenDocumentIds((prev) => {
-      const filtered = prev.filter((docId) => docId !== id);
-      if (activeDocumentId === id) {
-        setActiveDocumentId(filtered.length > 0 ? filtered[filtered.length - 1] : null);
-        setActivePdfPage(1);
-      }
-      return filtered;
-    });
-    setSelectionText(null);
-  }, [activeDocumentId]);
-
-  const uploadDocument = useCallback((name: string, sizeBytes: number) => {
-    const sizeStr = sizeBytes > 1024 * 1024 
-      ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB` 
-      : `${(sizeBytes / 1024).toFixed(0)} KB`;
-      
-    const docId = `doc-${Date.now()}`;
-    const newDoc: Document = {
-      id: docId,
-      workspaceId: currentWorkspaceId,
-      name,
-      size: sizeStr,
-      pagesCount: Math.floor(Math.random() * 12) + 3,
-      status: "uploaded",
-      progress: 0,
-      tags: [],
-      createdAt: new Date().toISOString(),
-    };
-
-    const nextDocs = [newDoc, ...documents];
-    setDocuments(nextDocs);
-    syncDb("db_documents", nextDocs);
-    
-    openDocument(docId);
-
-    const nextWs = workspaces.map((w) => 
-      w.id === currentWorkspaceId ? { ...w, documentCount: w.documentCount + 1 } : w
-    );
-    setWorkspaces(nextWs);
-    syncDb("db_workspaces", nextWs);
-
-    let currentStep: DocumentStatus = "uploaded";
-    let progressVal = 0;
-
-    const interval = setInterval(() => {
-      progressVal += 15;
-      if (progressVal >= 100) {
-        progressVal = 0;
-        if (currentStep === "uploaded") {
-          currentStep = "parsing";
-        } else if (currentStep === "parsing") {
-          currentStep = "chunking";
-        } else if (currentStep === "chunking") {
-          currentStep = "embedding";
-        } else if (currentStep === "embedding") {
-          currentStep = "ready";
-          clearInterval(interval);
+  const closeDocument = useCallback(
+    (id: string) => {
+      setOpenDocumentIds((prev) => {
+        const filtered = prev.filter((docId) => docId !== id);
+        if (activeDocumentId === id) {
+          setActiveDocumentId(filtered.length > 0 ? filtered[filtered.length - 1] : null);
+          setActivePdfPage(1);
         }
-      }
-
-      setDocuments((prev) => {
-        const list = prev.map((d) =>
-          d.id === docId
-            ? { ...d, status: currentStep, progress: currentStep === "ready" ? 100 : progressVal }
-            : d
-        );
-        syncDb("db_documents", list);
-        return list;
+        return filtered;
       });
-    }, 250);
-  }, [currentWorkspaceId, openDocument, documents, workspaces]);
+      setSelectionText(null);
+    },
+    [activeDocumentId],
+  );
 
-  const deleteDocument = useCallback((id: string) => {
-    const nextDocs = documents.filter((d) => d.id !== id);
-    setDocuments(nextDocs);
-    syncDb("db_documents", nextDocs);
+  const uploadDocument = useCallback(
+    (name: string, sizeBytes: number) => {
+      const sizeStr =
+        sizeBytes > 1024 * 1024
+          ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+          : `${(sizeBytes / 1024).toFixed(0)} KB`;
 
-    const nextNotes = notes.filter((n) => n.source?.documentId !== id);
-    setNotes(nextNotes);
-    syncDb("db_notes", nextNotes);
+      const docId = `doc-${Date.now()}`;
+      const newDoc: Document = {
+        id: docId,
+        workspaceId: currentWorkspaceId,
+        name,
+        size: sizeStr,
+        pagesCount: Math.floor(Math.random() * 12) + 3,
+        status: "uploaded",
+        progress: 0,
+        tags: [],
+        createdAt: new Date().toISOString(),
+      };
 
-    closeDocument(id);
-    
-    const nextWs = workspaces.map((w) => 
-      w.id === currentWorkspaceId ? { ...w, documentCount: Math.max(0, w.documentCount - 1) } : w
-    );
-    setWorkspaces(nextWs);
-    syncDb("db_workspaces", nextWs);
-  }, [currentWorkspaceId, closeDocument, documents, notes, workspaces]);
+      const nextDocs = [newDoc, ...documents];
+      setDocuments(nextDocs);
+      syncDb(DB_DOCUMENTS_KEY, nextDocs);
 
-  const createThread = useCallback(() => {
-    const threadId = `thread-${Date.now()}`;
-    const newThread: ChatThread = {
-      id: threadId,
-      workspaceId: currentWorkspaceId,
-      title: locale === "en" ? "New Chat" : "新会话",
-      messages: [],
-      createdAt: new Date().toISOString(),
-    };
-    
-    const nextList = [newThread, ...threads];
-    setThreads(nextList);
-    syncDb("db_threads", nextList);
-    
-    setActiveThreadId(threadId);
-    
-    const nextWs = workspaces.map((w) => 
-      w.id === currentWorkspaceId ? { ...w, threadCount: w.threadCount + 1 } : w
-    );
-    setWorkspaces(nextWs);
-    syncDb("db_workspaces", nextWs);
-  }, [currentWorkspaceId, threads, workspaces, locale]);
+      openDocument(docId);
+
+      const nextWs = workspaces.map((w) =>
+        w.id === currentWorkspaceId ? { ...w, documentCount: w.documentCount + 1 } : w,
+      );
+      setWorkspaces(nextWs);
+      syncDb(DB_WORKSPACES_KEY, nextWs);
+
+      let currentStep: DocumentStatus = "uploaded";
+      let progressVal = 0;
+
+      const interval = setInterval(() => {
+        progressVal += 15;
+        if (progressVal >= 100) {
+          progressVal = 0;
+          if (currentStep === "uploaded") {
+            currentStep = "parsing";
+          } else if (currentStep === "parsing") {
+            currentStep = "chunking";
+          } else if (currentStep === "chunking") {
+            currentStep = "embedding";
+          } else if (currentStep === "embedding") {
+            currentStep = "ready";
+            clearInterval(interval);
+          }
+        }
+
+        setDocuments((prev) => {
+          const list = prev.map((d) =>
+            d.id === docId
+              ? {
+                  ...d,
+                  status: currentStep,
+                  progress: currentStep === "ready" ? 100 : progressVal,
+                }
+              : d,
+          );
+          syncDb(DB_DOCUMENTS_KEY, list);
+          return list;
+        });
+      }, 250);
+    },
+    [currentWorkspaceId, documents, openDocument, workspaces],
+  );
+
+  const deleteDocument = useCallback(
+    (id: string) => {
+      const nextDocs = documents.filter((d) => d.id !== id);
+      setDocuments(nextDocs);
+      syncDb(DB_DOCUMENTS_KEY, nextDocs);
+
+      const nextNotes = notes.filter((n) => n.source?.documentId !== id);
+      setNotes(nextNotes);
+      syncDb(DB_NOTES_KEY, nextNotes);
+
+      closeDocument(id);
+
+      const nextWs = workspaces.map((w) =>
+        w.id === currentWorkspaceId
+          ? { ...w, documentCount: Math.max(0, w.documentCount - 1) }
+          : w,
+      );
+      setWorkspaces(nextWs);
+      syncDb(DB_WORKSPACES_KEY, nextWs);
+    },
+    [closeDocument, currentWorkspaceId, documents, notes, workspaces],
+  );
+
+  const createThread = useCallback(
+    () => {
+      const threadId = `thread-${Date.now()}`;
+      const newThread: ChatThread = {
+        id: threadId,
+        workspaceId: currentWorkspaceId,
+        title: locale === "en" ? "New Chat" : "新会话",
+        messages: [],
+        createdAt: new Date().toISOString(),
+      };
+
+      const nextList = [newThread, ...threads];
+      setThreads(nextList);
+      syncDb(DB_THREADS_KEY, nextList);
+      setActiveThreadId(threadId);
+
+      const nextWs = workspaces.map((w) =>
+        w.id === currentWorkspaceId ? { ...w, threadCount: w.threadCount + 1 } : w,
+      );
+      setWorkspaces(nextWs);
+      syncDb(DB_WORKSPACES_KEY, nextWs);
+    },
+    [currentWorkspaceId, locale, threads, workspaces],
+  );
 
   const switchThread = useCallback((id: string) => {
     setActiveThreadId(id);
   }, []);
 
-  const deleteThread = useCallback((id: string) => {
-    const nextThreads = threads.filter((t) => t.id !== id);
-    setThreads(nextThreads);
-    syncDb("db_threads", nextThreads);
+  const deleteThread = useCallback(
+    (id: string) => {
+      const nextThreads = threads.filter((t) => t.id !== id);
+      setThreads(nextThreads);
+      syncDb(DB_THREADS_KEY, nextThreads);
 
-    if (activeThreadId === id) {
-      const remaining = nextThreads.filter((t) => t.workspaceId === currentWorkspaceId);
-      setActiveThreadId(remaining.length > 0 ? remaining[0].id : null);
-    }
+      if (activeThreadId === id) {
+        const remaining = nextThreads.filter((t) => t.workspaceId === currentWorkspaceId);
+        setActiveThreadId(remaining.length > 0 ? remaining[0].id : null);
+      }
 
-    const nextWs = workspaces.map((w) => 
-      w.id === currentWorkspaceId ? { ...w, threadCount: Math.max(0, w.threadCount - 1) } : w
-    );
-    setWorkspaces(nextWs);
-    syncDb("db_workspaces", nextWs);
-  }, [currentWorkspaceId, activeThreadId, threads, workspaces]);
+      const nextWs = workspaces.map((w) =>
+        w.id === currentWorkspaceId ? { ...w, threadCount: Math.max(0, w.threadCount - 1) } : w,
+      );
+      setWorkspaces(nextWs);
+      syncDb(DB_WORKSPACES_KEY, nextWs);
+    },
+    [activeThreadId, currentWorkspaceId, threads, workspaces],
+  );
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!activeThreadId) return;
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!activeThreadId) return;
 
-    const userMessage: Message = {
-      id: `msg-user-${Date.now()}`,
-      role: "user",
-      content,
-      createdAt: new Date().toISOString(),
-    };
+      const userMessage: Message = {
+        id: `msg-user-${Date.now()}`,
+        role: "user",
+        content,
+        createdAt: new Date().toISOString(),
+      };
 
-    let updatedThreads = threads.map((t) =>
-      t.id === activeThreadId
-        ? {
-            ...t,
-            title: t.messages.length === 0 ? content.slice(0, 16) : t.title,
-            messages: [...t.messages, userMessage],
-          }
-        : t
-    );
-    setThreads(updatedThreads);
-    syncDb("db_threads", updatedThreads);
+      let updatedThreads = threads.map((t) =>
+        t.id === activeThreadId
+          ? {
+              ...t,
+              title: t.messages.length === 0 ? content.slice(0, 16) : t.title,
+              messages: [...t.messages, userMessage],
+            }
+          : t,
+      );
+      setThreads(updatedThreads);
+      syncDb(DB_THREADS_KEY, updatedThreads);
 
-    const assistantMsgId = `msg-ai-${Date.now()}`;
-    const assistantMessagePlaceholder: Message = {
-      id: assistantMsgId,
-      role: "assistant",
-      content: "",
-      createdAt: new Date().toISOString(),
-    };
+      const assistantMsgId = `msg-ai-${Date.now()}`;
+      const assistantMessagePlaceholder: Message = {
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        createdAt: new Date().toISOString(),
+      };
 
-    updatedThreads = updatedThreads.map((t) =>
-      t.id === activeThreadId
-        ? { ...t, messages: [...t.messages, assistantMessagePlaceholder] }
-        : t
-    );
-    setThreads(updatedThreads);
+      updatedThreads = updatedThreads.map((t) =>
+        t.id === activeThreadId
+          ? { ...t, messages: [...t.messages, assistantMessagePlaceholder] }
+          : t,
+      );
+      setThreads(updatedThreads);
 
-    const wsDocs = documents.filter((d) => d.workspaceId === currentWorkspaceId && d.status === "ready");
-    const targetDoc = activeDocumentId 
-      ? wsDocs.find((d) => d.id === activeDocumentId) 
-      : wsDocs.length > 0 ? wsDocs[0] : null;
+      const wsDocs = documents.filter(
+        (d) => d.workspaceId === currentWorkspaceId && d.status === "ready",
+      );
+      const targetDoc = activeDocumentId
+        ? wsDocs.find((d) => d.id === activeDocumentId) || null
+        : wsDocs[0] ?? null;
 
-    let replyText = "";
-    let citationsArr: Citation[] = [];
+      let replyText = "";
+      let citationsArr: Citation[] = [];
+      const isEn = locale === "en";
+      const selectedQueryNotice =
+        content.includes("这段文字") && selectionText
+          ? isEn
+            ? `\n\n(Regarding selection: "${selectionText}")`
+            : `\n\n关于选中的文字（"${selectionText}"）`
+          : "";
 
-    const isEn = locale === "en";
-
-    if (!targetDoc) {
-      replyText = isEn
-        ? "Hello! There are no ready PDF documents in this workspace yet. Please upload a PDF file in the left sidebar to construct your local vector index."
-        : "主人，您好！目前工作区里还没有可以检索的 PDF 文档汪呜。请先在左侧侧边栏拖拽上传一份 PDF 文件并等它解析完毕汪！(外头蹭手心)";
-    } else {
-      const nameLower = targetDoc.name.toLowerCase();
-      const selectedQueryNotice = content.includes("这段文字") && selectionText 
-        ? (isEn ? `\n\n(Regarding selection: "${selectionText}")` : `\n\n关于主人在文档中选中的文字（"${selectionText}"）`) 
-        : "";
-
-      if (nameLower.includes("attention")) {
+      if (!targetDoc) {
         replyText = isEn
-          ? `Based on 'Attention Is All You Need.pdf', here are the key findings:${selectedQueryNotice}\n\n1. **Self-Attention Mechanism**: Replaces recurrence and convolutions with a single matrix product, maximizing parallelism during sequence modeling.\n2. **Multi-Head Projection**: Linearly projects Queries, Keys, and Values h times to represent contextual positions from multiple representation subspaces.`
-          : `针对主人的提问，从《Attention Is All You Need.pdf》检索到以下要点汪！${selectedQueryNotice}\n\n1. **自注意力机制**：Self-Attention 机制在时间上完全解耦了词元间的迭代计算，每个 Token 可同时与所有其他 Token 计算权重分值，大幅提升并行流水线吞吐量汪！\n2. **多头注意力映射**：利用 $h$ 个小维度投影空间并行建模，让模型有能力“多重视角”感知长程指代。`;
-        citationsArr = [
-          {
-            id: `cit-${Date.now()}-1`,
-            documentId: targetDoc.id,
-            documentName: targetDoc.name,
-            pageNumber: 3,
-            snippet: "The Scaled Dot-Product Attention: softmax(QK^T / sqrt(d_k))V."
-          },
-          {
-            id: `cit-${Date.now()}-2`,
-            documentId: targetDoc.id,
-            documentName: targetDoc.name,
-            pageNumber: 5,
-            snippet: "Multi-head attention projects Queries, Keys and Values h times."
-          }
-        ];
-      } else if (nameLower.includes("rag")) {
-        replyText = isEn
-          ? `According to 'Retrieval-Augmented Generation for NLP Tasks.pdf', here is the summary:${selectedQueryNotice}\n\n1. **Hybrid Architecture**: Integrates pre-trained parametric generator with non-parametric dense indexing databases.\n2. **Citation Auditing**: Clicking citation tokens redirects to source pages instantly to prevent hallucination.`
-          : `结合《Retrieval-Augmented Generation...pdf》检索结论，咱为您总结如下汪呜：${selectedQueryNotice}\n\n1. **多模型融合机制**：RAG 结合了预训练参数库与外部密集向量索引。这可以无需二次精调便实现动态事实载入。\n2. **索引召回跳页**：在向量召回 Top-k 后，系统可精确提供来源的 PDF 物理页码进行证据链追溯，完全杜绝模型幻觉。`;
-        citationsArr = [
-          {
-            id: `cit-${Date.now()}-3`,
-            documentId: targetDoc.id,
-            documentName: targetDoc.name,
-            pageNumber: 1,
-            snippet: "RAG models combine parametric seq2seq models with non-parametric dense index database."
-          }
-        ];
-      } else if (nameLower.includes("nda")) {
-        replyText = isEn
-          ? `Based on 'NDA_Bilateral_Standard_2026.pdf', here is the legal risk evaluation:${selectedQueryNotice}\n\n1. **Obligation Survival Term**: Section 3 defines survival as three (3) years. For critical source code or algorithm patents, it is highly recommended to amend this to permanent survival.\n2. **Equitable Remedies**: Section 4 allows seeking injunctive judicial relief to restrain violations instantly.`
-          : `根据对《NDA_Bilateral_Standard_2026.pdf》的合同条款风险审查：${selectedQueryNotice}\n\n1. **保密期限漏洞**：第 3 页约定保密期限仅在终止后 3 年。如果是核心专有代码或算法专利， 3 年极易引发到期后的泄密事件，咱建议修改为永久保密汪！\n2. **惩罚救济条款**：第 4 页第 2 段虽然无固定的数额罚款，但规定守约方可直接申请司法禁止令（Injunctive Relief）遏制泄密扩散。`;
-        citationsArr = [
-          {
-            id: `cit-${Date.now()}-4`,
-            documentId: targetDoc.id,
-            documentName: targetDoc.name,
-            pageNumber: 3,
-            snippet: "Obligations shall survive for three (3) years from the date of termination."
-          },
-          {
-            id: `cit-${Date.now()}-5`,
-            documentId: targetDoc.id,
-            documentName: targetDoc.name,
-            pageNumber: 4,
-            snippet: "Disclosing party is entitled to seek injunctive relief to prevent breaches."
-          }
-        ];
+          ? "Hello! There are no ready PDF documents in this workspace yet. Please upload a PDF file first."
+          : "当前工作区里还没有可以检索的 PDF 文档。请先上传 PDF 文件。";
       } else {
-        replyText = isEn
-          ? `Retrieved key findings from your uploaded document 《${targetDoc.name}》:${selectedQueryNotice}\n\n1. **Analysis**: The document details custom implementations showing improvements over previous benchmarks.\n2. **Recommendation**: You can select specific sentences to ask contextual questions.`
-          : `根据在《${targetDoc.name}》中检索到的内容，咱家小狗帮主人分析出以下几条核心要点哒汪：${selectedQueryNotice}\n\n1. **研究结论**：本篇 PDF 主要阐述了一种新的框架或算法机制，在对比以往基线上展现出不错的计算性能。\n2. **检索建议**：建议主人可以针对文档高亮段落进行进一步提问，咱可以结合 Context 给出定制解析汪！(摇尾巴蹭蹭)`;
-        citationsArr = [
-          {
-            id: `cit-${Date.now()}-6`,
-            documentId: targetDoc.id,
-            documentName: targetDoc.name,
-            pageNumber: 1,
-            snippet: "We propose a novel framework that improves performance by utilizing RAG retrieval pipelines."
-          }
-        ];
-      }
-    }
-
-    let idx = 0;
-    const streamInterval = setInterval(() => {
-      idx += 8;
-      const part = replyText.slice(0, idx);
-      
-      setThreads((prev) => {
-        const list = prev.map((t) =>
-          t.id === activeThreadId
-            ? {
-                ...t,
-                messages: t.messages.map((m) =>
-                  m.id === assistantMsgId
-                    ? {
-                        ...m,
-                        content: part,
-                        citations: idx >= replyText.length ? citationsArr : undefined,
-                      }
-                    : m
-                ),
-              }
-            : t
-        );
-        if (idx >= replyText.length) {
-          syncDb("db_threads", list);
+        const nameLower = targetDoc.name.toLowerCase();
+        if (nameLower.includes("attention")) {
+          replyText = isEn
+            ? `Based on 'Attention Is All You Need.pdf', here are the key findings:${selectedQueryNotice}\n\n1. **Self-Attention Mechanism**: Replaces recurrence and convolutions with a single matrix product.\n2. **Multi-Head Projection**: Projects Q/K/V into multiple representation subspaces.`
+            : `针对《Attention Is All You Need.pdf》，检索到以下要点：${selectedQueryNotice}\n\n1. **自注意力机制**：用并行矩阵运算替代时序递归。\n2. **多头投影**：把 Q/K/V 投影到多个表示子空间。`;
+          citationsArr = [
+            {
+              id: `cit-${Date.now()}-1`,
+              documentId: targetDoc.id,
+              documentName: targetDoc.name,
+              pageNumber: 3,
+              snippet: "The Scaled Dot-Product Attention: softmax(QK^T / sqrt(d_k))V.",
+            },
+            {
+              id: `cit-${Date.now()}-2`,
+              documentId: targetDoc.id,
+              documentName: targetDoc.name,
+              pageNumber: 5,
+              snippet:
+                "Multi-head attention projects Queries, Keys and Values h times.",
+            },
+          ];
+        } else if (nameLower.includes("rag")) {
+          replyText = isEn
+            ? `According to 'Retrieval-Augmented Generation...', here is the summary:${selectedQueryNotice}\n\n1. **Hybrid Architecture**: Integrates pre-trained generators with dense retrieval.\n2. **Citation Auditing**: Clicking citations jumps back to source pages.`
+            : `结合《Retrieval-Augmented Generation...》检索结果，总结如下：${selectedQueryNotice}\n\n1. **混合架构**：结合预训练生成模型和密集检索。\n2. **引用回跳**：点击引用可回到原始页码。`;
+          citationsArr = [
+            {
+              id: `cit-${Date.now()}-3`,
+              documentId: targetDoc.id,
+              documentName: targetDoc.name,
+              pageNumber: 1,
+              snippet:
+                "RAG models combine parametric seq2seq models with non-parametric dense index database.",
+            },
+          ];
+        } else if (nameLower.includes("nda")) {
+          replyText = isEn
+            ? `Based on 'NDA_Bilateral_Standard_2026.pdf', here is the legal risk evaluation:${selectedQueryNotice}\n\n1. **Obligation Survival Term**: The 3-year confidentiality term may be too short.\n2. **Equitable Remedies**: Injunctive relief is allowed.`
+            : `根据《NDA_Bilateral_Standard_2026.pdf》的合同风险审查：${selectedQueryNotice}\n\n1. **保密期限**：3 年可能过短。\n2. **救济方式**：支持申请禁止令。`;
+          citationsArr = [
+            {
+              id: `cit-${Date.now()}-4`,
+              documentId: targetDoc.id,
+              documentName: targetDoc.name,
+              pageNumber: 3,
+              snippet:
+                "Obligations shall survive for three (3) years from the date of termination.",
+            },
+            {
+              id: `cit-${Date.now()}-5`,
+              documentId: targetDoc.id,
+              documentName: targetDoc.name,
+              pageNumber: 4,
+              snippet:
+                "Disclosing party is entitled to seek injunctive relief to prevent breaches.",
+            },
+          ];
+        } else {
+          replyText = isEn
+            ? `Retrieved key findings from ${targetDoc.name}:${selectedQueryNotice}\n\n1. **Analysis**: The document outlines a custom framework.\n2. **Recommendation**: Select text for more targeted questions.`
+            : `根据《${targetDoc.name}》检索到以下要点：${selectedQueryNotice}\n\n1. **分析**：文档描述了一套自定义框架。\n2. **建议**：可以划词继续追问。`;
+          citationsArr = [
+            {
+              id: `cit-${Date.now()}-6`,
+              documentId: targetDoc.id,
+              documentName: targetDoc.name,
+              pageNumber: 1,
+              snippet:
+                "We propose a novel framework that improves performance by utilizing RAG retrieval pipelines.",
+            },
+          ];
         }
-        return list;
-      });
-
-      if (idx >= replyText.length) {
-        clearInterval(streamInterval);
       }
-    }, 30);
-  }, [activeThreadId, activeDocumentId, documents, currentWorkspaceId, selectionText, threads, locale]);
 
-  const createNote = useCallback((title: string, content: string, source?: NoteSource) => {
-    const newNote: Note = {
-      id: `note-${Date.now()}`,
-      workspaceId: currentWorkspaceId,
-      title,
-      content,
-      source,
-      tags: [],
-      createdAt: new Date().toISOString(),
-    };
+      let idx = 0;
+      const streamInterval = setInterval(() => {
+        idx += 8;
+        const part = replyText.slice(0, idx);
 
-    const nextList = [newNote, ...notes];
-    setNotes(nextList);
-    syncDb("db_notes", nextList);
+        setThreads((prev) => {
+          const list = prev.map((t) =>
+            t.id === activeThreadId
+              ? {
+                  ...t,
+                  messages: t.messages.map((m) =>
+                    m.id === assistantMsgId
+                      ? {
+                          ...m,
+                          content: part,
+                          citations: idx >= replyText.length ? citationsArr : undefined,
+                        }
+                      : m,
+                  ),
+                }
+              : t,
+          );
+          if (idx >= replyText.length) {
+            syncDb(DB_THREADS_KEY, list);
+          }
+          return list;
+        });
 
-    const nextWs = workspaces.map((w) => 
-      w.id === currentWorkspaceId ? { ...w, noteCount: w.noteCount + 1 } : w
-    );
-    setWorkspaces(nextWs);
-    syncDb("db_workspaces", nextWs);
-  }, [currentWorkspaceId, notes, workspaces]);
+        if (idx >= replyText.length) {
+          clearInterval(streamInterval);
+        }
+      }, 30);
+    },
+    [
+      activeDocumentId,
+      activeThreadId,
+      currentWorkspaceId,
+      documents,
+      locale,
+      selectionText,
+      threads,
+    ],
+  );
 
-  const deleteNote = useCallback((id: string) => {
-    const nextList = notes.filter((n) => n.id !== id);
-    setNotes(nextList);
-    syncDb("db_notes", nextList);
+  const createNote = useCallback(
+    (title: string, content: string, source?: NoteSource) => {
+      const newNote: Note = {
+        id: `note-${Date.now()}`,
+        workspaceId: currentWorkspaceId,
+        title,
+        content,
+        source,
+        tags: [],
+        createdAt: new Date().toISOString(),
+      };
 
-    const nextWs = workspaces.map((w) => 
-      w.id === currentWorkspaceId ? { ...w, noteCount: Math.max(0, w.noteCount - 1) } : w
-    );
-    setWorkspaces(nextWs);
-    syncDb("db_workspaces", nextWs);
-  }, [currentWorkspaceId, notes, workspaces]);
+      const nextList = [newNote, ...notes];
+      setNotes(nextList);
+      syncDb(DB_NOTES_KEY, nextList);
 
-  const addTag = useCallback((name: string) => {
-    if (tags.some((t) => t.workspaceId === currentWorkspaceId && t.name.toLowerCase() === name.toLowerCase())) {
-      return;
-    }
+      const nextWs = workspaces.map((w) =>
+        w.id === currentWorkspaceId ? { ...w, noteCount: w.noteCount + 1 } : w,
+      );
+      setWorkspaces(nextWs);
+      syncDb(DB_WORKSPACES_KEY, nextWs);
+    },
+    [currentWorkspaceId, notes, workspaces],
+  );
 
-    const colors = ["#818cf8", "#22d3ee", "#34d399", "#fbbf24", "#f87171", "#c084fc", "#f472b6"];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  const deleteNote = useCallback(
+    (id: string) => {
+      const nextList = notes.filter((n) => n.id !== id);
+      setNotes(nextList);
+      syncDb(DB_NOTES_KEY, nextList);
 
-    const newTag: Tag = {
-      id: `tag-${Date.now()}`,
-      workspaceId: currentWorkspaceId,
-      name,
-      color: randomColor,
-    };
+      const nextWs = workspaces.map((w) =>
+        w.id === currentWorkspaceId ? { ...w, noteCount: Math.max(0, w.noteCount - 1) } : w,
+      );
+      setWorkspaces(nextWs);
+      syncDb(DB_WORKSPACES_KEY, nextWs);
+    },
+    [currentWorkspaceId, notes, workspaces],
+  );
 
-    const nextList = [...tags, newTag];
-    setTags(nextList);
-    syncDb("db_tags", nextList);
-  }, [currentWorkspaceId, tags]);
+  const addTag = useCallback(
+    (name: string) => {
+      if (
+        tags.some(
+          (t) =>
+            t.workspaceId === currentWorkspaceId &&
+            t.name.toLowerCase() === name.toLowerCase(),
+        )
+      ) {
+        return;
+      }
+
+      const colors = [
+        "#818cf8",
+        "#22d3ee",
+        "#34d399",
+        "#fbbf24",
+        "#f87171",
+        "#c084fc",
+        "#f472b6",
+      ];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+      const newTag: Tag = {
+        id: `tag-${Date.now()}`,
+        workspaceId: currentWorkspaceId,
+        name,
+        color: randomColor,
+      };
+
+      const nextList = [...tags, newTag];
+      setTags(nextList);
+      syncDb(DB_TAGS_KEY, nextList);
+    },
+    [currentWorkspaceId, tags],
+  );
 
   const toggleDocumentTag = useCallback((docId: string, tagName: string) => {
     setDocuments((prev) => {
@@ -919,7 +962,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           tags: exists ? d.tags.filter((t) => t !== tagName) : [...d.tags, tagName],
         };
       });
-      syncDb("db_documents", list);
+      syncDb(DB_DOCUMENTS_KEY, list);
       return list;
     });
   }, []);
@@ -934,7 +977,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           tags: exists ? n.tags.filter((t) => t !== tagName) : [...n.tags, tagName],
         };
       });
-      syncDb("db_notes", list);
+      syncDb(DB_NOTES_KEY, list);
       return list;
     });
   }, []);
@@ -950,7 +993,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         threads,
         activeThread,
         tags,
-        
         openDocumentIds,
         activeDocumentId,
         activePdfPage,
@@ -959,8 +1001,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         rightPanelOpen,
         selectionText,
         selectedTagIds,
-        
         login,
+        register,
         logout,
         switchWorkspace,
         createWorkspace,

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useWorkspace, Workspace, Document } from "@/lib/mock-context";
+import { useWorkspace, Document } from "@/lib/mock-context";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
-  FolderOpen, FileText, Plus, Trash2, MessageSquare, 
-  Tag as TagIcon, ChevronDown, UploadCloud, Loader2, 
-  CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight,
+  Plus, Trash2, MessageSquare, 
+  Tag as TagIcon, ChevronDown, UploadCloud, X, ChevronLeft, ChevronRight,
   Sun, Moon, Globe, LogOut, Home
 } from "lucide-react";
 import { CreateWorkspaceDialog } from "./create-workspace-dialog";
@@ -22,7 +22,6 @@ export function WorkspaceSidebar() {
     threads,
     activeThread,
     tags,
-    openDocumentIds,
     activeDocumentId,
     leftSidebarOpen,
     selectedTagIds,
@@ -441,10 +440,13 @@ export function WorkspaceSidebar() {
       <div className="border-t border-zinc-800 p-3 bg-zinc-950 flex items-center justify-between text-xs shrink-0">
         <div className="flex items-center gap-2">
           {user && (
-            <img 
-              src={user.avatarUrl} 
-              alt={user.name} 
-              className="h-7 w-7 rounded-lg bg-zinc-800 border border-zinc-800" 
+            <Image
+              src={user.avatarUrl}
+              alt={user.name}
+              width={28}
+              height={28}
+              unoptimized
+              className="h-7 w-7 rounded-lg bg-zinc-800 border border-zinc-800"
             />
           )}
           <div className="text-left leading-none">

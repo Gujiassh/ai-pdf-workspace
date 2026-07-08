@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useWorkspace, Workspace } from "@/lib/mock-context";
+import { useWorkspace } from "@/lib/mock-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
   Plus, Trash2, FileText, MessageSquare, BookOpen, 
-  AlertCircle, Search, Calendar, ChevronRight
+  AlertCircle, Search, Calendar
 } from "lucide-react";
 
 export function WorkspaceList() {

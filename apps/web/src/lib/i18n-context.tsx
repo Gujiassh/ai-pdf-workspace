@@ -1,18 +1,30 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 type Locale = "zh" | "en";
 
-const translations = {
+export const translations = {
   zh: {
     "login.title": "AI PDF 知识工作台",
     "login.subtitle": "基于多工作区隔离的学术论文与合同分析平台",
     "login.emailPlaceholder": "输入您的电子邮箱...",
     "login.usernamePlaceholder": "输入您的昵称 (可选)...",
-    "login.button": "进入工作区大盘",
+    "login.button": "登录",
     "login.buttonLoading": "正在登录...",
-    "login.guestNotice": "提示：输入任意邮箱即可体验全套自研交互，无需密码",
+    "login.loginTab": "登录",
+    "login.registerTab": "注册",
+    "login.passwordLabel": "密码",
+    "login.passwordPlaceholder": "输入密码...",
+    "login.confirmPasswordLabel": "确认密码",
+    "login.confirmPasswordPlaceholder": "再次输入密码...",
+    "login.registerButton": "注册账号",
+    "login.registerButtonLoading": "正在注册...",
+    "login.registerSuccess": "注册成功，请直接登录。",
+    "login.registerNotice": "开发模式最小认证：请先注册，再登录。",
+    "login.errorPasswordMismatch": "两次输入的密码不一致。",
+    "login.errorUnknown": "操作失败，请稍后重试。",
+    "login.guestNotice": "开发模式最小认证：未注册账号不能登录。",
     "dashboard.title": "工作区",
     "dashboard.subtitle": "管理独立隔离的知识库切片、系统提示词与对话上下文",
     "dashboard.createBtn": "创建新工作区",
@@ -137,9 +149,21 @@ const translations = {
     "login.subtitle": "Multi-workspace Isolated Academic & Contract Analysis Platform",
     "login.emailPlaceholder": "Enter your email address...",
     "login.usernamePlaceholder": "Your nickname (optional)...",
-    "login.button": "Enter Dashboard",
+    "login.button": "Sign In",
     "login.buttonLoading": "Signing in...",
-    "login.guestNotice": "Tip: Enter any email to experience full mock features, no password required",
+    "login.loginTab": "Sign In",
+    "login.registerTab": "Register",
+    "login.passwordLabel": "Password",
+    "login.passwordPlaceholder": "Enter your password...",
+    "login.confirmPasswordLabel": "Confirm Password",
+    "login.confirmPasswordPlaceholder": "Enter your password again...",
+    "login.registerButton": "Create Account",
+    "login.registerButtonLoading": "Creating account...",
+    "login.registerSuccess": "Registration complete. Please sign in now.",
+    "login.registerNotice": "Dev-mode auth: register first, then sign in.",
+    "login.errorPasswordMismatch": "Passwords do not match.",
+    "login.errorUnknown": "Action failed. Please try again.",
+    "login.guestNotice": "Dev-mode auth: unregistered accounts cannot sign in.",
     "dashboard.title": "Workspaces",
     "dashboard.subtitle": "Manage isolated knowledge bases, system prompts, and chat contexts",
     "dashboard.createBtn": "Create Workspace",
@@ -270,14 +294,14 @@ type I18nContextType = {
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("zh");
-
-  useEffect(() => {
-    const savedLocale = localStorage.getItem("ai_pdf_workspace_locale") as Locale | null;
-    if (savedLocale) {
-      setLocaleState(savedLocale);
+  const [locale, setLocaleState] = useState<Locale>(() => {
+    if (typeof window === "undefined") {
+      return "zh";
     }
-  }, []);
+
+    const savedLocale = localStorage.getItem("ai_pdf_workspace_locale");
+    return savedLocale === "zh" || savedLocale === "en" ? savedLocale : "zh";
+  });
 
   const setLocale = (nextLocale: Locale) => {
     setLocaleState(nextLocale);

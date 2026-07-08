@@ -4,8 +4,7 @@ import React, { useState } from "react";
 import { useWorkspace, Note } from "@/lib/mock-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
-  Plus, Trash2, FileText, ExternalLink, Tag as TagIcon, 
-  X, CheckSquare, Sparkles, BookOpen
+  Plus, Trash2, FileText, ExternalLink, Tag as TagIcon, BookOpen
 } from "lucide-react";
 
 export function NotesPanel() {
@@ -189,7 +188,7 @@ export function NotesPanel() {
                       <span>{t("notes.source")}：{note.source.documentName.split(".pdf")[0]} p.{note.source.pageNumber}</span>
                     </div>
                     <p className="mt-0.5 truncate text-[10px] text-zinc-400 dark:text-zinc-500 italic">
-                      "{note.source.snippet}"
+                      &quot;{note.source.snippet}&quot;
                     </p>
                   </div>
                   <ExternalLink className="h-3 w-3 text-zinc-400 dark:text-zinc-600 shrink-0 ml-2" />

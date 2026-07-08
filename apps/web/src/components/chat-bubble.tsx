@@ -15,7 +15,7 @@ interface ChatBubbleProps {
   quickNoteContent: string;
   setQuickNoteContent: (content: string) => void;
   onSaveQuickNote: (cit: Citation) => void;
-  t: (key: any) => string;
+  t: (key: string) => string;
 }
 
 export function ChatBubble({

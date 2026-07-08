@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { useWorkspace, Document } from "@/lib/mock-context";
+import { useRef, useState } from "react";
+import { useWorkspace } from "@/lib/mock-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
   ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText, 
@@ -18,7 +18,6 @@ export function PdfViewer() {
     documents,
     notes,
     threads,
-    tags,
     openDocumentIds,
     activeDocumentId,
     activePdfPage,
@@ -28,8 +27,6 @@ export function PdfViewer() {
     openDocument,
     closeDocument,
     setActivePdfPage,
-    toggleDocumentTag,
-    addTag,
     setLeftSidebarOpen,
     setRightPanelOpen,
     setSelectionText,
@@ -490,7 +487,7 @@ export function PdfViewer() {
                   <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 dark:bg-amber-500/10 p-4 animate-in fade-in duration-300 animate-citation-pulse">
                     <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider block">{t("viewer.highlightTitle")}</span>
                     <p className="mt-1 text-xs leading-6 font-semibold text-zinc-800 dark:text-zinc-300 italic">
-                      "{pageContent.highlight}"
+                      &quot;{pageContent.highlight}&quot;
                     </p>
                   </div>
                 )}

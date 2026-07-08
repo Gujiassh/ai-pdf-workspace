@@ -6,7 +6,7 @@ interface CreateWorkspaceDialogProps {
   show: boolean;
   onClose: () => void;
   onCreate: (name: string, desc: string | null) => void;
-  t: (key: any) => string;
+  t: (key: string) => string;
 }
 
 export function CreateWorkspaceDialog({

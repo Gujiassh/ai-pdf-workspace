@@ -17,7 +17,7 @@
 
 ## 2. 当前总状态
 
-当前项目状态：`前端探索性交互原型已完成，Workspace 最小 BFF/API 已落地，但主页面仍以 LocalStorage mock 沙盒驱动`
+当前项目状态：`前端探索性交互原型已完成，开发模式最小登录/注册已接入，主页面仍以 LocalStorage mock 沙盒驱动`
 
 说明：
 
@@ -66,7 +66,7 @@
 
 ## 6. 当前正在做什么
 
-当前：`Workspace 最小业务边界已接入，当前重点是把主页面从 mock 状态迁移到真实 session 与 membership 数据链`
+当前：`开发模式最小登录/注册模块已接入，等待人工确认后再进入真实 session 与 membership`
 
 收口结果：
 
@@ -77,6 +77,7 @@
 - `apps/web`、`apps/api`、`apps/worker` 基础工程已初始化
 - Workspace 列表与详情的最小 API/BFF/页面链路已建立
 - 当前首页与工作区控制台主体仍主要消费 `mock-context` 的本地沙盒状态
+- 开发模式下已支持显式注册、显式登录与本地 session 持久化（不自动注册）
 
 ## 7. 下一步
 

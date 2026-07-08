@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWorkspace } from "@/lib/mock-context";
 import { useTranslation } from "@/lib/i18n-context";
@@ -9,10 +9,7 @@ import { PdfViewer } from "@/components/pdf-viewer";
 import { ChatPanel } from "@/components/chat-panel";
 import { NotesPanel } from "@/components/notes-panel";
 import { SettingsPanel } from "@/components/settings-panel";
-import { 
-  MessageSquare, BookOpen, Settings2, Home, HelpCircle 
-} from "lucide-react";
-import Link from "next/link";
+import { BookOpen, MessageSquare, Settings2 } from "lucide-react";
 
 export default function WorkspaceDetailPage() {
   const params = useParams();
@@ -59,7 +56,7 @@ export default function WorkspaceDetailPage() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950 font-sans antialiased text-zinc-300 relative">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-50 font-sans antialiased text-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 relative transition-colors duration-200">
       
       {/* Mobile Sidebar backdrop overlay */}
       {leftSidebarOpen && (

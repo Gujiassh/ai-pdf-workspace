@@ -9,7 +9,7 @@ interface SelectionPopoverProps {
   pos: { x: number; y: number };
   onAskAI: () => void;
   onCaptureNote: () => void;
-  t: (key: any) => string;
+  t: (key: string) => string;
 }
 
 export function SelectionPopover({
