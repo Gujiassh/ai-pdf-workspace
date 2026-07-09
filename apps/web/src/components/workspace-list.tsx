@@ -27,6 +27,8 @@ export function WorkspaceList() {
   const [description, setDescription] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const safeLower = (value: string | null | undefined) => value?.toLowerCase() ?? "";
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -37,10 +39,12 @@ export function WorkspaceList() {
     setShowAddForm(false);
   };
 
+  const normalizedSearchQuery = safeLower(searchQuery);
+
   const filteredWorkspaces = workspaces.filter(
     (ws) =>
-      ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (ws.description && ws.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      safeLower(ws.name).includes(normalizedSearchQuery) ||
+      safeLower(ws.description).includes(normalizedSearchQuery),
   );
 
   return (

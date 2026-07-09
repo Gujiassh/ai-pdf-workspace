@@ -27,13 +27,17 @@ export function NotesPanel() {
   const [content, setContent] = useState("");
   const [search, setSearch] = useState("");
 
+  const safeLower = (value: string | null | undefined) => value?.toLowerCase() ?? "";
+
   const wsNotes = notes.filter((n) => n.workspaceId === currentWorkspace?.id);
   const wsTags = tags.filter((t) => t.workspaceId === currentWorkspace?.id);
 
+  const normalizedSearch = safeLower(search);
+
   const filteredNotes = wsNotes.filter((note) => {
-    const matchesSearch = 
-      note.title.toLowerCase().includes(search.toLowerCase()) ||
-      note.content.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch =
+      safeLower(note.title).includes(normalizedSearch) ||
+      safeLower(note.content).includes(normalizedSearch);
       
     const matchesTags = 
       selectedTagIds.length === 0 ||

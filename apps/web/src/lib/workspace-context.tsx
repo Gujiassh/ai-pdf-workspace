@@ -699,7 +699,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           ? "Hello! There are no ready PDF documents in this workspace yet. Please upload a PDF file first."
           : "当前工作区里还没有可以检索的 PDF 文档。请先上传 PDF 文件。";
       } else {
-        const nameLower = targetDoc.name.toLowerCase();
+        const nameLower = (targetDoc.name ?? "").toLowerCase();
         if (nameLower.includes("attention")) {
           replyText = isEn
             ? `Based on 'Attention Is All You Need.pdf', here are the key findings:${selectedQueryNotice}\n\n1. **Self-Attention Mechanism**: Replaces recurrence and convolutions with a single matrix product.\n2. **Multi-Head Projection**: Projects Q/K/V into multiple representation subspaces.`
@@ -860,11 +860,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const addTag = useCallback(
     (name: string) => {
+      const normalizedName = name.trim().toLowerCase();
+      if (!normalizedName) {
+        return;
+      }
+
       if (
         tags.some(
           (t) =>
             t.workspaceId === currentWorkspaceId &&
-            t.name.toLowerCase() === name.toLowerCase(),
+            (t.name ?? "").toLowerCase() === normalizedName,
         )
       ) {
         return;

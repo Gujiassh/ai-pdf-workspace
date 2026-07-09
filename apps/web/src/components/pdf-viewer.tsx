@@ -131,7 +131,7 @@ export function PdfViewer() {
   };
 
   const getMockPdfContent = (docName: string, pageNum: number) => {
-    const nameLower = docName.toLowerCase();
+    const nameLower = (docName ?? "").toLowerCase();
     
     if (nameLower.includes("attention")) {
       if (pageNum === 3) {

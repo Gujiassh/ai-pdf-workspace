@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowRight, Loader2, Mail, Sparkles } from "lucide-react";
 
 import { useTranslation } from "@/lib/i18n-context";
@@ -8,12 +8,19 @@ import { useAuth } from "@/lib/auth/auth-context";
 
 type AuthMode = "login" | "register";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(value: string): boolean {
+  return EMAIL_PATTERN.test(value.trim());
+}
+
 export function AuthCard() {
   const { login, register } = useAuth();
   const { t } = useTranslation();
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,17 +28,30 @@ export function AuthCard() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const emailFormatError = useMemo(() => {
+    if (!emailTouched || !email.trim()) return null;
+    return isValidEmail(email) ? null : t("login.errorInvalidEmail");
+  }, [email, emailTouched, t]);
+
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode);
     setError(null);
     setSuccess(null);
     setPassword("");
     setConfirmPassword("");
+    setEmailTouched(false);
   };
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email.trim() || !password.trim() || loading) return;
+
+    setEmailTouched(true);
+    if (!isValidEmail(email)) {
+      setError(t("login.errorInvalidEmail"));
+      setSuccess(null);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -53,6 +73,13 @@ export function AuthCard() {
   const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email.trim() || !password.trim() || !confirmPassword.trim() || loading) {
+      return;
+    }
+
+    setEmailTouched(true);
+    if (!isValidEmail(email)) {
+      setError(t("login.errorInvalidEmail"));
+      setSuccess(null);
       return;
     }
 
@@ -96,9 +123,6 @@ export function AuthCard() {
         <h1 className="mt-4 text-xl font-black text-zinc-900 dark:text-white tracking-tight">
           {t("login.title")}
         </h1>
-        <p className="mt-2 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
-          {t("login.subtitle")}
-        </p>
       </header>
 
       <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-zinc-100 p-1 dark:bg-zinc-800/70">
@@ -137,15 +161,36 @@ export function AuthCard() {
           <div className="relative mt-1.5 flex items-center">
             <Mail className="absolute left-3.5 h-4 w-4 text-zinc-400 shrink-0" />
             <input
-              type="email"
+              type="text"
+              inputMode="email"
+              autoComplete="email"
               required
               placeholder={t("login.emailPlaceholder")}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError(null);
+              }}
+              onBlur={() => setEmailTouched(true)}
               className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 py-3 pl-11 pr-4 text-xs outline-none focus:border-zinc-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-700 dark:focus:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition"
             />
           </div>
         </div>
+
+        {mode === "register" ? (
+          <div>
+            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+              {t("login.usernameLabel")}
+            </label>
+            <input
+              type="text"
+              placeholder={t("login.usernamePlaceholder")}
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 py-3 px-4 text-xs outline-none focus:border-zinc-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-700 dark:focus:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition"
+            />
+          </div>
+        ) : null}
 
         <div>
           <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
@@ -162,33 +207,25 @@ export function AuthCard() {
         </div>
 
         {mode === "register" ? (
-          <>
-            <div>
-              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                {t("login.usernameLabel")}
-              </label>
-              <input
-                type="text"
-                placeholder={t("login.usernamePlaceholder")}
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 py-3 px-4 text-xs outline-none focus:border-zinc-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-700 dark:focus:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                {t("login.confirmPasswordLabel")}
-              </label>
-              <input
-                type="password"
-                required
-                placeholder={t("login.confirmPasswordPlaceholder")}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 py-3 px-4 text-xs outline-none focus:border-zinc-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-700 dark:focus:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition"
-              />
-            </div>
-          </>
+          <div>
+            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+              {t("login.confirmPasswordLabel")}
+            </label>
+            <input
+              type="password"
+              required
+              placeholder={t("login.confirmPasswordPlaceholder")}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 py-3 px-4 text-xs outline-none focus:border-zinc-400 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-700 dark:focus:bg-zinc-950 text-zinc-800 dark:text-zinc-100 transition"
+            />
+          </div>
+        ) : null}
+
+        {!error && emailFormatError ? (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">
+            {emailFormatError}
+          </p>
         ) : null}
 
         {error ? (
