@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { WorkspaceProvider } from "@/lib/mock-context";
+import { AuthProvider } from "@/lib/auth/auth-context";
+import { WorkspaceProvider } from "@/lib/workspace-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { I18nProvider } from "@/lib/i18n-context";
 import "./globals.css";
@@ -34,7 +35,9 @@ export default function RootLayout({
       <body className="min-h-full bg-background text-foreground transition-colors duration-200">
         <I18nProvider>
           <ThemeProvider>
-            <WorkspaceProvider>{children}</WorkspaceProvider>
+            <AuthProvider>
+              <WorkspaceProvider>{children}</WorkspaceProvider>
+            </AuthProvider>
           </ThemeProvider>
         </I18nProvider>
       </body>

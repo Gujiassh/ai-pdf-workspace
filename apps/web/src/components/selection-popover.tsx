@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+
+import type { TranslationKey } from "@/lib/i18n-context";
 import { MessageSquareHeart, BookmarkPlus } from "lucide-react";
 
 interface SelectionPopoverProps {
@@ -9,7 +11,7 @@ interface SelectionPopoverProps {
   pos: { x: number; y: number };
   onAskAI: () => void;
   onCaptureNote: () => void;
-  t: (key: string) => string;
+  t: (key: TranslationKey) => string;
 }
 
 export function SelectionPopover({

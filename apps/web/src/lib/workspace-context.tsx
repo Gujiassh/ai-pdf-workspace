@@ -4,20 +4,6 @@ import React, { createContext, useCallback, useContext, useState } from "react";
 
 import { useTranslation } from "./i18n-context";
 
-export type User = {
-  name: string;
-  email: string;
-  avatarUrl: string;
-};
-
-type DevAccount = {
-  email: string;
-  password: string;
-  name: string;
-  avatarUrl: string;
-  createdAt: string;
-};
-
 export type Workspace = {
   id: string;
   name: string;
@@ -95,7 +81,6 @@ export type Tag = {
 };
 
 type WorkspaceContextType = {
-  user: User | null;
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   documents: Document[];
@@ -111,9 +96,6 @@ type WorkspaceContextType = {
   rightPanelOpen: boolean;
   selectionText: string | null;
   selectedTagIds: string[];
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, name: string, password: string) => Promise<void>;
-  logout: () => void;
   switchWorkspace: (id: string) => void;
   createWorkspace: (name: string, description: string | null) => void;
   deleteWorkspace: (id: string) => void;
@@ -142,8 +124,6 @@ type WorkspaceContextType = {
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
-const AUTH_ACCOUNTS_KEY = "ai_pdf_workspace_accounts";
-const AUTH_SESSION_KEY = "ai_pdf_workspace_session_email";
 const DB_WORKSPACES_KEY = "db_workspaces";
 const DB_DOCUMENTS_KEY = "db_documents";
 const DB_NOTES_KEY = "db_notes";
@@ -290,28 +270,68 @@ const SEED_THREADS: ChatThread[] = [
   },
 ];
 
-const toUser = (account: DevAccount): User => ({
-  name: account.name,
-  email: account.email,
-  avatarUrl: account.avatarUrl,
-});
-
-const areAccountsValid = (value: unknown): value is DevAccount[] => {
-  if (!Array.isArray(value)) return false;
-
-  return value.every((account) => {
-    if (!account || typeof account !== "object") return false;
-    const candidate = account as Record<string, unknown>;
-    return (
-      typeof candidate.email === "string" &&
-      typeof candidate.password === "string" &&
-      typeof candidate.name === "string" &&
-      typeof candidate.avatarUrl === "string" &&
-      typeof candidate.createdAt === "string"
-    );
-  });
+const areWorkspacesValid = (arr: unknown): arr is Workspace[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(
+    (w) =>
+      w &&
+      typeof w === "object" &&
+      typeof (w as Workspace).id === "string" &&
+      typeof (w as Workspace).name === "string" &&
+      typeof (w as Workspace).systemPrompt === "string",
+  );
 };
 
+const areDocumentsValid = (arr: unknown): arr is Document[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(
+    (d) =>
+      d &&
+      typeof d === "object" &&
+      typeof (d as Document).id === "string" &&
+      typeof (d as Document).workspaceId === "string" &&
+      typeof (d as Document).name === "string" &&
+      typeof (d as Document).pagesCount === "number",
+  );
+};
+
+const areNotesValid = (arr: unknown): arr is Note[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(
+    (n) =>
+      n &&
+      typeof n === "object" &&
+      typeof (n as Note).id === "string" &&
+      typeof (n as Note).workspaceId === "string" &&
+      typeof (n as Note).title === "string" &&
+      typeof (n as Note).content === "string",
+  );
+};
+
+const areThreadsValid = (arr: unknown): arr is ChatThread[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(
+    (t) =>
+      t &&
+      typeof t === "object" &&
+      typeof (t as ChatThread).id === "string" &&
+      typeof (t as ChatThread).workspaceId === "string" &&
+      typeof (t as ChatThread).title === "string" &&
+      Array.isArray((t as ChatThread).messages),
+  );
+};
+
+const areTagsValid = (arr: unknown): arr is Tag[] => {
+  if (!Array.isArray(arr)) return false;
+  return arr.every(
+    (t) =>
+      t &&
+      typeof t === "object" &&
+      typeof (t as Tag).id === "string" &&
+      typeof (t as Tag).workspaceId === "string" &&
+      typeof (t as Tag).name === "string",
+  );
+};
 
 const readJson = <T,>(key: string, fallback: T, validator: (value: unknown) => value is T): T => {
   if (typeof window === "undefined") return fallback;
@@ -325,15 +345,6 @@ const readJson = <T,>(key: string, fallback: T, validator: (value: unknown) => v
   }
 };
 
-const readAccounts = (): DevAccount[] => readJson(AUTH_ACCOUNTS_KEY, [], areAccountsValid);
-const readSessionUser = (accounts: DevAccount[]): User | null => {
-  if (typeof window === "undefined") return null;
-  const savedSessionEmail = localStorage.getItem(AUTH_SESSION_KEY);
-  if (!savedSessionEmail) return null;
-  const matched = accounts.find((account) => account.email.toLowerCase() === savedSessionEmail.toLowerCase());
-  return matched ? toUser(matched) : null;
-};
-
 const getInitialWorkspaceId = () => SEED_WORKSPACES[0]?.id ?? "";
 const getWorkspaceReadyDocs = (workspaceId: string, docs: Document[]) => docs.filter((d) => d.workspaceId === workspaceId && d.status === "ready");
 const getWorkspaceThreads = (workspaceId: string, items: ChatThread[]) => items.filter((t) => t.workspaceId === workspaceId);
@@ -341,8 +352,6 @@ const getWorkspaceThreads = (workspaceId: string, items: ChatThread[]) => items.
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { locale } = useTranslation();
 
-  const [accounts, setAccounts] = useState<DevAccount[]>(readAccounts);
-  const [user, setUser] = useState<User | null>(() => readSessionUser(readAccounts()));
   const [workspaces, setWorkspaces] = useState<Workspace[]>(() => readJson(DB_WORKSPACES_KEY, SEED_WORKSPACES, areWorkspacesValid));
   const [documents, setDocuments] = useState<Document[]>(() => readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid));
   const [notes, setNotes] = useState<Note[]>(() => readJson(DB_NOTES_KEY, SEED_NOTES, areNotesValid));
@@ -351,15 +360,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>(getInitialWorkspaceId);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(() => getWorkspaceThreads(getInitialWorkspaceId(), readJson(DB_THREADS_KEY, SEED_THREADS, areThreadsValid))[0]?.id ?? null);
-  const [openDocumentIds, setOpenDocumentIds] = useState<string[]>(() => { const docs = getWorkspaceReadyDocs(getInitialWorkspaceId(), readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid)); return docs.length > 0 ? [docs[0].id] : []; });
-  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(() => { const docs = getWorkspaceReadyDocs(getInitialWorkspaceId(), readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid)); return docs[0]?.id ?? null; });
+  const [openDocumentIds, setOpenDocumentIds] = useState<string[]>(() => {
+    const docs = getWorkspaceReadyDocs(getInitialWorkspaceId(), readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid));
+    return docs.length > 0 ? [docs[0].id] : [];
+  });
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(() => {
+    const docs = getWorkspaceReadyDocs(getInitialWorkspaceId(), readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid));
+    return docs[0]?.id ?? null;
+  });
   const [activePdfPage, setActivePdfPage] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<"chat" | "notes" | "settings">("chat");
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [selectionText, setSelectionText] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-
 
   const syncDb = (key: string, data: unknown) => {
     localStorage.setItem(key, JSON.stringify(data));
@@ -378,77 +392,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setSelectedTagIds([]);
     setSelectionText(null);
   };
-
-
-
-  const login = useCallback(
-    async (email: string, password: string) => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const normalizedEmail = email.trim().toLowerCase();
-      const matchedAccount = accounts.find(
-        (account) => account.email.toLowerCase() === normalizedEmail,
-      );
-
-      if (!matchedAccount) {
-        throw new Error(
-          locale === "en"
-            ? "No account found for this email. Please register first."
-            : "该邮箱尚未注册，请先注册账号。",
-        );
-      }
-
-      if (matchedAccount.password !== password) {
-        throw new Error(locale === "en" ? "Incorrect password." : "密码错误，请重试。");
-      }
-
-      setUser(toUser(matchedAccount));
-      localStorage.setItem(AUTH_SESSION_KEY, matchedAccount.email);
-      syncWorkspaceViewState(currentWorkspaceId, documents, threads);
-    },
-    [accounts, currentWorkspaceId, documents, locale, threads],
-  );
-
-  const register = useCallback(
-    async (email: string, name: string, password: string) => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const normalizedEmail = email.trim().toLowerCase();
-      const exists = accounts.some(
-        (account) => account.email.toLowerCase() === normalizedEmail,
-      );
-
-      if (exists) {
-        throw new Error(
-          locale === "en"
-            ? "This email has already been registered."
-            : "该邮箱已经注册，请直接登录。",
-        );
-      }
-
-      const newAccount: DevAccount = {
-        email: normalizedEmail,
-        password,
-        name: name.trim() || (normalizedEmail.split("@")[0] || "Workspace User"),
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${normalizedEmail}`,
-        createdAt: new Date().toISOString(),
-      };
-
-      const nextAccounts = [...accounts, newAccount];
-      setAccounts(nextAccounts);
-      localStorage.setItem(AUTH_ACCOUNTS_KEY, JSON.stringify(nextAccounts));
-    },
-    [accounts, locale],
-  );
-
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem(AUTH_SESSION_KEY);
-    setOpenDocumentIds([]);
-    setActiveDocumentId(null);
-    setActiveThreadId(null);
-    setSelectionText(null);
-  }, []);
 
   const switchWorkspace = useCallback((id: string) => {
     setCurrentWorkspaceId(id);
@@ -985,7 +928,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   return (
     <WorkspaceContext.Provider
       value={{
-        user,
         workspaces,
         currentWorkspace,
         documents,
@@ -1001,9 +943,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         rightPanelOpen,
         selectionText,
         selectedTagIds,
-        login,
-        register,
-        logout,
         switchWorkspace,
         createWorkspace,
         deleteWorkspace,

@@ -17,14 +17,15 @@
 
 ## 2. 当前总状态
 
-当前项目状态：`前端探索性交互原型已完成，开发模式最小登录/注册已接入，主页面仍以 LocalStorage mock 沙盒驱动`
+当前项目状态：`真实后端登录/注册已接通，前端认证上下文已拆分，主页面业务数据仍以 LocalStorage mock 沙盒驱动`
 
 说明：
 
 - 产品设计与架构、数据库设计、API 契约均已完成
 - **前端交互原型已全部完成**（基于 LocalStorage 模拟沙盒，实现了多工作区 CRUD、PDF 浏览器、章节大纲导航树、划词提问浮窗、随手记、流式对话气泡、多语言与暗黑模式切换、自适应抽屉布局与微动效）
 - `web / api / worker` 基础工程已初始化完成
-- 接下来进入真实后端/BFF API 的联调与功能落地
+- 真实后端认证接口与 BFF session cookie 已接通
+- 接下来进入 workspace membership 与主页面真实数据替换
 
 ## 3. 阶段进度
 
@@ -66,7 +67,7 @@
 
 ## 6. 当前正在做什么
 
-当前：`开发模式最小登录/注册模块已接入，等待人工确认后再进入真实 session 与 membership`
+当前：`真实后端登录/注册已接通，前端认证已从 workspace mock 状态中拆出，下一步进入 workspace membership 真数据链`
 
 收口结果：
 
@@ -76,12 +77,13 @@
 - `apps / packages / infra` 目录骨架已经建立
 - `apps/web`、`apps/api`、`apps/worker` 基础工程已初始化
 - Workspace 列表与详情的最小 API/BFF/页面链路已建立
-- 当前首页与工作区控制台主体仍主要消费 `mock-context` 的本地沙盒状态
-- 开发模式下已支持显式注册、显式登录与本地 session 持久化（不自动注册）
+- 当前首页与工作区控制台主体的业务数据仍主要消费 `workspace-context` 的本地沙盒状态
+- 已支持真实后端注册/登录与 BFF httpOnly cookie session（不自动注册，要求显式配置 `AI_PDF_SESSION_SECRET`）
+- 已补 FastAPI auth 最小接口测试，覆盖注册/重复注册/登录成功/登录失败四个基本场景
 
 ## 7. 下一步
 
-下一步：`接入真实鉴权与 Workspace 成员关系`
+下一步：`接入 Workspace 成员关系与工作区真实数据链`
 
 具体建议从这些内容开始：
 

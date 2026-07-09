@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useWorkspace, Citation } from "@/lib/mock-context";
+import { useWorkspace, Citation } from "@/lib/workspace-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
   Send, MessageCircleQuestion, ChevronRight, X

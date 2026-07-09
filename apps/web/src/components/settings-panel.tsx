@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Activity, Check, Cpu, Save, Settings2, Sliders } from "lucide-react";
 
 import { translations, useTranslation } from "@/lib/i18n-context";
-import { Workspace, useWorkspace } from "@/lib/mock-context";
+import { Workspace, useWorkspace } from "@/lib/workspace-context";
 
 type SettingsFormProps = {
   currentWorkspace: Workspace;

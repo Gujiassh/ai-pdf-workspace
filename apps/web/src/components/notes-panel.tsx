@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useWorkspace, Note } from "@/lib/mock-context";
+import { useWorkspace, Note } from "@/lib/workspace-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
   Plus, Trash2, FileText, ExternalLink, Tag as TagIcon, BookOpen

@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 
+import type { TranslationKey } from "@/lib/i18n-context";
+
 interface CreateWorkspaceDialogProps {
   show: boolean;
   onClose: () => void;
   onCreate: (name: string, desc: string | null) => void;
-  t: (key: string) => string;
+  t: (key: TranslationKey) => string;
 }
 
 export function CreateWorkspaceDialog({

@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useWorkspace } from "@/lib/mock-context";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { PdfViewer } from "@/components/pdf-viewer";
@@ -14,8 +15,8 @@ import { BookOpen, MessageSquare, Settings2 } from "lucide-react";
 export default function WorkspaceDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { 
-    user,
+  const {
+    
     workspaces, 
     currentWorkspace, 
     switchWorkspace, 
@@ -27,12 +28,17 @@ export default function WorkspaceDetailPage() {
     setRightPanelOpen,
   } = useWorkspace();
 
+  const { user, isHydrating } = useAuth();
   const { t } = useTranslation();
 
   const workspaceId = params?.workspaceId as string;
 
   // Sync route param with context state & check authentication
   useEffect(() => {
+    if (isHydrating) {
+      return;
+    }
+
     if (!user) {
       router.push("/");
       return;
@@ -45,9 +51,9 @@ export default function WorkspaceDetailPage() {
         router.push("/");
       }
     }
-  }, [workspaceId, workspaces, switchWorkspace, router, user]);
+  }, [isHydrating, workspaceId, workspaces, switchWorkspace, router, user]);
 
-  if (!currentWorkspace) {
+  if (isHydrating || !currentWorkspace) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950 text-sm text-zinc-500 font-medium">
         {t("workspace.loading")}

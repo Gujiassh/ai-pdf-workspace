@@ -291,6 +291,8 @@ type I18nContextType = {
   t: (key: keyof typeof translations.zh) => string;
 };
 
+export type TranslationKey = keyof typeof translations.zh;
+
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useWorkspace } from "@/lib/mock-context";
+import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
   ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText, 

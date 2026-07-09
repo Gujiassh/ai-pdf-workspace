@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import { useWorkspace } from "@/lib/mock-context";
+import { useAuth } from "@/lib/auth/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { WorkspaceList } from "@/components/workspace-list";
@@ -10,9 +10,17 @@ import { AuthCard } from "@/components/auth-card";
 import { Globe, LogOut, Moon, Sun } from "lucide-react";
 
 export default function Home() {
-  const { user, logout } = useWorkspace();
+  const { user, logout, isHydrating } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useTranslation();
+
+  if (isHydrating) {
+    return (
+      <main className="flex min-h-screen w-screen items-center justify-center bg-zinc-50 text-sm font-medium text-zinc-500 transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-400">
+        {t("workspace.loading")}
+      </main>
+    );
+  }
 
   if (!user) {
     return (

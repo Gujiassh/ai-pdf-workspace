@@ -19,17 +19,17 @@
 
 边界：
 
-- 只做 `web` 侧的开发模式认证原型
-- 不接真实数据库
-- 不接真实 BFF / FastAPI
+- 实现真实 FastAPI 注册/登录接口
+- 通过 Next.js BFF 接入登录、注册、登出、session cookie
 - 不做 workspace membership
+- 不做页面级权限守卫
 
 完成标准：
 
 - 用户未注册时不能登录
 - 用户可手动注册新账号
 - 注册成功后不会自动登录
-- 用户登录后 session 可保存在本地
+- 用户登录后 BFF 通过 httpOnly cookie 保存 7 天 session
 - 用户刷新页面后仍能保持登录态
 - 退出登录后 session 被清理
 
@@ -75,5 +75,8 @@
 当前只执行：`模块 1：开发模式最小登录/注册`
 
 当前状态：
-- 模块 1 已完成本地实现，等待人工检查
+- 模块 1 已完成真实后端认证接入（register/login/logout/session），并已从前端 workspace mock 状态中拆出独立 auth context
+- BFF session 现已要求显式配置 `AI_PDF_SESSION_SECRET`，cookie 的 `secure` 将随 `NODE_ENV` 自动切换
+- 已补 FastAPI auth 接口自动化测试：覆盖注册成功、重复注册、正确登录、错误密码四个基本行为
+- Workspace membership 尚未开始
 - 模块 2 及之后尚未开始

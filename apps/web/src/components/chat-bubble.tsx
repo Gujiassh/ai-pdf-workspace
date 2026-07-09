@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Message, Citation } from "@/lib/mock-context";
+import type { TranslationKey } from "@/lib/i18n-context";
+import { Message, Citation } from "@/lib/workspace-context";
 import { Sparkles, Loader2, FileText, BookmarkPlus, X, Check } from "lucide-react";
 
 interface ChatBubbleProps {
@@ -15,7 +16,7 @@ interface ChatBubbleProps {
   quickNoteContent: string;
   setQuickNoteContent: (content: string) => void;
   onSaveQuickNote: (cit: Citation) => void;
-  t: (key: string) => string;
+  t: (key: TranslationKey) => string;
 }
 
 export function ChatBubble({

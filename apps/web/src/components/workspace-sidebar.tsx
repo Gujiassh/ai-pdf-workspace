@@ -3,7 +3,8 @@
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useWorkspace, Document } from "@/lib/mock-context";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useWorkspace, Document } from "@/lib/workspace-context";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
@@ -14,8 +15,6 @@ import {
 import { CreateWorkspaceDialog } from "./create-workspace-dialog";
 export function WorkspaceSidebar() {
   const {
-    user,
-    logout,
     workspaces,
     currentWorkspace,
     documents,
@@ -38,6 +37,7 @@ export function WorkspaceSidebar() {
     setSelectedTagIds,
   } = useWorkspace();
 
+  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useTranslation();
 

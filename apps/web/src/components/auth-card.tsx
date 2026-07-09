@@ -4,12 +4,12 @@ import { useState } from "react";
 import { ArrowRight, Loader2, Mail, Sparkles } from "lucide-react";
 
 import { useTranslation } from "@/lib/i18n-context";
-import { useWorkspace } from "@/lib/mock-context";
+import { useAuth } from "@/lib/auth/auth-context";
 
 type AuthMode = "login" | "register";
 
 export function AuthCard() {
-  const { login, register } = useWorkspace();
+  const { login, register } = useAuth();
   const { t } = useTranslation();
 
   const [mode, setMode] = useState<AuthMode>("login");
