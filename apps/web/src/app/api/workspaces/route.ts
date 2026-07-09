@@ -1,24 +1,62 @@
 import { NextResponse } from "next/server";
 
+import { readServerSession } from "@/lib/auth/server-session";
 import { getApiBaseUrl } from "@/lib/api-base-url";
 
-export async function GET() {
-  const response = await fetch(`${getApiBaseUrl()}/v1/workspaces`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "workspace_list_unavailable",
-          message: "Failed to load workspaces.",
-        },
+function unauthorizedResponse() {
+  return NextResponse.json(
+    {
+      error: {
+        code: "auth_required",
+        message: "Authentication required.",
       },
-      { status: 502 },
-    );
+    },
+    { status: 401 },
+  );
+}
+
+export async function GET() {
+  const session = await readServerSession();
+  if (!session) {
+    return unauthorizedResponse();
   }
 
+  const response = await fetch(`${getApiBaseUrl()}/v1/workspaces`, {
+    cache: "no-store",
+    headers: {
+      "x-user-id": session.userId,
+    },
+  });
+
   const data = (await response.json()) as unknown;
+  if (!response.ok) {
+    return NextResponse.json(data, { status: response.status });
+  }
+
   return NextResponse.json(data);
+}
+
+export async function POST(request: Request) {
+  const session = await readServerSession();
+  if (!session) {
+    return unauthorizedResponse();
+  }
+
+  const body = await request.json();
+  const response = await fetch(`${getApiBaseUrl()}/v1/workspaces`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      "x-user-id": session.userId,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await response.json()) as unknown;
+  if (!response.ok) {
+    return NextResponse.json(data, { status: response.status });
+  }
+
+  return NextResponse.json(data, { status: response.status });
 }

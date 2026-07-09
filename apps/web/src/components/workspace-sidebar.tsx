@@ -490,8 +490,8 @@ export function WorkspaceSidebar() {
       <CreateWorkspaceDialog
         show={showCreateWs}
         onClose={() => setShowCreateWs(false)}
-        onCreate={(name, desc) => {
-          createWorkspace(name, desc);
+        onCreate={async (name, desc) => {
+          await createWorkspace(name, desc);
           setShowWsMenu(false);
         }}
         t={t}

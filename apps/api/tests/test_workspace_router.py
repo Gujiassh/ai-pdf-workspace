@@ -1,0 +1,196 @@
+from collections.abc import Generator
+from datetime import UTC, datetime
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from ai_pdf_api.db.base import Base
+from ai_pdf_api.db.session import get_db
+from ai_pdf_api.models import User, Workspace, WorkspaceMembership
+from ai_pdf_api.routers.workspaces import router as workspaces_router
+
+
+@pytest.fixture()
+def db_session() -> Generator[Session, None, None]:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        future=True,
+    )
+    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+    Base.metadata.create_all(bind=engine)
+    session = testing_session_local()
+    try:
+        yield session
+    finally:
+        session.close()
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+@pytest.fixture()
+def client(db_session: Session) -> Generator[TestClient, None, None]:
+    app = FastAPI()
+    app.include_router(workspaces_router)
+
+    def override_get_db() -> Generator[Session, None, None]:
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+def create_user(db_session: Session, *, email: str, name: str) -> User:
+    user = User(
+        email=email,
+        name=name,
+        password_hash="hashed",
+        avatar_url=f"https://example.com/{name}.png",
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+def create_workspace_with_membership(
+    db_session: Session,
+    *,
+    user: User,
+    name: str,
+    role: str = "owner",
+    description: str | None = None,
+) -> Workspace:
+    now = datetime.now(UTC)
+    workspace = Workspace(
+        name=name,
+        description=description,
+        created_by_user_id=user.id,
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(workspace)
+    db_session.flush()
+    db_session.add(
+        WorkspaceMembership(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            role=role,
+        ),
+    )
+    db_session.commit()
+    db_session.refresh(workspace)
+    return workspace
+
+
+def test_list_workspaces_returns_only_current_user_memberships(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    stranger = create_user(db_session, email="stranger@example.com", name="Stranger")
+    visible = create_workspace_with_membership(db_session, user=owner, name="Visible Workspace")
+    create_workspace_with_membership(db_session, user=stranger, name="Hidden Workspace")
+
+    response = client.get("/v1/workspaces", headers={"x-user-id": owner.id})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["nextCursor"] is None
+    assert payload["items"] == [
+        {
+            "id": visible.id,
+            "name": "Visible Workspace",
+            "description": None,
+            "role": "owner",
+            "documentCount": 0,
+            "noteCount": 0,
+            "threadCount": 0,
+            "createdAt": payload["items"][0]["createdAt"],
+            "updatedAt": payload["items"][0]["updatedAt"],
+        },
+    ]
+
+
+def test_create_workspace_creates_owner_membership(client: TestClient, db_session: Session) -> None:
+    user = create_user(db_session, email="owner@example.com", name="Owner")
+
+    response = client.post(
+        "/v1/workspaces",
+        headers={"x-user-id": user.id},
+        json={"name": " Papers ", "description": " Research notes "},
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    workspace_id = payload["workspace"]["id"]
+    assert payload["workspace"]["name"] == "Papers"
+    assert payload["workspace"]["description"] == "Research notes"
+    assert payload["workspace"]["role"] == "owner"
+
+    workspace = db_session.get(Workspace, workspace_id)
+    membership = db_session.scalar(
+        select(WorkspaceMembership).where(WorkspaceMembership.workspace_id == workspace_id),
+    )
+    assert workspace is not None
+    assert workspace.created_by_user_id == user.id
+    assert membership is not None
+    assert membership.user_id == user.id
+    assert membership.role == "owner"
+
+
+def test_get_workspace_requires_membership(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    stranger = create_user(db_session, email="stranger@example.com", name="Stranger")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Owner Workspace")
+
+    response = client.get(f"/v1/workspaces/{workspace.id}", headers={"x-user-id": stranger.id})
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Workspace not found."
+
+
+def test_archive_workspace_marks_archived_and_hides_from_future_lists(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Archive Me")
+
+    response = client.delete(f"/v1/workspaces/{workspace.id}", headers={"x-user-id": owner.id})
+
+    assert response.status_code == 204
+    archived_workspace = db_session.get(Workspace, workspace.id)
+    assert archived_workspace is not None
+    assert archived_workspace.archived_at is not None
+
+    list_response = client.get("/v1/workspaces", headers={"x-user-id": owner.id})
+    assert list_response.status_code == 200
+    assert list_response.json()["items"] == []
+
+
+def test_archive_workspace_requires_owner_role(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    member = create_user(db_session, email="member@example.com", name="Member")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Shared Workspace")
+    db_session.add(
+        WorkspaceMembership(
+            workspace_id=workspace.id,
+            user_id=member.id,
+            role="member",
+        ),
+    )
+    db_session.commit()
+
+    response = client.delete(f"/v1/workspaces/{workspace.id}", headers={"x-user-id": member.id})
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Only workspace owners can archive this workspace."
+
+
+def test_workspace_routes_require_authenticated_header(client: TestClient) -> None:
+    response = client.get("/v1/workspaces")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Authentication required."

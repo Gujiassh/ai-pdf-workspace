@@ -1,6 +1,10 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+
+import { useAuth } from "@/lib/auth/auth-context";
+import { normalizeWorkspaceSummary, pickAccessibleWorkspaceId } from "@/lib/workspaces/normalize";
+import type { CreateWorkspaceResponseDto, WorkspaceListResponseDto } from "@/lib/workspaces/types";
 
 import { useTranslation } from "./i18n-context";
 
@@ -81,6 +85,7 @@ export type Tag = {
 };
 
 type WorkspaceContextType = {
+  isHydrating: boolean;
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   documents: Document[];
@@ -97,8 +102,8 @@ type WorkspaceContextType = {
   selectionText: string | null;
   selectedTagIds: string[];
   switchWorkspace: (id: string) => void;
-  createWorkspace: (name: string, description: string | null) => void;
-  deleteWorkspace: (id: string) => void;
+  createWorkspace: (name: string, description: string | null) => Promise<void>;
+  deleteWorkspace: (id: string) => Promise<void>;
   updateSystemPrompt: (id: string, prompt: string) => void;
   uploadDocument: (name: string, size: number) => void;
   deleteDocument: (id: string) => void;
@@ -124,40 +129,11 @@ type WorkspaceContextType = {
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
-const DB_WORKSPACES_KEY = "db_workspaces";
+const DB_WORKSPACE_PROMPTS_KEY = "db_workspace_prompts";
 const DB_DOCUMENTS_KEY = "db_documents";
 const DB_NOTES_KEY = "db_notes";
 const DB_THREADS_KEY = "db_threads";
 const DB_TAGS_KEY = "db_tags";
-
-const SEED_WORKSPACES: Workspace[] = [
-  {
-    id: "ws-llm",
-    name: "大模型架构与优化",
-    description: "自研大模型前沿学术论文、网络切片与自注意力机制设计规范。",
-    role: "Admin",
-    systemPrompt:
-      "你是一个顶尖的人工智能大模型研究专家。请用专业、极简的口吻回答主人的学术问题。必须结合背景文档给出引用来源和对应的页码汪！",
-    documentCount: 2,
-    noteCount: 2,
-    threadCount: 1,
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "ws-contract",
-    name: "法律合同风控中心",
-    description: "日常业务保密协议NDA、采购合同合规审核与惩罚性条款预警。",
-    role: "Legal Partner",
-    systemPrompt:
-      "你是一个资深商业律师。在帮助主人审查合同时，需以极严谨的口吻指出潜在的合规漏洞与责权风险，并尽量标明合同第几页的条款汪！",
-    documentCount: 1,
-    noteCount: 1,
-    threadCount: 1,
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
 
 const SEED_DOCUMENTS: Document[] = [
   {
@@ -270,18 +246,6 @@ const SEED_THREADS: ChatThread[] = [
   },
 ];
 
-const areWorkspacesValid = (arr: unknown): arr is Workspace[] => {
-  if (!Array.isArray(arr)) return false;
-  return arr.every(
-    (w) =>
-      w &&
-      typeof w === "object" &&
-      typeof (w as Workspace).id === "string" &&
-      typeof (w as Workspace).name === "string" &&
-      typeof (w as Workspace).systemPrompt === "string",
-  );
-};
-
 const areDocumentsValid = (arr: unknown): arr is Document[] => {
   if (!Array.isArray(arr)) return false;
   return arr.every(
@@ -333,6 +297,14 @@ const areTagsValid = (arr: unknown): arr is Tag[] => {
   );
 };
 
+const areWorkspacePromptOverridesValid = (value: unknown): value is Record<string, string> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.values(value).every((item) => typeof item === "string");
+};
+
 const readJson = <T,>(key: string, fallback: T, validator: (value: unknown) => value is T): T => {
   if (typeof window === "undefined") return fallback;
   const raw = localStorage.getItem(key);
@@ -345,35 +317,76 @@ const readJson = <T,>(key: string, fallback: T, validator: (value: unknown) => v
   }
 };
 
-const getInitialWorkspaceId = () => SEED_WORKSPACES[0]?.id ?? "";
 const getWorkspaceReadyDocs = (workspaceId: string, docs: Document[]) => docs.filter((d) => d.workspaceId === workspaceId && d.status === "ready");
 const getWorkspaceThreads = (workspaceId: string, items: ChatThread[]) => items.filter((t) => t.workspaceId === workspaceId);
 
+type WorkspaceErrorPayload = {
+  detail?: string;
+  error?: {
+    message?: string;
+  };
+};
+
+async function readResponseJsonSafely<T>(response: Response): Promise<T | undefined> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+function getWorkspaceErrorMessage(
+  payload: WorkspaceErrorPayload | undefined,
+  fallback: string,
+): string {
+  return payload?.error?.message ?? payload?.detail ?? fallback;
+}
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { locale } = useTranslation();
+  const { user, isHydrating: isAuthHydrating } = useAuth();
 
-  const [workspaces, setWorkspaces] = useState<Workspace[]>(() => readJson(DB_WORKSPACES_KEY, SEED_WORKSPACES, areWorkspacesValid));
+  const [isHydrating, setIsHydrating] = useState(true);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [documents, setDocuments] = useState<Document[]>(() => readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid));
   const [notes, setNotes] = useState<Note[]>(() => readJson(DB_NOTES_KEY, SEED_NOTES, areNotesValid));
   const [threads, setThreads] = useState<ChatThread[]>(() => readJson(DB_THREADS_KEY, SEED_THREADS, areThreadsValid));
   const [tags, setTags] = useState<Tag[]>(() => readJson(DB_TAGS_KEY, SEED_TAGS, areTagsValid));
+  const [workspacePromptOverrides, setWorkspacePromptOverrides] = useState<Record<string, string>>(() =>
+    readJson(DB_WORKSPACE_PROMPTS_KEY, {}, areWorkspacePromptOverridesValid),
+  );
 
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>(getInitialWorkspaceId);
-  const [activeThreadId, setActiveThreadId] = useState<string | null>(() => getWorkspaceThreads(getInitialWorkspaceId(), readJson(DB_THREADS_KEY, SEED_THREADS, areThreadsValid))[0]?.id ?? null);
-  const [openDocumentIds, setOpenDocumentIds] = useState<string[]>(() => {
-    const docs = getWorkspaceReadyDocs(getInitialWorkspaceId(), readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid));
-    return docs.length > 0 ? [docs[0].id] : [];
-  });
-  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(() => {
-    const docs = getWorkspaceReadyDocs(getInitialWorkspaceId(), readJson(DB_DOCUMENTS_KEY, SEED_DOCUMENTS, areDocumentsValid));
-    return docs[0]?.id ?? null;
-  });
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string>("");
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [openDocumentIds, setOpenDocumentIds] = useState<string[]>([]);
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const [activePdfPage, setActivePdfPage] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<"chat" | "notes" | "settings">("chat");
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [selectionText, setSelectionText] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+
+  const currentWorkspaceIdRef = useRef(currentWorkspaceId);
+  const documentsRef = useRef(documents);
+  const threadsRef = useRef(threads);
+  const workspacePromptOverridesRef = useRef(workspacePromptOverrides);
+
+  useEffect(() => {
+    currentWorkspaceIdRef.current = currentWorkspaceId;
+  }, [currentWorkspaceId]);
+
+  useEffect(() => {
+    documentsRef.current = documents;
+  }, [documents]);
+
+  useEffect(() => {
+    threadsRef.current = threads;
+  }, [threads]);
+
+  useEffect(() => {
+    workspacePromptOverridesRef.current = workspacePromptOverrides;
+  }, [workspacePromptOverrides]);
 
   const syncDb = (key: string, data: unknown) => {
     localStorage.setItem(key, JSON.stringify(data));
@@ -393,44 +406,137 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setSelectionText(null);
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateWorkspaces() {
+      if (isAuthHydrating) {
+        return;
+      }
+
+      if (!user) {
+        if (!cancelled) {
+          setWorkspaces([]);
+          setCurrentWorkspaceId("");
+          setOpenDocumentIds([]);
+          setActiveDocumentId(null);
+          setActiveThreadId(null);
+          setSelectionText(null);
+          setSelectedTagIds([]);
+          setIsHydrating(false);
+        }
+        return;
+      }
+
+      setIsHydrating(true);
+      try {
+        const response = await fetch("/api/workspaces", { cache: "no-store" });
+        const payload = await readResponseJsonSafely<WorkspaceListResponseDto & WorkspaceErrorPayload>(response);
+        if (!response.ok) {
+          throw new Error(
+            getWorkspaceErrorMessage(
+              payload,
+              locale === "en" ? "Failed to load workspaces." : "加载工作区失败。",
+            ),
+          );
+        }
+
+        const items = (payload?.items ?? []).map((workspace) =>
+          normalizeWorkspaceSummary(workspace, locale, workspacePromptOverridesRef.current[workspace.id]),
+        );
+
+        if (!cancelled) {
+          setWorkspaces(items);
+          const nextWorkspaceId = pickAccessibleWorkspaceId(items, currentWorkspaceIdRef.current);
+          setCurrentWorkspaceId(nextWorkspaceId);
+          if (nextWorkspaceId) {
+            syncWorkspaceViewState(nextWorkspaceId, documentsRef.current, threadsRef.current);
+          } else {
+            setOpenDocumentIds([]);
+            setActiveDocumentId(null);
+            setActiveThreadId(null);
+            setSelectionText(null);
+            setSelectedTagIds([]);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(error);
+          setWorkspaces([]);
+          setCurrentWorkspaceId("");
+          setOpenDocumentIds([]);
+          setActiveDocumentId(null);
+          setActiveThreadId(null);
+          setSelectionText(null);
+          setSelectedTagIds([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsHydrating(false);
+        }
+      }
+    }
+
+    void hydrateWorkspaces();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthHydrating, locale, user]);
+
   const switchWorkspace = useCallback((id: string) => {
     setCurrentWorkspaceId(id);
     syncWorkspaceViewState(id, documents, threads);
   }, [documents, threads]);
 
   const createWorkspace = useCallback(
-    (name: string, description: string | null) => {
-      const newWsId = `ws-${Date.now()}`;
-      const newWs: Workspace = {
-        id: newWsId,
-        name,
-        description,
-        role: "Owner",
-        systemPrompt:
-          locale === "en"
-            ? "You are an AI research assistant. Please read context documents and help answer all questions with details."
-            : "你是一个智能文档助手。请结合上下文帮助深入剖析并解答文档相关的所有疑问。",
-        documentCount: 0,
-        noteCount: 0,
-        threadCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+    async (name: string, description: string | null) => {
+      const response = await fetch("/api/workspaces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description }),
+      });
 
-      const nextList = [...workspaces, newWs];
-      setWorkspaces(nextList);
-      syncDb(DB_WORKSPACES_KEY, nextList);
-      setCurrentWorkspaceId(newWsId);
-      syncWorkspaceViewState(newWsId, documents, threads);
+      const payload = await readResponseJsonSafely<CreateWorkspaceResponseDto & WorkspaceErrorPayload>(response);
+      if (!response.ok || !payload?.workspace) {
+        throw new Error(
+          getWorkspaceErrorMessage(
+            payload,
+            locale === "en" ? "Failed to create workspace." : "创建工作区失败。",
+          ),
+        );
+      }
+
+      const newWorkspace = normalizeWorkspaceSummary(
+        payload.workspace,
+        locale,
+        workspacePromptOverrides[payload.workspace.id],
+      );
+      setWorkspaces((prev) => [...prev, newWorkspace]);
+      setCurrentWorkspaceId(newWorkspace.id);
+      syncWorkspaceViewState(newWorkspace.id, documents, threads);
     },
-    [documents, locale, threads, workspaces],
+    [documents, locale, threads, workspacePromptOverrides],
   );
 
   const deleteWorkspace = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      const response = await fetch(`/api/workspaces/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const payload = await readResponseJsonSafely<WorkspaceErrorPayload>(response);
+        throw new Error(
+          getWorkspaceErrorMessage(
+            payload,
+            locale === "en" ? "Failed to delete workspace." : "删除工作区失败。",
+          ),
+        );
+      }
+
       const nextWs = workspaces.filter((w) => w.id !== id);
       setWorkspaces(nextWs);
-      syncDb(DB_WORKSPACES_KEY, nextWs);
 
       const nextDocs = documents.filter((d) => d.workspaceId !== id);
       setDocuments(nextDocs);
@@ -448,6 +554,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setTags(nextTags);
       syncDb(DB_TAGS_KEY, nextTags);
 
+      const nextPromptOverrides = { ...workspacePromptOverrides };
+      delete nextPromptOverrides[id];
+      setWorkspacePromptOverrides(nextPromptOverrides);
+      syncDb(DB_WORKSPACE_PROMPTS_KEY, nextPromptOverrides);
+
       if (currentWorkspaceId === id) {
         const fallbackWorkspaceId = nextWs[0]?.id ?? "";
         setCurrentWorkspaceId(fallbackWorkspaceId);
@@ -462,7 +573,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
       }
     },
-    [currentWorkspaceId, documents, notes, tags, threads, workspaces],
+    [currentWorkspaceId, documents, locale, notes, tags, threads, workspacePromptOverrides, workspaces],
   );
 
   const updateSystemPrompt = useCallback(
@@ -471,9 +582,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         w.id === id ? { ...w, systemPrompt: prompt, updatedAt: new Date().toISOString() } : w,
       );
       setWorkspaces(nextList);
-      syncDb(DB_WORKSPACES_KEY, nextList);
+      const nextPromptOverrides = { ...workspacePromptOverrides, [id]: prompt };
+      setWorkspacePromptOverrides(nextPromptOverrides);
+      syncDb(DB_WORKSPACE_PROMPTS_KEY, nextPromptOverrides);
     },
-    [workspaces],
+    [workspacePromptOverrides, workspaces],
   );
 
   const openDocument = useCallback((id: string) => {
@@ -528,7 +641,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         w.id === currentWorkspaceId ? { ...w, documentCount: w.documentCount + 1 } : w,
       );
       setWorkspaces(nextWs);
-      syncDb(DB_WORKSPACES_KEY, nextWs);
 
       let currentStep: DocumentStatus = "uploaded";
       let progressVal = 0;
@@ -585,7 +697,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           : w,
       );
       setWorkspaces(nextWs);
-      syncDb(DB_WORKSPACES_KEY, nextWs);
     },
     [closeDocument, currentWorkspaceId, documents, notes, workspaces],
   );
@@ -610,7 +721,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         w.id === currentWorkspaceId ? { ...w, threadCount: w.threadCount + 1 } : w,
       );
       setWorkspaces(nextWs);
-      syncDb(DB_WORKSPACES_KEY, nextWs);
     },
     [currentWorkspaceId, locale, threads, workspaces],
   );
@@ -634,7 +744,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         w.id === currentWorkspaceId ? { ...w, threadCount: Math.max(0, w.threadCount - 1) } : w,
       );
       setWorkspaces(nextWs);
-      syncDb(DB_WORKSPACES_KEY, nextWs);
     },
     [activeThreadId, currentWorkspaceId, threads, workspaces],
   );
@@ -838,7 +947,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         w.id === currentWorkspaceId ? { ...w, noteCount: w.noteCount + 1 } : w,
       );
       setWorkspaces(nextWs);
-      syncDb(DB_WORKSPACES_KEY, nextWs);
     },
     [currentWorkspaceId, notes, workspaces],
   );
@@ -853,7 +961,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         w.id === currentWorkspaceId ? { ...w, noteCount: Math.max(0, w.noteCount - 1) } : w,
       );
       setWorkspaces(nextWs);
-      syncDb(DB_WORKSPACES_KEY, nextWs);
     },
     [currentWorkspaceId, notes, workspaces],
   );
@@ -933,6 +1040,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   return (
     <WorkspaceContext.Provider
       value={{
+        isHydrating,
         workspaces,
         currentWorkspace,
         documents,

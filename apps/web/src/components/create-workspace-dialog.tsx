@@ -7,7 +7,7 @@ import type { TranslationKey } from "@/lib/i18n-context";
 interface CreateWorkspaceDialogProps {
   show: boolean;
   onClose: () => void;
-  onCreate: (name: string, desc: string | null) => void;
+  onCreate: (name: string, desc: string | null) => Promise<void>;
   t: (key: TranslationKey) => string;
 }
 
@@ -19,16 +19,27 @@ export function CreateWorkspaceDialog({
 }: CreateWorkspaceDialogProps) {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!show) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    onCreate(name.trim(), desc.trim() || null);
-    setName("");
-    setDesc("");
-    onClose();
+    if (!name.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    try {
+      await onCreate(name.trim(), desc.trim() || null);
+      setName("");
+      setDesc("");
+      onClose();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to create workspace.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -37,7 +48,9 @@ export function CreateWorkspaceDialog({
         <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t("dashboard.createBtn")}</h3>
         <p className="mt-1 text-[10px] text-zinc-500">隔离专有的 PDF 文档、模型 Prompt 和对话记忆上下文。</p>
         
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
+        <form onSubmit={(event) => {
+          void handleSubmit(event);
+        }} className="mt-4 space-y-3.5">
           <div>
             <label className="block text-[10px] font-semibold text-zinc-500">工作区名称</label>
             <input
@@ -59,19 +72,27 @@ export function CreateWorkspaceDialog({
               className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs outline-none text-white focus:border-zinc-700 resize-none transition"
             />
           </div>
+          {errorMessage ? (
+            <p className="text-xs font-medium text-rose-400">{errorMessage}</p>
+          ) : null}
+
           <div className="mt-5 flex justify-end gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                setErrorMessage(null);
+                onClose();
+              }}
               className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-800 transition active:scale-95 cursor-pointer"
             >
               取消
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition active:scale-95 cursor-pointer"
+              disabled={isSubmitting}
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition active:scale-95 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
-              创建并进入
+              {isSubmitting ? "提交中..." : "创建并进入"}
             </button>
           </div>
         </form>

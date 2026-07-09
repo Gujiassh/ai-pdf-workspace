@@ -26,17 +26,27 @@ export function WorkspaceList() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const safeLower = (value: string | null | undefined) => value?.toLowerCase() ?? "";
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isSubmitting) return;
 
-    createWorkspace(name.trim(), description.trim() || null);
-    setName("");
-    setDescription("");
-    setShowAddForm(false);
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    try {
+      await createWorkspace(name.trim(), description.trim() || null);
+      setName("");
+      setDescription("");
+      setShowAddForm(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t("dashboard.empty"));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const normalizedSearchQuery = safeLower(searchQuery);
@@ -77,7 +87,9 @@ export function WorkspaceList() {
       {/* Flat Inline Creation Form Row (No card, no shadow, integrated inline) */}
       {showAddForm && (
         <form 
-          onSubmit={handleCreate} 
+          onSubmit={(event) => {
+            void handleCreate(event);
+          }}
           className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-900/10 p-5 space-y-4 animate-in slide-in-from-top-2 duration-200 text-zinc-800 dark:text-zinc-200"
         >
           <div className="flex items-center gap-2">
@@ -109,19 +121,27 @@ export function WorkspaceList() {
             </div>
           </div>
 
+          {errorMessage ? (
+            <p className="text-xs font-medium text-rose-500">{errorMessage}</p>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-1">
             <button
               type="button"
-              onClick={() => setShowAddForm(false)}
+              onClick={() => {
+                setShowAddForm(false);
+                setErrorMessage(null);
+              }}
               className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
             >
               {t("chat.cancel")}
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-zinc-950 dark:bg-white px-4 py-2 text-xs font-bold text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition cursor-pointer"
+              disabled={isSubmitting}
+              className="rounded-xl bg-zinc-950 dark:bg-white px-4 py-2 text-xs font-bold text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t("dashboard.createBtn")}
+              {isSubmitting ? "..." : t("dashboard.createBtn")}
             </button>
           </div>
         </form>
@@ -211,7 +231,9 @@ export function WorkspaceList() {
                       onClick={(e) => {
                         e.stopPropagation();
                         if (confirm(t("dashboard.confirmDelete"))) {
-                          deleteWorkspace(ws.id);
+                          void deleteWorkspace(ws.id).catch((error) => {
+                            alert(error instanceof Error ? error.message : "Failed to delete workspace.");
+                          });
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition duration-150 cursor-pointer"

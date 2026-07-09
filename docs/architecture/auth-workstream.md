@@ -72,11 +72,12 @@
 
 ## 3. 当前执行策略
 
-当前只执行：`模块 1：开发模式最小登录/注册`
+当前执行到：`模块 2：Workspace membership 真数据链（第一段）`
 
 当前状态：
 - 模块 1 已完成真实后端认证接入（register/login/logout/session），并已从前端 workspace mock 状态中拆出独立 auth context
 - BFF session 现已要求显式配置 `AI_PDF_SESSION_SECRET`，cookie 的 `secure` 将随 `NODE_ENV` 自动切换
 - 已补 FastAPI auth 接口自动化测试：覆盖注册成功、重复注册、正确登录、错误密码四个基本行为
-- Workspace membership 尚未开始
-- 模块 2 及之后尚未开始
+- 模块 2 第一段已完成：`users / workspaces / workspace_memberships` 最小真表链路已接通，`/api/workspaces` 与 `/v1/workspaces` 已改为按当前登录用户 membership 返回列表/详情，并支持创建和 owner 归档
+- 当前主工作台里的 documents / notes / threads / tags 仍是本地 mock，模块 2 还未完成整个工作区业务面的真实替换
+- 模块 3 及之后尚未开始

@@ -745,7 +745,66 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 
 ## 8. 核心 ER 图
 
-当前给一张 `产品核心 ER 图`。Auth.js 自带的 `accounts / sessions / verification_tokens` 属于框架表，不放进主图里。
+先放两张图，避免把“当前已落地”与“V1 目标全景”混在一起：
+
+### 8.1 当前已落地最小 ER 图
+
+这张图只反映当前代码和本地数据库里已经真正落地的最小真表链路：
+
+- `users`
+- `workspaces`
+- `workspace_memberships`
+
+对应文件：
+
+- `docs/architecture/database-er-current.mmd`
+
+```mermaid
+---
+title: AI PDF Workspace Current Implemented ER
+---
+erDiagram
+    USERS {
+        varchar id PK
+        varchar email
+        varchar name
+        varchar password_hash
+        varchar avatar_url
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WORKSPACES {
+        varchar id PK
+        varchar name
+        text description
+        varchar created_by_user_id FK
+        timestamptz archived_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WORKSPACE_MEMBERSHIPS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar user_id FK
+        varchar role
+        timestamptz created_at
+    }
+
+    USERS ||--o{ WORKSPACES : creates
+    USERS ||--o{ WORKSPACE_MEMBERSHIPS : joins
+    WORKSPACES ||--o{ WORKSPACE_MEMBERSHIPS : has
+```
+
+### 8.2 V1 目标全景 ER 图
+
+下面这张是 `产品核心 ER 图`。Auth.js 自带的 `accounts / sessions / verification_tokens` 属于框架表，不放进主图里。
+
+对应文件：
+
+- `docs/architecture/database-er.mmd`
+- `docs/architecture/database-er.svg`
 
 ```mermaid
 ---

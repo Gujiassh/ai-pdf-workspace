@@ -16,11 +16,11 @@ export default function WorkspaceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const {
-    
-    workspaces, 
-    currentWorkspace, 
-    switchWorkspace, 
-    activeTab, 
+    isHydrating: isWorkspaceHydrating,
+    workspaces,
+    currentWorkspace,
+    switchWorkspace,
+    activeTab,
     setActiveTab,
     leftSidebarOpen,
     rightPanelOpen,
@@ -28,14 +28,13 @@ export default function WorkspaceDetailPage() {
     setRightPanelOpen,
   } = useWorkspace();
 
-  const { user, isHydrating } = useAuth();
+  const { user, isHydrating: isAuthHydrating } = useAuth();
   const { t } = useTranslation();
 
   const workspaceId = params?.workspaceId as string;
 
-  // Sync route param with context state & check authentication
   useEffect(() => {
-    if (isHydrating) {
+    if (isAuthHydrating || isWorkspaceHydrating) {
       return;
     }
 
@@ -43,62 +42,56 @@ export default function WorkspaceDetailPage() {
       router.push("/");
       return;
     }
+
     if (workspaceId) {
-      const exists = workspaces.some((w) => w.id === workspaceId);
+      const exists = workspaces.some((workspace) => workspace.id === workspaceId);
       if (exists) {
         switchWorkspace(workspaceId);
       } else {
         router.push("/");
       }
     }
-  }, [isHydrating, workspaceId, workspaces, switchWorkspace, router, user]);
+  }, [isAuthHydrating, isWorkspaceHydrating, router, switchWorkspace, user, workspaceId, workspaces]);
 
-  if (isHydrating || !currentWorkspace) {
+  if (isAuthHydrating || isWorkspaceHydrating || !currentWorkspace) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950 text-sm text-zinc-500 font-medium">
+      <div className="flex h-screen w-screen items-center justify-center bg-zinc-50 text-sm font-medium text-zinc-500 dark:bg-zinc-950">
         {t("workspace.loading")}
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-zinc-50 font-sans antialiased text-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 relative transition-colors duration-200">
-      
-      {/* Mobile Sidebar backdrop overlay */}
+    <div className="relative flex h-screen w-screen overflow-hidden bg-zinc-50 font-sans text-zinc-700 antialiased transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-300">
       {leftSidebarOpen && (
-        <div 
+        <div
           onClick={() => setLeftSidebarOpen(false)}
-          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-xs lg:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-xs duration-200 animate-in fade-in lg:hidden"
         />
       )}
 
-      {/* 1. Left Column (Sidebar navigation - adjusts to w-72 or w-16 inside) */}
       <WorkspaceSidebar />
 
-      {/* 2. Center Column (PDF Viewer & Overview dashboard) */}
-      <div className="flex flex-1 flex-col overflow-hidden border-r border-zinc-800 z-10 lg:z-auto">
+      <div className="z-10 flex flex-1 flex-col overflow-hidden border-r border-zinc-800 lg:z-auto">
         <PdfViewer />
       </div>
 
-      {/* Mobile Right panel backdrop overlay */}
       {rightPanelOpen && (
-        <div 
+        <div
           onClick={() => setRightPanelOpen(false)}
-          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-xs lg:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-xs duration-200 animate-in fade-in lg:hidden"
         />
       )}
 
-      {/* 3. Right Column (Workspace Tabs - collapsible & responsive drawer-like) */}
       {rightPanelOpen && (
-        <div className="flex w-[384px] max-w-[90vw] shrink-0 flex-col overflow-hidden bg-white dark:bg-zinc-950 shadow-2xl border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-300 absolute lg:relative right-0 inset-y-0 z-40 lg:z-auto">
-          {/* Right Tab Bar */}
-          <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 p-2 gap-1.5 shrink-0">
+        <div className="absolute inset-y-0 right-0 z-40 flex w-[384px] max-w-[90vw] shrink-0 flex-col overflow-hidden border-l border-zinc-200 bg-white shadow-2xl duration-300 animate-in slide-in-from-right dark:border-zinc-800 dark:bg-zinc-950 lg:relative lg:z-auto">
+          <div className="flex shrink-0 gap-1.5 border-b border-zinc-200 bg-zinc-50/50 p-2 dark:border-zinc-800 dark:bg-zinc-900/40">
             <button
               onClick={() => setActiveTab("chat")}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition ${
                 activeTab === "chat"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-950 dark:text-white shadow-xs border border-zinc-200 dark:border-zinc-800"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-zinc-900/30"
+                  ? "border border-zinc-200 bg-white text-zinc-950 shadow-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                  : "text-zinc-500 hover:bg-white/40 hover:text-zinc-900 dark:hover:bg-zinc-900/30 dark:hover:text-white"
               }`}
             >
               <MessageSquare className="h-3.5 w-3.5" />
@@ -108,8 +101,8 @@ export default function WorkspaceDetailPage() {
               onClick={() => setActiveTab("notes")}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition ${
                 activeTab === "notes"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-950 dark:text-white shadow-xs border border-zinc-200 dark:border-zinc-800"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-zinc-900/30"
+                  ? "border border-zinc-200 bg-white text-zinc-950 shadow-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                  : "text-zinc-500 hover:bg-white/40 hover:text-zinc-900 dark:hover:bg-zinc-900/30 dark:hover:text-white"
               }`}
             >
               <BookOpen className="h-3.5 w-3.5" />
@@ -119,8 +112,8 @@ export default function WorkspaceDetailPage() {
               onClick={() => setActiveTab("settings")}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition ${
                 activeTab === "settings"
-                  ? "bg-white dark:bg-zinc-900 text-zinc-950 dark:text-white shadow-xs border border-zinc-200 dark:border-zinc-800"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-zinc-900/30"
+                  ? "border border-zinc-200 bg-white text-zinc-950 shadow-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                  : "text-zinc-500 hover:bg-white/40 hover:text-zinc-900 dark:hover:bg-zinc-900/30 dark:hover:text-white"
               }`}
             >
               <Settings2 className="h-3.5 w-3.5" />
@@ -128,7 +121,6 @@ export default function WorkspaceDetailPage() {
             </button>
           </div>
 
-          {/* Dynamic Tab Body panel */}
           <div className="flex-1 overflow-hidden">
             {activeTab === "chat" && <ChatPanel />}
             {activeTab === "notes" && <NotesPanel />}

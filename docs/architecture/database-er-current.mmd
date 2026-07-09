@@ -1,0 +1,35 @@
+---
+title: AI PDF Workspace Current Implemented ER
+---
+erDiagram
+    USERS {
+        varchar id PK
+        varchar email
+        varchar name
+        varchar password_hash
+        varchar avatar_url
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WORKSPACES {
+        varchar id PK
+        varchar name
+        text description
+        varchar created_by_user_id FK
+        timestamptz archived_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WORKSPACE_MEMBERSHIPS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar user_id FK
+        varchar role
+        timestamptz created_at
+    }
+
+    USERS ||--o{ WORKSPACES : creates
+    USERS ||--o{ WORKSPACE_MEMBERSHIPS : joins
+    WORKSPACES ||--o{ WORKSPACE_MEMBERSHIPS : has

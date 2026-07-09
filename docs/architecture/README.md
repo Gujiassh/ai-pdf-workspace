@@ -8,7 +8,9 @@
 - `../ssot/system-architecture.md`：系统级高层架构裁决
 - `detailed-system-architecture.md`：可指导开发的详细架构设计
 - `feature-map.md`：系统功能地图与拆分入口
-- `database-design.md`：数据库设计、表职责与 ER 图
+- `database-design.md`：数据库设计、表职责、当前已落地 ER 图与 V1 目标全景 ER 图
+- `database-er-current.mmd`：当前已落地最小真表关系图（当前维护源文件）
+- `database-er.mmd` / `database-er.svg`：V1 目标全景关系图
 - `api-contracts.md`：浏览器、BFF、FastAPI 之间的接口契约设计
 - `job-state-machine.md`：文档入库、重试、重建索引、删除的状态机设计
 - `auth-workstream.md`：认证链路的模块任务拆分与执行顺序
