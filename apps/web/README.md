@@ -4,7 +4,7 @@
 
 ## 1. 当前实施状态 (Current Implementation State)
 
-目前处于 **“高仿真前端交互原型”** 阶段，主要交互流程与本地沙盒状态机已 100% 跑通。
+目前处于 **“真实链路逐段替换 UI 壳”** 阶段：页面外观与交互原型已跑通，`workspace` 与 `documents` 的核心真实链路也已接入；未接真的部分仍可保留 UI 壳，但旧 mock 数据流不再作为兼容目标继续维护。
 
 * **已落地功能 (Implemented)**：
   * **工作区大盘门户 (`/`)**：100% 宽度极简 SaaS 表格行布局，支持开发模式下的显式注册、显式登录与工作区隔离删除。
@@ -14,12 +14,12 @@
     * `SelectionPopover`：精确定位划词 AI 问答/记录笔记浮层。
     * `ChatBubble`：AI 对话气泡与内嵌随手记编辑器。
     * `CreateWorkspaceDialog`：工作区创建 Modal 对话框。
-  * **本地沙盒持久化**：使用 LocalStorage 序列化并同步本地账号注册表、用户 session、工作区、文档上传列表、历史会话以及自定义标签等，并附加 Zod-like 数据结构校验以防止 undefined 崩溃。
+  * **原型期本地沙盒遗留**：部分尚未接真的页面仍临时使用 LocalStorage 挂住 UI 壳；这些本地状态只作为短期过渡，不再作为长期逻辑或兼容层继续扩展。
   * **多语言与暗黑模式**：内嵌统一的 `i18n-context` 与 `theme-context`。
   * **响应式定位抽屉**：手机/平板等宽幅下自动绝对化浮动（`absolute z-40`）并带有遮罩蒙层。
 * **规划目标态 (Target to Implement)**：
-  * 待通过 `React Query` 将当前 LocalStorage mock 沙盒的数据读写全面对接至底层 FastAPI 真实 BFF 接口。
-  * 将 mock PDF 文本数据源替换为基于真实的 PDF 解析服务。
+  * 按垂直切片继续把真实链路接入 `React Query` / 正式状态层，并在接通后删除对应 mock 数据流。
+  * 将当前 mock PDF 文本数据源替换为基于真实解析结果的 Viewer / Chat / Notes 数据链。
 
 ## 2. 运行与编译 (Development)
 

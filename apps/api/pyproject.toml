@@ -13,6 +13,7 @@ dependencies = [
   "pwdlib[argon2]>=0.3.0",
   "email-validator>=2.2.0",
   "alembic>=1.18.5",
+  "minio>=7.2.20",
 ]
 
 [project.optional-dependencies]

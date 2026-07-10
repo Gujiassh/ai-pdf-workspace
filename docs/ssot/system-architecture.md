@@ -168,7 +168,7 @@ FastAPI 主业务服务。
 
 4. `BFF & Data Layer`
    - Next.jsbff 路由转发。
-   - 统一数据状态总线（[workspace-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/workspace-context.tsx)）。
+   - 当前存在一层临时数据胶水（[workspace-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/workspace-context.tsx)），但它只是过渡总线，不是长期目标架构。
 
 ### 4.2 前端自适应布局引擎 (Responsive Drawer Engine)
 
@@ -182,7 +182,7 @@ FastAPI 主业务服务。
 前端状态分类与持久化定义：
 
 1. `Server State & Local Sandbox`
-   - 工作区、文档处理列表、沉淀笔记、会话历史与独立标签等数据通过统一的数据提供器（[workspace-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/workspace-context.tsx)）序列化存入本地 `LocalStorage` 沙盒中，刷新后保持状态。
+   - 早期原型阶段曾把工作区、文档处理列表、沉淀笔记、会话历史与独立标签等数据统一塞进本地 `LocalStorage` 沙盒。当前策略已调整为：只有未接真的 UI 壳允许暂时挂在本地状态上；一旦某条真实链路落地，就直接替换并删除对应 mock 逻辑，不再围绕旧沙盒结构做兼容。
 2. `LocalStorage Validation guards`
    - 组件挂载（Mount）初始化加载时，必须经过类型安全检测防腐函数（如 `areWorkspacesValid` / `isUserValid`）做属性约束检测，检测失败自动丢弃受损缓存，防范由脏数据读取引发的 React 运行时白屏闪退风险。
 3. `UI Runtime State`

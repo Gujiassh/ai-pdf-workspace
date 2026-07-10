@@ -12,7 +12,6 @@ import {
 export function WorkspaceList() {
   const {
     workspaces,
-    documents,
     notes,
     threads,
     createWorkspace,
@@ -168,7 +167,7 @@ export function WorkspaceList() {
         ) : (
           <div className="divide-y divide-zinc-100 dark:divide-zinc-900 border-b border-zinc-100 dark:border-zinc-900">
             {filteredWorkspaces.map((ws) => {
-              const docCount = documents.filter((d) => d.workspaceId === ws.id).length;
+              const docCount = ws.documentCount;
               const noteCount = notes.filter((n) => n.workspaceId === ws.id).length;
               const threadCount = threads.filter((t) => t.workspaceId === ws.id).length;
               const dateObj = new Date(ws.updatedAt);

@@ -17,12 +17,12 @@
 
 ## 2. 当前总状态
 
-当前项目状态：`真实后端登录/注册与 workspace membership 已接通，Workspace 列表/详情/创建/归档已走真实链路，主工作台业务数据仍以 LocalStorage mock 沙盒驱动`
+当前项目状态：`真实后端登录/注册、workspace membership、documents 与 ingestion_jobs 已接通；文档上传会话、上传确认与 sidebar documents 已走真实链路，其余主工作台能力仍保留 UI 壳，但旧 mock 数据流不再作为逻辑兼容目标。`
 
 说明：
 
 - 产品设计与架构、数据库设计、API 契约均已完成
-- **前端交互原型已全部完成**（基于 LocalStorage 模拟沙盒，实现了多工作区 CRUD、PDF 浏览器、章节大纲导航树、划词提问浮窗、随手记、流式对话气泡、多语言与暗黑模式切换、自适应抽屉布局与微动效）
+- **前端交互外壳已全部完成**（页面布局、PDF 浏览器、章节大纲导航树、划词提问浮窗、随手记、流式对话气泡、多语言与暗黑模式切换、自适应抽屉布局与微动效都已具备；后续继续保留 UI 壳，但对应旧 mock 数据流会逐段替换并删除，不作为正式逻辑继续维护）
 - `web / api / worker` 基础工程已初始化完成
 - 真实后端认证接口与 BFF session cookie 已接通
 - `users / workspaces / workspace_memberships` 最小真表链路已接通
@@ -35,10 +35,10 @@
 | 阶段 | 内容 | 状态 (前端原型) | 状态 (真实对接) | 说明 |
 | --- | --- | --- | --- | --- |
 | 1 | 项目定位与架构总览 | 已完成 | 已完成 | 产品设计、系统架构、详细架构已落文档 |
-| 2 | 前端骨架与 BFF 接入 | 已完成 | 进行中 | 交互页面已完备；Workspace 列表/详情/创建/归档 BFF 已落地，但主工作台主体数据仍未切到真实 BFF 数据 |
+| 2 | 前端骨架与 BFF 接入 | 已完成 | 进行中 | 交互页面已完备；Workspace 与 Documents 的核心 BFF 已落地，主工作台其余真实接口仍在补齐；未接真的部分只保留 UI 外壳，不再保留 mock 逻辑兼容目标 |
 | 3 | 鉴权与 Workspace 隔离 | 已完成 | 进行中 | 真实用户 Session、自定义 BFF session 与 workspace membership 已接通；正式 Auth.js 与页面级守卫仍未完成 |
-| 4 | 对象存储与上传链路 | 已完成 (Mock) | 未开始 | 前端拖拽与状态显示就绪；MinIO 真实上传未开始 |
-| 5 | Worker 与任务状态机 | 已完成 (Mock) | 进行中 | 前端解析中/失败重试状态显示就绪；Worker 实装未开始 |
+| 4 | 对象存储与上传链路 | 已完成 (Mock) | 进行中 | 上传会话、BFF 代理上传、MinIO 落盘与 finalize-upload 已落地；浏览器直传与正式对象存储策略仍可后续演进 |
+| 5 | Worker 与任务状态机 | 已完成 (Mock) | 进行中 | `ingestion_jobs` 真表与 job 查询已落地；Worker 真实消费与状态推进仍未开始 |
 | 6 | PDF 文本解析与切块 | 已完成 (Mock) | 未开始 | 页面数据渲染已打通；真实文本切块分段未对接 |
 | 7 | Embedding 与检索检索 | 已完成 (Mock) | 未开始 | 模拟检索命中与高亮已闭环；真实向量索引未对接 |
 | 8 | Chat、citation、笔记与标签 | 已完成 | 未开始 | 气泡流展示与引文保存笔记、标签复合过滤已全部闭环 |
@@ -70,7 +70,7 @@
 
 ## 6. 当前正在做什么
 
-当前：`真实后端登录/注册、BFF session 与 workspace membership 真数据链第一段已接通，下一步进入文档上传链与主工作台真实数据替换`
+当前：`真实后端登录/注册、workspace membership、documents 与 ingestion_jobs 第一段已接通，下一步进入 worker 消费与解析切块链路`
 
 收口结果：
 
@@ -81,36 +81,35 @@
 - `apps/web`、`apps/api`、`apps/worker` 基础工程已初始化
 - Workspace 列表与详情的最小 API/BFF/页面链路已建立
 - `users / workspaces / workspace_memberships` 最小真表、查询、创建、归档链路已落地
-- API 侧已从启动时自动建表切换到显式数据库版本步骤；当前基线版本为 `b139cbaa9e15`
-- BFF 现已从登录 cookie session 中透传 `x-user-id` 到 FastAPI，按当前用户 membership 返回可见工作区
-- 当前主工作台里的 documents / notes / threads / tags 仍主要消费 `workspace-context` 的本地沙盒状态
+- API 侧已从启动时自动建表切换到显式数据库版本步骤；当前 head 版本为 `fc962aca95c0`
+- `documents / ingestion_jobs` 真表、迁移、列表、upload-session、二进制上传、finalize-upload、job 查询与删除链路已落地
+- BFF 现已从登录 cookie session 中透传 `x-user-id` 到 FastAPI，按当前用户 membership 返回可见工作区并代理 documents 上传请求
+- 当前主工作台里的 notes / threads / tags 仍只保留 UI 外壳与临时本地状态；这些 mock 数据流会在接入真实链路时直接替换并删除，不作为长期结构继续维护
 - 已支持真实后端注册/登录与 BFF httpOnly cookie session（不自动注册，要求显式配置 `AI_PDF_SESSION_SECRET`）
-- 已补 FastAPI auth 与 workspace 路由自动化测试，覆盖注册/重复注册/登录成功/登录失败，以及 workspace 列表可见性、创建、详情权限、归档与 owner 限制
+- 已补 FastAPI auth / workspace / documents 路由自动化测试，覆盖注册、workspace 权限、文档上传会话、上传确认、job 查询与删除
 
 ## 7. 下一步
 
-下一步：`接入文档上传链与主工作台真实数据替换`
+下一步：`接入 worker 消费、解析切块与文档详情数据`
 
 具体建议从这些内容开始：
 
-1. 接入文档主表与任务主表
-   - `documents`
-   - `ingestion_jobs`
-   - 通过新的数据库版本步骤继续演进，不再回退到启动自动建表
+1. 接入 worker 真消费
+   - 读取 `ingestion_jobs` queued 任务
+   - 推进 `documents.status`
 
-2. 打通上传链
-   - upload-session
-   - finalize-upload
-   - MinIO object key 落库
+2. 接入解析产物主表
+   - `document_pages`
+   - `document_chunks`
 
-3. 补 API 与 Web 的工作区上下文边界
-   - `x-workspace-id`
-   - Workspace 级写操作校验
+3. 补文档详情链路
+   - `GET /documents/:documentId`
+   - pageCount / 页面文本占位
 
 4. 然后进入主工作台替换
-   - 首页统计
-   - sidebar documents
-   - 详情页 document 状态展示
+   - PDF viewer 数据
+   - chat 检索前置条件
+   - notes source 对真实文档 id 的依赖
 
 ## 8. 当前不进入主线
 

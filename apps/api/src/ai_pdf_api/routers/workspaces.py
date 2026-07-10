@@ -1,12 +1,12 @@
 from datetime import UTC, datetime
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
-from sqlalchemy import Select, select
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ai_pdf_api.db.session import get_db
-from ai_pdf_api.models import User, Workspace, WorkspaceMembership
+from ai_pdf_api.models import Document, User, Workspace, WorkspaceMembership
+from ai_pdf_api.routers.deps import base_workspace_query_for_user, get_accessible_workspace, require_user_id
 from ai_pdf_api.schemas.workspace import (
     CreateWorkspaceRequest,
     CreateWorkspaceResponse,
@@ -16,17 +16,6 @@ from ai_pdf_api.schemas.workspace import (
 )
 
 router = APIRouter(prefix="/v1/workspaces", tags=["workspaces"])
-
-UserIdHeader = Annotated[str | None, Header(alias="x-user-id")]
-
-
-def require_user_id(x_user_id: UserIdHeader = None) -> str:
-    if not x_user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required.",
-        )
-    return x_user_id
 
 
 def require_existing_user(user_id: str, db: Session) -> User:
@@ -39,42 +28,29 @@ def require_existing_user(user_id: str, db: Session) -> User:
     return user
 
 
-def base_workspace_query_for_user(user_id: str) -> Select[tuple[Workspace, str]]:
-    return (
-        select(Workspace, WorkspaceMembership.role)
-        .join(WorkspaceMembership, WorkspaceMembership.workspace_id == Workspace.id)
-        .where(
-            WorkspaceMembership.user_id == user_id,
-            Workspace.archived_at.is_(None),
-        )
-    )
+def count_documents_for_workspaces(db: Session, workspace_ids: list[str]) -> dict[str, int]:
+    if not workspace_ids:
+        return {}
+    rows = db.execute(
+        select(Document.workspace_id, func.count(Document.id))
+        .where(Document.workspace_id.in_(workspace_ids), Document.deleted_at.is_(None))
+        .group_by(Document.workspace_id),
+    ).all()
+    return {workspace_id: count for workspace_id, count in rows}
 
 
-def to_workspace_summary(workspace: Workspace, role: str) -> WorkspaceSummary:
+def to_workspace_summary(workspace: Workspace, role: str, document_count: int = 0) -> WorkspaceSummary:
     return WorkspaceSummary(
         id=workspace.id,
         name=workspace.name,
         description=workspace.description,
         role=role,
-        documentCount=0,
+        documentCount=document_count,
         noteCount=0,
         threadCount=0,
         createdAt=workspace.created_at.astimezone(UTC).isoformat(),
         updatedAt=workspace.updated_at.astimezone(UTC).isoformat(),
     )
-
-
-def get_accessible_workspace(db: Session, user_id: str, workspace_id: str) -> tuple[Workspace, str]:
-    row = db.execute(
-        base_workspace_query_for_user(user_id).where(Workspace.id == workspace_id),
-    ).first()
-    if row is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workspace not found.",
-        )
-    workspace, role = row
-    return workspace, role
 
 
 @router.get("", response_model=WorkspaceListResponse)
@@ -86,7 +62,8 @@ def list_workspaces(
     rows = db.execute(
         base_workspace_query_for_user(user_id).order_by(Workspace.updated_at.desc(), Workspace.created_at.desc()),
     ).all()
-    items = [to_workspace_summary(workspace, role) for workspace, role in rows]
+    counts = count_documents_for_workspaces(db, [workspace.id for workspace, _role in rows])
+    items = [to_workspace_summary(workspace, role, counts.get(workspace.id, 0)) for workspace, role in rows]
     return WorkspaceListResponse(items=items, nextCursor=None)
 
 
@@ -116,7 +93,7 @@ def create_workspace(
     db.add(membership)
     db.commit()
     db.refresh(workspace)
-    return CreateWorkspaceResponse(workspace=to_workspace_summary(workspace, membership.role))
+    return CreateWorkspaceResponse(workspace=to_workspace_summary(workspace, membership.role, 0))
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceDetailResponse)
@@ -127,7 +104,8 @@ def get_workspace(
 ) -> WorkspaceDetailResponse:
     require_existing_user(user_id, db)
     workspace, role = get_accessible_workspace(db, user_id, workspace_id)
-    return WorkspaceDetailResponse(workspace=to_workspace_summary(workspace, role))
+    document_count = count_documents_for_workspaces(db, [workspace.id]).get(workspace.id, 0)
+    return WorkspaceDetailResponse(workspace=to_workspace_summary(workspace, role, document_count))
 
 
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)

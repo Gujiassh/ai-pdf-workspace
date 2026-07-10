@@ -215,7 +215,7 @@ ai-pdf-workspace/
 
 > [!IMPORTANT]
 > **当前实现态 (Current Interactive Frontend Prototype)**:  
-> 目前处于高仿真前端原型调试阶段，真实项目依赖仅有 `next` / `react` / `react-dom` / `lucide-react`。主页面与工作区控制台主体的业务数据与交互状态目前主要由自定义的 `workspace-context.tsx`（LocalStorage 沙盒）统一维护，认证会话则已拆入独立的 `auth-context.tsx`；同时，最小 `workspace` BFF 路由已经落地，用于工作区列表/详情的真实接口边界验证。
+> 目前处于“真实链路逐段替换 UI 壳”的过渡阶段：真实项目依赖仍较轻，但 `workspace` 与 `documents` 的核心 BFF/API 已落地；`workspace-context.tsx` 当前只是一层临时胶水，不应继续作为长期架构扩张。未接真的能力可以暂时保留 LocalStorage/UI 壳，但这些 mock 数据流不再作为兼容对象，后续会直接按正式结构重建并删除旧逻辑。
 > 
 > **规划目标态 (Target Production Architecture)**:  
 > 后续对接真实 FastAPI 服务时，将全面引入并升级至以下生产级模块架构：

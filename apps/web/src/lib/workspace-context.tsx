@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 
 import { useAuth } from "@/lib/auth/auth-context";
 import { normalizeWorkspaceSummary, pickAccessibleWorkspaceId } from "@/lib/workspaces/normalize";
+import type { CreateUploadSessionResponseDto, DocumentListResponseDto, DocumentSummaryDto, FinalizeUploadResponseDto } from "@/lib/documents/types";
 import type { CreateWorkspaceResponseDto, WorkspaceListResponseDto } from "@/lib/workspaces/types";
 
 import { useTranslation } from "./i18n-context";
@@ -21,7 +22,7 @@ export type Workspace = {
   updatedAt: string;
 };
 
-export type DocumentStatus = "uploaded" | "parsing" | "chunking" | "embedding" | "ready" | "failed";
+export type DocumentStatus = "pending_upload" | "uploaded" | "parsing" | "chunking" | "embedding" | "ready" | "failed" | "deleting" | "deleted";
 
 export type Document = {
   id: string;
@@ -105,8 +106,8 @@ type WorkspaceContextType = {
   createWorkspace: (name: string, description: string | null) => Promise<void>;
   deleteWorkspace: (id: string) => Promise<void>;
   updateSystemPrompt: (id: string, prompt: string) => void;
-  uploadDocument: (name: string, size: number) => void;
-  deleteDocument: (id: string) => void;
+  uploadDocument: (file: File) => Promise<void>;
+  deleteDocument: (id: string) => Promise<void>;
   openDocument: (id: string) => void;
   closeDocument: (id: string) => void;
   createThread: () => void;
@@ -342,6 +343,59 @@ function getWorkspaceErrorMessage(
   return payload?.error?.message ?? payload?.detail ?? fallback;
 }
 
+function formatDocumentSize(byteSize: number): string {
+  if (byteSize >= 1024 * 1024) {
+    return `${(byteSize / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  return `${Math.max(1, Math.round(byteSize / 1024))} KB`;
+}
+
+function normalizeDocumentStatus(status: string): DocumentStatus {
+  if (["pending_upload", "uploaded", "parsing", "chunking", "embedding", "ready", "failed", "deleting", "deleted"].includes(status)) {
+    return status as DocumentStatus;
+  }
+  return "failed";
+}
+
+function getDocumentProgress(status: DocumentStatus): number {
+  switch (status) {
+    case "pending_upload":
+      return 10;
+    case "uploaded":
+      return 25;
+    case "parsing":
+      return 50;
+    case "chunking":
+      return 75;
+    case "embedding":
+      return 90;
+    case "ready":
+      return 100;
+    case "failed":
+      return 100;
+    case "deleting":
+      return 100;
+    case "deleted":
+      return 100;
+  }
+}
+
+function toUiDocument(document: DocumentSummaryDto): Document {
+  const status = normalizeDocumentStatus(document.status);
+  return {
+    id: document.id,
+    workspaceId: document.workspaceId,
+    name: document.sourceFilename,
+    size: formatDocumentSize(document.byteSize),
+    pagesCount: document.pageCount ?? 0,
+    status,
+    progress: getDocumentProgress(status),
+    errorMsg: document.lastErrorMessage ?? undefined,
+    tags: [],
+    createdAt: document.createdAt,
+  };
+}
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { locale } = useTranslation();
   const { user, isHydrating: isAuthHydrating } = useAuth();
@@ -405,6 +459,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setSelectedTagIds([]);
     setSelectionText(null);
   };
+
+  const replaceDocumentsForWorkspace = useCallback((workspaceId: string, workspaceDocuments: Document[], baseDocuments: Document[]) => {
+    return [...baseDocuments.filter((document) => document.workspaceId !== workspaceId), ...workspaceDocuments];
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -483,6 +541,47 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [isAuthHydrating, locale, user]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateDocuments() {
+      if (isAuthHydrating || !user || !currentWorkspaceId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/workspaces/${currentWorkspaceId}/documents`, { cache: "no-store" });
+        const payload = await readResponseJsonSafely<DocumentListResponseDto & WorkspaceErrorPayload>(response);
+        if (!response.ok) {
+          throw new Error(
+            getWorkspaceErrorMessage(
+              payload,
+              locale === "en" ? "Failed to load documents." : "加载文档列表失败。",
+            ),
+          );
+        }
+
+        const workspaceDocuments = (payload?.items ?? []).map(toUiDocument);
+        if (!cancelled) {
+          const nextDocuments = replaceDocumentsForWorkspace(currentWorkspaceId, workspaceDocuments, documentsRef.current);
+          setDocuments(nextDocuments);
+          syncDb(DB_DOCUMENTS_KEY, nextDocuments);
+          syncWorkspaceViewState(currentWorkspaceId, nextDocuments, threadsRef.current);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(error);
+        }
+      }
+    }
+
+    void hydrateDocuments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentWorkspaceId, isAuthHydrating, locale, replaceDocumentsForWorkspace, user]);
 
   const switchWorkspace = useCallback((id: string) => {
     setCurrentWorkspaceId(id);
@@ -612,75 +711,103 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const uploadDocument = useCallback(
-    (name: string, sizeBytes: number) => {
-      const sizeStr =
-        sizeBytes > 1024 * 1024
-          ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
-          : `${(sizeBytes / 1024).toFixed(0)} KB`;
+    async (file: File) => {
+      if (!currentWorkspaceId) {
+        return;
+      }
 
-      const docId = `doc-${Date.now()}`;
-      const newDoc: Document = {
-        id: docId,
-        workspaceId: currentWorkspaceId,
-        name,
-        size: sizeStr,
-        pagesCount: Math.floor(Math.random() * 12) + 3,
-        status: "uploaded",
-        progress: 0,
-        tags: [],
-        createdAt: new Date().toISOString(),
-      };
+      const uploadSessionResponse = await fetch(`/api/workspaces/${currentWorkspaceId}/documents/upload-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceFilename: file.name,
+          mimeType: file.type || "application/pdf",
+          byteSize: file.size,
+          title: file.name.replace(/\.pdf$/i, ""),
+        }),
+      });
 
-      const nextDocs = [newDoc, ...documents];
-      setDocuments(nextDocs);
-      syncDb(DB_DOCUMENTS_KEY, nextDocs);
+      const uploadSessionPayload = await readResponseJsonSafely<CreateUploadSessionResponseDto & WorkspaceErrorPayload>(uploadSessionResponse);
+      if (!uploadSessionResponse.ok || !uploadSessionPayload?.document || !uploadSessionPayload?.upload.url) {
+        throw new Error(
+          getWorkspaceErrorMessage(
+            uploadSessionPayload,
+            locale === "en" ? "Failed to create upload session." : "创建上传会话失败。",
+          ),
+        );
+      }
 
-      openDocument(docId);
+      const pendingDocument = toUiDocument(uploadSessionPayload.document);
+      setDocuments((prev) => {
+        const nextDocuments = [pendingDocument, ...prev.filter((document) => document.id !== pendingDocument.id)];
+        syncDb(DB_DOCUMENTS_KEY, nextDocuments);
+        return nextDocuments;
+      });
+      setWorkspaces((prev) => prev.map((workspace) =>
+        workspace.id === currentWorkspaceId
+          ? { ...workspace, documentCount: workspace.documentCount + 1 }
+          : workspace,
+      ));
 
-      const nextWs = workspaces.map((w) =>
-        w.id === currentWorkspaceId ? { ...w, documentCount: w.documentCount + 1 } : w,
-      );
-      setWorkspaces(nextWs);
+      const uploadResponse = await fetch(uploadSessionPayload.upload.url, {
+        method: uploadSessionPayload.upload.method,
+        headers: uploadSessionPayload.upload.headers,
+        body: file,
+      });
+      if (!uploadResponse.ok) {
+        const uploadPayload = await readResponseJsonSafely<WorkspaceErrorPayload>(uploadResponse);
+        throw new Error(
+          getWorkspaceErrorMessage(
+            uploadPayload,
+            locale === "en" ? "Failed to upload file." : "上传文件失败。",
+          ),
+        );
+      }
 
-      let currentStep: DocumentStatus = "uploaded";
-      let progressVal = 0;
+      const finalizeResponse = await fetch(`/api/workspaces/${currentWorkspaceId}/documents/${pendingDocument.id}/finalize-upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ objectKey: uploadSessionPayload.upload.objectKey }),
+      });
+      const finalizePayload = await readResponseJsonSafely<FinalizeUploadResponseDto & WorkspaceErrorPayload>(finalizeResponse);
+      if (!finalizeResponse.ok || !finalizePayload?.document) {
+        throw new Error(
+          getWorkspaceErrorMessage(
+            finalizePayload,
+            locale === "en" ? "Failed to finalize upload." : "确认上传失败。",
+          ),
+        );
+      }
 
-      const interval = setInterval(() => {
-        progressVal += 15;
-        if (progressVal >= 100) {
-          progressVal = 0;
-          if (currentStep === "uploaded") {
-            currentStep = "parsing";
-          } else if (currentStep === "parsing") {
-            currentStep = "chunking";
-          } else if (currentStep === "chunking") {
-            currentStep = "embedding";
-          } else if (currentStep === "embedding") {
-            currentStep = "ready";
-            clearInterval(interval);
-          }
-        }
-
-        setDocuments((prev) => {
-          const list = prev.map((d) =>
-            d.id === docId
-              ? {
-                  ...d,
-                  status: currentStep,
-                  progress: currentStep === "ready" ? 100 : progressVal,
-                }
-              : d,
-          );
-          syncDb(DB_DOCUMENTS_KEY, list);
-          return list;
-        });
-      }, 250);
+      const uploadedDocument = toUiDocument(finalizePayload.document);
+      setDocuments((prev) => {
+        const nextDocuments = [uploadedDocument, ...prev.filter((document) => document.id !== uploadedDocument.id)];
+        syncDb(DB_DOCUMENTS_KEY, nextDocuments);
+        return nextDocuments;
+      });
     },
-    [currentWorkspaceId, documents, openDocument, workspaces],
+    [currentWorkspaceId, locale],
   );
 
   const deleteDocument = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      if (!currentWorkspaceId) {
+        return;
+      }
+
+      const response = await fetch(`/api/workspaces/${currentWorkspaceId}/documents/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const payload = await readResponseJsonSafely<WorkspaceErrorPayload>(response);
+        throw new Error(
+          getWorkspaceErrorMessage(
+            payload,
+            locale === "en" ? "Failed to delete document." : "删除文档失败。",
+          ),
+        );
+      }
+
       const nextDocs = documents.filter((d) => d.id !== id);
       setDocuments(nextDocs);
       syncDb(DB_DOCUMENTS_KEY, nextDocs);
@@ -698,7 +825,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       );
       setWorkspaces(nextWs);
     },
-    [closeDocument, currentWorkspaceId, documents, notes, workspaces],
+    [closeDocument, currentWorkspaceId, documents, locale, notes, workspaces],
   );
 
   const createThread = useCallback(

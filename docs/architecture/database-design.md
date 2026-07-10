@@ -749,11 +749,13 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 
 ### 8.1 当前已落地最小 ER 图
 
-这张图只反映当前代码和本地数据库里已经真正落地的最小真表链路：
+这张图只反映当前代码和本地数据库里已经真正落地的真表链路：
 
 - `users`
 - `workspaces`
 - `workspace_memberships`
+- `documents`
+- `ingestion_jobs`
 
 对应文件：
 
@@ -792,9 +794,37 @@ erDiagram
         timestamptz created_at
     }
 
+    DOCUMENTS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar created_by_user_id FK
+        varchar source_filename
+        varchar object_key
+        bigint byte_size
+        varchar status
+        timestamptz deleted_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    INGESTION_JOBS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar document_id FK
+        varchar job_type
+        varchar status
+        int attempt_count
+        timestamptz queued_at
+        timestamptz created_at
+    }
+
     USERS ||--o{ WORKSPACES : creates
     USERS ||--o{ WORKSPACE_MEMBERSHIPS : joins
     WORKSPACES ||--o{ WORKSPACE_MEMBERSHIPS : has
+    WORKSPACES ||--o{ DOCUMENTS : owns
+    USERS ||--o{ DOCUMENTS : uploads
+    DOCUMENTS ||--o{ INGESTION_JOBS : queued_as
+    WORKSPACES ||--o{ INGESTION_JOBS : contains
 ```
 
 ### 8.2 V1 目标全景 ER 图

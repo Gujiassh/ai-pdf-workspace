@@ -53,10 +53,16 @@ export function WorkspaceSidebar() {
   
   const isAnyDocProcessing = wsDocs.some((d) => d.status !== "ready" && d.status !== "failed");
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      uploadDocument(file.name, file.size);
+      try {
+        await uploadDocument(file);
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "Upload failed.");
+      } finally {
+        e.target.value = "";
+      }
     }
   };
 
@@ -89,11 +95,13 @@ export function WorkspaceSidebar() {
 
   const getStatusLabel = (doc: Document) => {
     switch (doc.status) {
+      case "pending_upload": return `${t("sidebar.statusPendingUpload")} (${doc.progress}%)`;
       case "uploaded": return `${t("sidebar.statusUploaded")} (${doc.progress}%)`;
       case "parsing": return `${t("sidebar.statusParsing")} (${doc.progress}%)`;
       case "chunking": return `${t("sidebar.statusChunking")} (${doc.progress}%)`;
       case "embedding": return `${t("sidebar.statusEmbedding")} (${doc.progress}%)`;
       case "ready": return t("sidebar.statusReady");
+      case "deleting": return t("sidebar.statusDeleting");
       default: return t("sidebar.statusFailed");
     }
   };
@@ -321,7 +329,9 @@ export function WorkspaceSidebar() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteDocument(doc.id);
+                        void deleteDocument(doc.id).catch((error) => {
+                          alert(error instanceof Error ? error.message : "Delete failed.");
+                        });
                       }}
                       className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 transition shrink-0"
                     >

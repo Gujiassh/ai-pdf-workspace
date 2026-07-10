@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-本工作流负责把当前 `mock 登录 + 本地工作区沙盒` 逐步替换为更接近真实系统边界的认证链。
+本工作流负责把早期 `mock 登录 + 本地工作区沙盒` 替换为正式认证链。当前原则是：mock 只保留 UI 壳，不再保留旧 mock 逻辑作为兼容目标。
 
 当前按模块推进，避免一次把登录、数据库、membership、BFF 全部卷在一起。
 
@@ -79,5 +79,5 @@
 - BFF session 现已要求显式配置 `AI_PDF_SESSION_SECRET`，cookie 的 `secure` 将随 `NODE_ENV` 自动切换
 - 已补 FastAPI auth 接口自动化测试：覆盖注册成功、重复注册、正确登录、错误密码四个基本行为
 - 模块 2 第一段已完成：`users / workspaces / workspace_memberships` 最小真表链路已接通，`/api/workspaces` 与 `/v1/workspaces` 已改为按当前登录用户 membership 返回列表/详情，并支持创建和 owner 归档
-- 当前主工作台里的 documents / notes / threads / tags 仍是本地 mock，模块 2 还未完成整个工作区业务面的真实替换
+- 当前主工作台里的 notes / threads / tags 仍只有 UI 外壳和临时本地状态；后续接真链路时默认直接重建正式逻辑，不围绕旧 mock 数据流做兼容迁就
 - 模块 3 及之后尚未开始
