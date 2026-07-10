@@ -27,6 +27,7 @@
 - 真实后端认证接口与 BFF session cookie 已接通
 - `users / workspaces / workspace_memberships` 最小真表链路已接通
 - 首页与工作区详情页的 workspace 可见范围、创建、归档已切到真实 BFF/API
+- API 侧已接入数据库结构版本步骤工具，当前最小真表基线版本为 `b139cbaa9e15`
 - 接下来进入文档上传链与主工作台业务数据替换
 
 ## 3. 阶段进度
@@ -80,6 +81,7 @@
 - `apps/web`、`apps/api`、`apps/worker` 基础工程已初始化
 - Workspace 列表与详情的最小 API/BFF/页面链路已建立
 - `users / workspaces / workspace_memberships` 最小真表、查询、创建、归档链路已落地
+- API 侧已从启动时自动建表切换到显式数据库版本步骤；当前基线版本为 `b139cbaa9e15`
 - BFF 现已从登录 cookie session 中透传 `x-user-id` 到 FastAPI，按当前用户 membership 返回可见工作区
 - 当前主工作台里的 documents / notes / threads / tags 仍主要消费 `workspace-context` 的本地沙盒状态
 - 已支持真实后端注册/登录与 BFF httpOnly cookie session（不自动注册，要求显式配置 `AI_PDF_SESSION_SECRET`）
@@ -94,6 +96,7 @@
 1. 接入文档主表与任务主表
    - `documents`
    - `ingestion_jobs`
+   - 通过新的数据库版本步骤继续演进，不再回退到启动自动建表
 
 2. 打通上传链
    - upload-session
