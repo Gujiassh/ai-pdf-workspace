@@ -55,14 +55,14 @@ export default function WorkspaceDetailPage() {
 
   if (isAuthHydrating || isWorkspaceHydrating || !currentWorkspace) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-zinc-50 text-sm font-medium text-zinc-500 dark:bg-zinc-950">
+      <div className="flex h-screen w-screen items-center justify-center bg-zinc-100 text-sm font-medium text-zinc-500 dark:bg-zinc-950">
         {t("workspace.loading")}
       </div>
     );
   }
 
   return (
-    <div className="relative flex h-screen w-screen overflow-hidden bg-zinc-50 font-sans text-zinc-700 antialiased transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-300">
+    <div className="relative flex h-screen w-screen overflow-hidden bg-zinc-100 font-sans text-zinc-700 antialiased transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-300">
       {leftSidebarOpen && (
         <div
           onClick={() => setLeftSidebarOpen(false)}
@@ -72,7 +72,7 @@ export default function WorkspaceDetailPage() {
 
       <WorkspaceSidebar />
 
-      <div className="z-10 flex flex-1 flex-col overflow-hidden border-r border-zinc-800 lg:z-auto">
+      <div className="z-10 flex flex-1 flex-col overflow-hidden border-r border-zinc-200 dark:border-zinc-800 lg:z-auto">
         <PdfViewer />
       </div>
 
@@ -84,8 +84,8 @@ export default function WorkspaceDetailPage() {
       )}
 
       {rightPanelOpen && (
-        <div className="absolute inset-y-0 right-0 z-40 flex w-[384px] max-w-[90vw] shrink-0 flex-col overflow-hidden border-l border-zinc-200 bg-white shadow-2xl duration-300 animate-in slide-in-from-right dark:border-zinc-800 dark:bg-zinc-950 lg:relative lg:z-auto">
-          <div className="flex shrink-0 gap-1.5 border-b border-zinc-200 bg-zinc-50/50 p-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <div className="absolute inset-y-0 right-0 z-40 flex w-[384px] max-w-[90vw] shrink-0 flex-col overflow-hidden border-l border-zinc-200 bg-zinc-50/95 shadow-2xl duration-300 animate-in slide-in-from-right dark:border-zinc-800 dark:bg-zinc-950 lg:relative lg:z-auto">
+          <div className="flex shrink-0 gap-1.5 border-b border-zinc-200 bg-zinc-100/80 p-2 dark:border-zinc-800 dark:bg-zinc-900/40">
             <button
               onClick={() => setActiveTab("chat")}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition ${

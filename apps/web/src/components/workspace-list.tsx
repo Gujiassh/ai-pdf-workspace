@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@/lib/i18n-context";
-import { 
-  Plus, Trash2, FileText, MessageSquare, BookOpen, 
+import {
+  Plus, Trash2, FileText, MessageSquare, BookOpen,
   AlertCircle, Search, Calendar
 } from "lucide-react";
+
+import { CreateWorkspaceDialog } from "./create-workspace-dialog";
 
 export function WorkspaceList() {
   const {
@@ -21,32 +23,10 @@ export function WorkspaceList() {
   const { locale, t } = useTranslation();
   const router = useRouter();
 
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const safeLower = (value: string | null | undefined) => value?.toLowerCase() ?? "";
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || isSubmitting) return;
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
-    try {
-      await createWorkspace(name.trim(), description.trim() || null);
-      setName("");
-      setDescription("");
-      setShowAddForm(false);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : t("dashboard.empty"));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const normalizedSearchQuery = safeLower(searchQuery);
 
@@ -57,198 +37,130 @@ export function WorkspaceList() {
   );
 
   return (
-    <div className="space-y-6 text-zinc-800 dark:text-zinc-300">
-      
-      {/* Search & Add Action Header */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center border-b border-zinc-100 dark:border-zinc-800 pb-4">
-        {/* Flat Search Input */}
-        <div className="relative flex-1 max-w-md flex items-center">
-          <Search className="absolute left-3 h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
-          <input
-            type="text"
-            placeholder={t("dashboard.searchPlaceholder")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950 py-2.5 pl-10 pr-4 text-xs outline-none focus:border-zinc-400 dark:focus:border-zinc-700 text-zinc-800 dark:text-zinc-100 transition"
-          />
+    <>
+      <div className="space-y-6 text-zinc-800 dark:text-zinc-300">
+        <div className="flex flex-col gap-4 justify-between items-stretch border-b border-zinc-100 pb-4 dark:border-zinc-800 sm:flex-row sm:items-center">
+          <div className="relative flex max-w-md flex-1 items-center">
+            <Search className="absolute left-3 h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+            <input
+              type="text"
+              placeholder={t("dashboard.searchPlaceholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 py-2.5 pl-10 pr-4 text-xs text-zinc-800 outline-none transition focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-700"
+            />
+          </div>
+
+          <button
+            onClick={() => setShowCreateDialog(true)}
+            className="flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-zinc-950 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-zinc-800 active:scale-95 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100"
+          >
+            <Plus className="h-4 w-4" />
+            {t("dashboard.createBtn")}
+          </button>
         </div>
 
-        {/* Inline Create Trigger Button */}
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-zinc-950 dark:bg-white px-4 py-2.5 text-xs font-bold text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition active:scale-95 shrink-0 cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          {t("dashboard.createBtn")}
-        </button>
-      </div>
-
-      {/* Flat Inline Creation Form Row (No card, no shadow, integrated inline) */}
-      {showAddForm && (
-        <form 
-          onSubmit={(event) => {
-            void handleCreate(event);
-          }}
-          className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-900/10 p-5 space-y-4 animate-in slide-in-from-top-2 duration-200 text-zinc-800 dark:text-zinc-200"
-        >
-          <div className="flex items-center gap-2">
-            <Plus className="h-4 w-4 text-indigo-500 shrink-0" />
-            <h3 className="text-xs font-bold uppercase tracking-wider">{t("dashboard.createBtn")}</h3>
+        <div className="w-full overflow-hidden">
+          <div className="hidden items-center border-b border-zinc-100 px-4 py-2 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:border-zinc-900 dark:text-zinc-500 md:flex">
+            <div className="w-1/4">{t("dashboard.tableWsName")}</div>
+            <div className="w-2/5">{t("dashboard.tableDesc")}</div>
+            <div className="w-1/5">{t("dashboard.tableMetrics")}</div>
+            <div className="w-1/8 pr-6 text-right">{t("dashboard.tableUpdated")}</div>
+            <div className="w-[60px] text-center">{t("dashboard.tableActions")}</div>
           </div>
-          
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{t("dashboard.wsNameLabel")}</label>
-              <input
-                type="text"
-                required
-                placeholder={t("dashboard.wsNamePlaceholder")}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3.5 py-2 text-xs outline-none text-zinc-800 dark:text-zinc-100 focus:border-zinc-400 dark:focus:border-zinc-700"
-              />
+
+          {filteredWorkspaces.length === 0 ? (
+            <div className="py-12 text-center text-zinc-400">
+              <AlertCircle className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-700" />
+              <p className="mt-3 text-xs font-semibold">{t("dashboard.empty")}</p>
             </div>
-            <div>
-              <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{t("dashboard.wsDescLabel")}</label>
-              <input
-                type="text"
-                placeholder={t("dashboard.wsDescPlaceholder")}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3.5 py-2 text-xs outline-none text-zinc-800 dark:text-zinc-100 focus:border-zinc-400 dark:focus:border-zinc-700"
-              />
-            </div>
-          </div>
+          ) : (
+            <div className="divide-y divide-zinc-100 border-b border-zinc-100 dark:divide-zinc-900 dark:border-zinc-900">
+              {filteredWorkspaces.map((ws) => {
+                const docCount = ws.documentCount;
+                const noteCount = notes.filter((n) => n.workspaceId === ws.id).length;
+                const threadCount = threads.filter((th) => th.workspaceId === ws.id).length;
+                const dateObj = new Date(ws.updatedAt);
+                const formattedDate = locale === "zh"
+                  ? `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`
+                  : `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
 
-          {errorMessage ? (
-            <p className="text-xs font-medium text-rose-500">{errorMessage}</p>
-          ) : null}
-
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddForm(false);
-                setErrorMessage(null);
-              }}
-              className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
-            >
-              {t("chat.cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-xl bg-zinc-950 dark:bg-white px-4 py-2 text-xs font-bold text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? "..." : t("dashboard.createBtn")}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Flat Cloud Table (SaaS Row List - No cards, no shadows) */}
-      <div className="w-full overflow-hidden">
-        
-        {/* Table Header Row (Hidden on small screens) */}
-        <div className="hidden md:flex items-center px-4 py-2 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider border-b border-zinc-100 dark:border-zinc-900">
-          <div className="w-1/4">{t("dashboard.tableWsName")}</div>
-          <div className="w-2/5">{t("dashboard.tableDesc")}</div>
-          <div className="w-1/5">{t("dashboard.tableMetrics")}</div>
-          <div className="w-1/8 text-right pr-6">{t("dashboard.tableUpdated")}</div>
-          <div className="w-[60px] text-center">{t("dashboard.tableActions")}</div>
-        </div>
-
-        {/* Workspaces list rows */}
-        {filteredWorkspaces.length === 0 ? (
-          <div className="py-12 text-center text-zinc-400">
-            <AlertCircle className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-700" />
-            <p className="mt-3 text-xs font-semibold">{t("dashboard.empty")}</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-900 border-b border-zinc-100 dark:border-zinc-900">
-            {filteredWorkspaces.map((ws) => {
-              const docCount = ws.documentCount;
-              const noteCount = notes.filter((n) => n.workspaceId === ws.id).length;
-              const threadCount = threads.filter((t) => t.workspaceId === ws.id).length;
-              const dateObj = new Date(ws.updatedAt);
-              const formattedDate = locale === "zh" 
-                ? `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`
-                : `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-
-              return (
-                <div
-                  key={ws.id}
-                  onClick={() => router.push(`/workspaces/${ws.id}`)}
-                  className="group flex flex-col md:flex-row md:items-center px-4 py-4 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/35 transition-colors duration-150 cursor-pointer relative"
-                >
-                  
-                  {/* Column 1: Workspace Name & Symbol */}
-                  <div className="w-full md:w-1/4 flex items-center gap-3 pr-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-950 dark:text-white font-extrabold text-xs border border-zinc-200 dark:border-zinc-700 group-hover:border-indigo-500 dark:group-hover:border-indigo-400 transition">
-                      {ws.name.slice(0, 1)}
+                return (
+                  <div
+                    key={ws.id}
+                    onClick={() => router.push(`/workspaces/${ws.id}`)}
+                    className="group relative flex cursor-pointer flex-col px-4 py-4 transition-colors duration-150 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/35 md:flex-row md:items-center"
+                  >
+                    <div className="flex w-full items-center gap-3 pr-4 md:w-1/4">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-100 text-xs font-extrabold text-zinc-950 transition group-hover:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:group-hover:border-indigo-400">
+                        {ws.name.slice(0, 1)}
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-xs font-bold tracking-tight text-zinc-900 transition group-hover:text-indigo-650 dark:text-white dark:group-hover:text-indigo-400">
+                          {ws.name}
+                        </h2>
+                        <span className="mt-0.5 inline-block text-[9px] font-bold text-zinc-400 dark:text-zinc-500">
+                          {t("dashboard.role")}: {ws.role}
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h2 className="text-xs font-bold text-zinc-900 dark:text-white tracking-tight truncate group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition">
-                        {ws.name}
-                      </h2>
-                      <span className="mt-0.5 inline-block text-[9px] font-bold text-zinc-400 dark:text-zinc-500">
-                        {t("dashboard.role")}: {ws.role}
+
+                    <div className="mt-2 w-full line-clamp-1 pr-4 text-xs text-zinc-500 dark:text-zinc-400 md:mt-0 md:w-2/5">
+                      {ws.description ?? t("dashboard.noDesc")}
+                    </div>
+
+                    <div className="mt-2 flex w-full items-center gap-3.5 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 md:mt-0 md:w-1/5">
+                      <span className="flex items-center gap-0.5" title={`${docCount} documents`}>
+                        <FileText className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-700" />
+                        {docCount}
+                      </span>
+                      <span className="flex items-center gap-0.5" title={`${noteCount} notes`}>
+                        <BookOpen className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-700" />
+                        {noteCount}
+                      </span>
+                      <span className="flex items-center gap-0.5" title={`${threadCount} chat histories`}>
+                        <MessageSquare className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-700" />
+                        {threadCount}
                       </span>
                     </div>
-                  </div>
 
-                  {/* Column 2: Description */}
-                  <div className="w-full md:w-2/5 text-xs text-zinc-500 dark:text-zinc-400 pr-4 mt-2 md:mt-0 line-clamp-1">
-                    {ws.description ?? t("dashboard.noDesc")}
-                  </div>
+                    <div className="mt-2 flex w-full items-center gap-1 pr-6 text-left text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 md:mt-0 md:w-1/8 md:justify-end md:text-right">
+                      <Calendar className="h-3 w-3 shrink-0 md:hidden" />
+                      <span>{formattedDate}</span>
+                    </div>
 
-                  {/* Column 3: Metrics summary */}
-                  <div className="w-full md:w-1/5 flex items-center gap-3.5 text-[10px] text-zinc-400 dark:text-zinc-500 font-bold mt-2 md:mt-0">
-                    <span className="flex items-center gap-0.5" title={`${docCount} documents`}>
-                      <FileText className="h-3 w-3 text-zinc-300 dark:text-zinc-700 shrink-0" />
-                      {docCount}
-                    </span>
-                    <span className="flex items-center gap-0.5" title={`${noteCount} notes`}>
-                      <BookOpen className="h-3 w-3 text-zinc-300 dark:text-zinc-700 shrink-0" />
-                      {noteCount}
-                    </span>
-                    <span className="flex items-center gap-0.5" title={`${threadCount} chat histories`}>
-                      <MessageSquare className="h-3 w-3 text-zinc-300 dark:text-zinc-700 shrink-0" />
-                      {threadCount}
-                    </span>
+                    <div className="absolute right-4 top-1/2 flex w-[60px] -translate-y-1/2 items-center justify-center shrink-0 md:static md:translate-y-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(t("dashboard.confirmDelete"))) {
+                            void deleteWorkspace(ws.id).catch((error) => {
+                              alert(error instanceof Error ? error.message : "Failed to delete workspace.");
+                            });
+                          }
+                        }}
+                        className="cursor-pointer rounded-xl p-1.5 text-zinc-400 opacity-0 transition duration-150 group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/20"
+                        title={t("dashboard.deleteTooltip")}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Column 4: Date Updated */}
-                  <div className="w-full md:w-1/8 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 text-left md:text-right pr-6 mt-2 md:mt-0 flex items-center md:justify-end gap-1">
-                    <Calendar className="h-3 w-3 md:hidden shrink-0" />
-                    <span>{formattedDate}</span>
-                  </div>
-
-                  {/* Column 5: Actions (Trash can icon appears on hover) */}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 md:static md:translate-y-0 w-[60px] flex items-center justify-center shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(t("dashboard.confirmDelete"))) {
-                          void deleteWorkspace(ws.id).catch((error) => {
-                            alert(error instanceof Error ? error.message : "Failed to delete workspace.");
-                          });
-                        }
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition duration-150 cursor-pointer"
-                      title={t("dashboard.deleteTooltip")}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-    </div>
+      <CreateWorkspaceDialog
+        show={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        onCreate={async (name, desc) => {
+          await createWorkspace(name, desc);
+        }}
+        t={t}
+      />
+    </>
   );
 }

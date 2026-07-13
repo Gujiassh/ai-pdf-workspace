@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@/lib/i18n-context";
+import type { DocumentDetailResponseDto } from "@/lib/documents/types";
 import { 
   ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText, 
   X, Layout, ChevronRight as ChevronRightIcon,
-  ArrowRightLeft, MousePointerSquareDashed,
-  AlignLeft, Layers
+  ArrowRightLeft,
+  AlignLeft, Layers, RefreshCw
 } from "lucide-react";
 
 import { OutlineTree } from "./outline-tree";
@@ -42,10 +43,57 @@ export function PdfViewer() {
 
   const [showSelectionPopup, setShowSelectionPopup] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
+  const [documentDetail, setDocumentDetail] = useState<DocumentDetailResponseDto | null>(null);
+  const [detailError, setDetailError] = useState<{ key: string; message: string } | null>(null);
+  const [detailReloadToken, setDetailReloadToken] = useState(0);
   const paperRef = useRef<HTMLDivElement>(null);
 
   const wsDocs = documents.filter((d) => d.workspaceId === currentWorkspace?.id);
-  const activeDoc = wsDocs.find((d) => d.id === activeDocumentId && d.status === "ready");
+  const activeDoc = wsDocs.find((d) => d.id === activeDocumentId && (d.status === "chunked" || d.status === "ready"));
+  const detailKey = activeDoc ? `${activeDoc.id}:${activePdfPage}` : null;
+  const activePage = activeDoc && documentDetail?.document.id === activeDoc.id
+    ? documentDetail.pages.find((page) => page.pageNumber === activePdfPage)
+    : undefined;
+  const activeDetailError = detailKey && detailError?.key === detailKey ? detailError.message : null;
+  const isLoadingDetail = Boolean(detailKey && !activePage && !activeDetailError);
+
+  useEffect(() => {
+    if (!currentWorkspace || !activeDoc) {
+      return;
+    }
+
+    let cancelled = false;
+    const requestKey = `${activeDoc.id}:${activePdfPage}`;
+    void fetch(
+      `/api/workspaces/${currentWorkspace.id}/documents/${activeDoc.id}?pageNumber=${activePdfPage}`,
+      { cache: "no-store" },
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load document detail.");
+        }
+        return (await response.json()) as DocumentDetailResponseDto;
+      })
+      .then((detail) => {
+        if (!cancelled) {
+          setDocumentDetail(detail);
+          setDetailError(null);
+          setActivePdfPage(detail.pages[0]?.pageNumber ?? 1);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDetailError({
+            key: requestKey,
+            message: t("viewer.pageLoadFailed"),
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDoc, activePdfPage, currentWorkspace, detailReloadToken, setActivePdfPage, t]);
 
   const handleNextPage = () => {
     if (activeDoc && activePdfPage < activeDoc.pagesCount) {
@@ -130,80 +178,6 @@ export function PdfViewer() {
     if (!rightPanelOpen) setRightPanelOpen(true);
   };
 
-  const getMockPdfContent = (docName: string, pageNum: number) => {
-    const nameLower = (docName ?? "").toLowerCase();
-    
-    if (nameLower.includes("attention")) {
-      if (pageNum === 3) {
-        return {
-          title: "3.2 Scaled Dot-Product Attention",
-          content: "We call our particular attention 'Scaled Dot-Product Attention'. The input consists of queries and keys of dimension d_k, and values of dimension d_v. We compute the dot products of the query with all keys, divide each by sqrt(d_k), and apply a softmax function to obtain the weights on the values. Scaling prevents the dot products from growing large in magnitude, which would push the softmax function into regions with extremely small gradients.",
-          highlight: "Scaled Dot-Product Attention: softmax(QK^T / sqrt(d_k))V. Scaling factors prevent softmax vanishing gradients.",
-          notes: "除以根号 dk 的比例修正项，是保障大模型长序列梯度流稳定的重要公式设计。"
-        };
-      }
-      if (pageNum === 5) {
-        return {
-          title: "3.2.2 Multi-Head Attention",
-          content: "Instead of performing a single attention function with d_model-dimensional keys, values and queries, we found it beneficial to linearly project the queries, keys and values h times with different, learned linear projections to d_k, d_k and d_v dimensions, respectively. On each of these projected versions of queries, keys and values we then perform the attention function in parallel, yielding d_v-dimensional output values.",
-          highlight: "Multi-head attention projects Queries, Keys and Values h times with different learnable projections.",
-          notes: "多视角映射：允许模型在语法结构与指代关系中平行观察上下文关联。"
-        };
-      }
-      return {
-        title: `Transformer Network Architecture - Section ${pageNum}`,
-        content: `This is page ${pageNum} of the Transformer deep learning paper. The network eliminates recurrence and convolutions entirely, relying solely on self-attention blocks to map input sequences to output sequences. This structure supports maximum hardware parallelization.`,
-        notes: `本页（第 ${pageNum} 页）描述了自注意力编码栈层间的前馈网络（Feed-Forward Network）细节。`
-      };
-    }
-    
-    if (nameLower.includes("rag")) {
-      if (pageNum === 1) {
-        return {
-          title: "1. Introduction to Retrieval-Augmented Generation",
-          content: "We propose a general RAG framework utilizing pre-trained seq2seq models as parametric memory and dense passage embeddings as non-parametric memory. The dense retriever is queried to fetch top-k document passages, which are then integrated as prompting context to help the generator output results.",
-          highlight: "RAG models combine parametric seq2seq models with non-parametric dense index database.",
-          notes: "RAG 结合了参数化知识与外置数据库检索，大幅提升了知识时效性并缓解了模型幻觉。"
-        };
-      }
-      return {
-        title: `RAG Framework Evaluation - Page ${pageNum}`,
-        content: `This is page ${pageNum} of the RAG publication. It outlines the dense passage retrieval parameters, similarity metric dot-products, and generator prompt assembly.`,
-        notes: `本页（第 ${pageNum} 页）分析了如何使用 DPR 召回 Wikipedia 密集知识片段进行跨源问答。`
-      };
-    }
-
-    if (nameLower.includes("nda")) {
-      if (pageNum === 3) {
-        return {
-          title: "Clause 3. Survival and Obligations",
-          content: "The confidentiality covenants and obligations set forth under this Agreement shall survive the termination or expiration of this Agreement and remain fully binding on the Receiving Party for a term of three (3) years from the effective date of termination, after which the Receiving Party's obligations shall cease.",
-          highlight: "Obligations shall survive for three (3) years from the date of termination.",
-          notes: "期限条款审核：3年保密期过短，算法与核心数据资产应当变更为永久保密。"
-        };
-      }
-      if (pageNum === 4) {
-        return {
-          title: "Clause 4. Injunctive Judicial Remedies",
-          content: "The parties agree that monetary damages alone will not be a sufficient remedy for any breach of this Agreement. Consequently, the Disclosing Party shall be entitled to seek temporary or permanent injunctive relief in a court of competent jurisdiction to restrain the Receiving Party from violating these terms.",
-          highlight: "Disclosing party is entitled to seek injunctive relief to prevent breaches.",
-          notes: "救济方式审核：禁止令有利于被侵权方以极快的司法干预中止侵权传播。"
-        };
-      }
-      return {
-        title: `Bilateral NDA Clauses - Page ${pageNum}`,
-        content: `This is page ${pageNum} of the standard Non-Disclosure Agreement. It outlines defining features of proprietary information and typical dispute resolution structures.`,
-        notes: `本页（第 ${pageNum} 页）描述了不合规保密除外情形（如公众已知数据、独立开发数据等）。`
-      };
-    }
-
-    return {
-      title: `未命名文档 - 第 ${pageNum} 页`,
-      content: `这是文档《${docName}》第 ${pageNum} 页的文本预览。可以用鼠标在此处“滑动选择一段文字”触发咱划词选段交互控制台进行问答与笔记汪！`,
-      notes: `当前位置（第 ${pageNum} 页）未匹配到特定的 RAG 召回高亮。`
-    };
-  };
-
   // Render Workspace Dashboard when no document is active
   if (!activeDoc) {
     const wsDocsCount = wsDocs.length;
@@ -211,12 +185,12 @@ export function PdfViewer() {
     const wsThreadsCount = threads.filter((t) => t.workspaceId === currentWorkspace?.id).length;
 
     return (
-      <div className="flex h-full flex-1 flex-col overflow-y-auto bg-zinc-50 dark:bg-zinc-955 p-8 text-zinc-600 dark:text-zinc-300 transition-colors duration-200">
+      <div className="flex h-full flex-1 flex-col overflow-y-auto bg-zinc-100 dark:bg-zinc-950 p-8 text-zinc-600 dark:text-zinc-300 transition-colors duration-200">
         <div className="mx-auto w-full max-w-3xl space-y-6">
           {/* Dashboard Header */}
-          <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-8 shadow-md dark:shadow-2xl relative overflow-hidden transition">
+          <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 p-8 shadow-md dark:shadow-2xl relative overflow-hidden transition">
             <div className="absolute top-0 right-0 h-40 w-40 bg-indigo-500/5 blur-3xl rounded-full" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-550">{t("viewer.noDocTitle")}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t("viewer.noDocTitle")}</span>
             <h1 className="mt-2.5 text-2xl font-black text-zinc-900 dark:text-white tracking-tight">{currentWorkspace?.name}</h1>
             <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{currentWorkspace?.description || "暂无描述"}</p>
             
@@ -244,46 +218,33 @@ export function PdfViewer() {
 
           {/* Metric list */}
           <div className="grid grid-cols-3 gap-5">
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/45 p-5 shadow-xs">
               <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.docs")}</dt>
               <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsDocsCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-600 font-bold">支持多标签同时浏览</dd>
             </div>
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/45 p-5 shadow-xs">
               <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.notes")}</dt>
               <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsNotesCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-600 font-bold">双击/一键极速抓取</dd>
             </div>
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-5 shadow-xs">
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/45 p-5 shadow-xs">
               <dt className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider">{t("dashboard.threads")}</dt>
               <dd className="mt-1 text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">{wsThreadsCount}</dd>
-              <dd className="mt-1.5 text-[9px] text-zinc-400 dark:text-zinc-600 font-bold">智能问答上下文隔离</dd>
             </div>
           </div>
 
-          {/* Empty guide panel */}
-          {openDocumentIds.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/10 p-12 text-center transition">
-              <MousePointerSquareDashed className="h-8 w-8 text-zinc-400" />
-              <h4 className="mt-3 text-xs font-bold text-zinc-900 dark:text-white">{t("viewer.noDocTitle")}</h4>
-              <p className="mt-1.5 w-80 text-[10px] leading-5 text-zinc-500 dark:text-zinc-400">
-                {t("viewer.noDocDesc")}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     );
   }
 
-  const pageContent = getMockPdfContent(activeDoc.name, activePdfPage);
+  const pageCount = activeDoc.pagesCount;
   const percentage = Math.round(zoom);
 
   return (
-    <div className="flex h-full flex-1 flex-col bg-zinc-105 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 transition-colors duration-200 overflow-hidden">
+    <div className="flex h-full flex-1 flex-col bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-300 transition-colors duration-200 overflow-hidden">
       
       {/* 1. Chrome-style Tabs Bar */}
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 shrink-0 transition">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950 px-2 shrink-0 transition">
         
         {/* Horizontal tabs list (scrolls if overflowed) */}
         <div className="flex items-center overflow-x-auto min-w-0 flex-1 scrollbar-none mr-2">
@@ -299,7 +260,7 @@ export function PdfViewer() {
                 className={`group flex items-center gap-1.5 border-r border-zinc-200 dark:border-zinc-900 px-4 py-3 text-xs cursor-pointer transition select-none shrink-0 ${
                   isActive
                     ? "bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white font-bold"
-                    : "text-zinc-400 hover:bg-zinc-50/50 hover:text-zinc-850 dark:hover:bg-zinc-900/30 dark:hover:text-zinc-100"
+                    : "text-zinc-400 hover:bg-zinc-50/50 hover:text-zinc-800 dark:hover:bg-zinc-900/30 dark:hover:text-zinc-100"
                 }`}
               >
                 <FileText className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
@@ -355,7 +316,7 @@ export function PdfViewer() {
       </div>
 
       {/* 2. Viewer control toolbar */}
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/30 px-5 py-2 shrink-0 backdrop-blur-xs transition">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 px-5 py-2 shrink-0 backdrop-blur-xs transition">
         <div className="flex items-center gap-2 min-w-0">
           <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 text-[9px] font-bold text-indigo-500 dark:text-indigo-400 shrink-0">
             {t("viewer.activeDoc")}
@@ -389,11 +350,11 @@ export function PdfViewer() {
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
-              {activePdfPage} / {activeDoc.pagesCount} {t("viewer.pages")}
+              {activePdfPage} / {pageCount} {t("viewer.pages")}
             </span>
             <button
               onClick={handleNextPage}
-              disabled={activePdfPage >= activeDoc.pagesCount}
+              disabled={activePdfPage >= pageCount}
               className="p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition rounded"
             >
               <ChevronRight className="h-4 w-4" />
@@ -407,7 +368,7 @@ export function PdfViewer() {
         
         {/* Document Outline & Opened Editor Tree Drawer (Retractable Left Pane) */}
         {showOutlinePanel && (
-          <aside className="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex flex-col shrink-0 overflow-y-auto transition duration-200 select-none">
+          <aside className="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950 flex flex-col shrink-0 overflow-y-auto transition duration-200 select-none">
             
             {/* Opened Documents Section */}
             <div className="p-4 border-b border-zinc-100 dark:border-zinc-900/60">
@@ -467,42 +428,42 @@ export function PdfViewer() {
             <div 
               ref={paperRef}
               onMouseUp={handleTextSelection}
-              className="w-full max-w-[720px] rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-12 shadow-md dark:shadow-2xl select-text relative transition-all duration-200"
+              className="w-full max-w-[720px] rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 shadow-md dark:shadow-2xl select-text relative transition-all duration-200"
             >
               {/* Header pagination */}
-              <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-900 pb-3.5 text-[9px] text-zinc-450 dark:text-zinc-500 font-bold uppercase tracking-wider">
+              <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-900 pb-3.5 text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">
                 <span>{activeDoc.name}</span>
-                <span>Page {activePdfPage} of {activeDoc.pagesCount}</span>
+                <span>Page {activePdfPage} of {pageCount}</span>
               </div>
 
               {/* Content text */}
               <div key={activePdfPage} className="mt-8 space-y-4 animate-in fade-in duration-350">
-                <h2 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">{pageContent.title}</h2>
-                <p className="text-xs leading-6 text-zinc-655 dark:text-zinc-400 text-justify">
-                  {pageContent.content}
-                </p>
-
-                {/* RAG highlight */}
-                {pageContent.highlight && (
-                  <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 dark:bg-amber-500/10 p-4 animate-in fade-in duration-300 animate-citation-pulse">
-                    <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider block">{t("viewer.highlightTitle")}</span>
-                    <p className="mt-1 text-xs leading-6 font-semibold text-zinc-800 dark:text-zinc-300 italic">
-                      &quot;{pageContent.highlight}&quot;
-                    </p>
+                {activeDetailError ? (
+                  <div className="flex flex-col items-center gap-3 py-12 text-center">
+                    <p className="text-xs leading-6 text-rose-500 dark:text-rose-400">{activeDetailError}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailError(null);
+                        setDetailReloadToken((value) => value + 1);
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      {t("viewer.retry")}
+                    </button>
                   </div>
-                )}
-
-                {/* Bottom margins notes */}
-                <div className="mt-8 border-t border-zinc-100 dark:border-zinc-900 pt-5">
-                  <span className="text-[9px] font-bold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider block">{t("viewer.annotationTitle")}</span>
-                  <p className="mt-1 text-xs leading-6 text-zinc-500 font-semibold">
-                    {pageContent.notes}
+                ) : isLoadingDetail ? (
+                  <p className="text-xs leading-6 text-zinc-500 dark:text-zinc-400">{t("viewer.pageLoading")}</p>
+                ) : (
+                  <p className="whitespace-pre-wrap text-xs leading-6 text-zinc-600 dark:text-zinc-400 text-justify">
+                    {activePage?.text || t("viewer.pageEmpty")}
                   </p>
-                </div>
+                )}
               </div>
 
               <div className="mt-12 text-center text-[9px] text-zinc-400 dark:text-zinc-600 font-bold tracking-wider">
-                CONFIDENTIAL • DEVELOPMENT MOCK VIEW
+                CONFIDENTIAL • DEVELOPMENT VIEW
               </div>
             </div>
 

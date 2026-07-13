@@ -87,7 +87,7 @@ export function NotesPanel() {
           placeholder={t("notes.search")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mt-2.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-55 dark:bg-zinc-900 px-2.5 py-1.5 text-xs outline-none focus:border-zinc-400 focus:bg-white text-zinc-800 dark:text-zinc-100 transition"
+          className="mt-2.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-2.5 py-1.5 text-xs outline-none focus:border-zinc-400 focus:bg-white text-zinc-800 dark:text-zinc-100 transition"
         />
 
         {/* Selected tag filters info */}
@@ -129,7 +129,7 @@ export function NotesPanel() {
               />
             </div>
             <div>
-              <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-wider">{t("notes.formContentLabel")}</label>
+              <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{t("notes.formContentLabel")}</label>
               <textarea
                 required
                 placeholder={t("notes.formPlaceholder")}

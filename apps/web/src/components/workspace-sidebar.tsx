@@ -51,7 +51,7 @@ export function WorkspaceSidebar() {
   const wsThreads = threads.filter((t) => t.workspaceId === currentWorkspace?.id);
   const wsTags = tags.filter((t) => t.workspaceId === currentWorkspace?.id);
   
-  const isAnyDocProcessing = wsDocs.some((d) => d.status !== "ready" && d.status !== "failed");
+  const isAnyDocProcessing = wsDocs.some((d) => d.status !== "ready" && d.status !== "chunked" && d.status !== "failed");
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -88,6 +88,7 @@ export function WorkspaceSidebar() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ready": return "bg-emerald-500";
+      case "chunked": return "bg-sky-400";
       case "failed": return "bg-rose-500";
       default: return "bg-cyan-400 animate-pulse";
     }
@@ -99,6 +100,7 @@ export function WorkspaceSidebar() {
       case "uploaded": return `${t("sidebar.statusUploaded")} (${doc.progress}%)`;
       case "parsing": return `${t("sidebar.statusParsing")} (${doc.progress}%)`;
       case "chunking": return `${t("sidebar.statusChunking")} (${doc.progress}%)`;
+      case "chunked": return t("sidebar.statusChunked");
       case "embedding": return `${t("sidebar.statusEmbedding")} (${doc.progress}%)`;
       case "ready": return t("sidebar.statusReady");
       case "deleting": return t("sidebar.statusDeleting");
@@ -268,7 +270,7 @@ export function WorkspaceSidebar() {
         {/* Documents section (Tab enabled) */}
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-505">{t("sidebar.docsHeader")}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("sidebar.docsHeader")}</span>
             <button
               onClick={triggerUpload}
               className="flex items-center gap-1 rounded-lg bg-zinc-900 border border-zinc-800 px-2 py-1 text-[10px] font-bold text-white hover:bg-zinc-800 transition active:scale-95"
@@ -301,7 +303,7 @@ export function WorkspaceSidebar() {
                 return (
                   <div
                     key={doc.id}
-                    onClick={() => doc.status === "ready" && openDocument(doc.id)}
+                    onClick={() => (doc.status === "chunked" || doc.status === "ready") && openDocument(doc.id)}
                     className={`group relative flex cursor-pointer items-center justify-between rounded-xl px-2.5 py-2 transition ${
                       isActive
                         ? "bg-zinc-900 text-white font-semibold"
@@ -339,7 +341,7 @@ export function WorkspaceSidebar() {
                     </button>
 
                     {/* Simulating progress bar overlay */}
-                    {doc.status !== "ready" && doc.status !== "failed" && (
+                    {doc.status !== "ready" && doc.status !== "chunked" && doc.status !== "failed" && (
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900 overflow-hidden">
                         <div 
                           className="h-full bg-cyan-400 transition-all duration-300"
@@ -356,7 +358,7 @@ export function WorkspaceSidebar() {
 
         {/* Tags management */}
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-505">{t("sidebar.tagsHeader")}</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("sidebar.tagsHeader")}</span>
           <form onSubmit={handleAddTag} className="mt-2.5 flex gap-1.5">
             <input
               type="text"
@@ -402,7 +404,7 @@ export function WorkspaceSidebar() {
         {/* Chat History section */}
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-505">{t("sidebar.threadsHeader")}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("sidebar.threadsHeader")}</span>
             <button
               onClick={createThread}
               className="flex items-center gap-0.5 rounded-lg bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-zinc-800 active:scale-95"

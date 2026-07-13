@@ -22,7 +22,7 @@ export type Workspace = {
   updatedAt: string;
 };
 
-export type DocumentStatus = "pending_upload" | "uploaded" | "parsing" | "chunking" | "embedding" | "ready" | "failed" | "deleting" | "deleted";
+export type DocumentStatus = "pending_upload" | "uploaded" | "parsing" | "chunking" | "chunked" | "embedding" | "ready" | "failed" | "deleting" | "deleted";
 
 export type Document = {
   id: string;
@@ -318,7 +318,8 @@ const readJson = <T,>(key: string, fallback: T, validator: (value: unknown) => v
   }
 };
 
-const getWorkspaceReadyDocs = (workspaceId: string, docs: Document[]) => docs.filter((d) => d.workspaceId === workspaceId && d.status === "ready");
+const isDocumentViewable = (status: DocumentStatus) => status === "chunked" || status === "ready";
+const getWorkspaceViewableDocs = (workspaceId: string, docs: Document[]) => docs.filter((d) => d.workspaceId === workspaceId && isDocumentViewable(d.status));
 const getWorkspaceThreads = (workspaceId: string, items: ChatThread[]) => items.filter((t) => t.workspaceId === workspaceId);
 
 type WorkspaceErrorPayload = {
@@ -351,7 +352,7 @@ function formatDocumentSize(byteSize: number): string {
 }
 
 function normalizeDocumentStatus(status: string): DocumentStatus {
-  if (["pending_upload", "uploaded", "parsing", "chunking", "embedding", "ready", "failed", "deleting", "deleted"].includes(status)) {
+  if (["pending_upload", "uploaded", "parsing", "chunking", "chunked", "embedding", "ready", "failed", "deleting", "deleted"].includes(status)) {
     return status as DocumentStatus;
   }
   return "failed";
@@ -367,6 +368,8 @@ function getDocumentProgress(status: DocumentStatus): number {
       return 50;
     case "chunking":
       return 75;
+    case "chunked":
+      return 100;
     case "embedding":
       return 90;
     case "ready":
@@ -450,7 +453,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const activeThread = threads.find((t) => t.id === activeThreadId) || null;
 
   const syncWorkspaceViewState = (workspaceId: string, docs: Document[], threadItems: ChatThread[]) => {
-    const wsDocs = getWorkspaceReadyDocs(workspaceId, docs);
+    const wsDocs = getWorkspaceViewableDocs(workspaceId, docs);
     setOpenDocumentIds(wsDocs.length > 0 ? [wsDocs[0].id] : []);
     setActiveDocumentId(wsDocs[0]?.id ?? null);
     setActivePdfPage(1);
@@ -582,6 +585,43 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [currentWorkspaceId, isAuthHydrating, locale, replaceDocumentsForWorkspace, user]);
+
+  useEffect(() => {
+    if (isAuthHydrating || !user || !currentWorkspaceId) {
+      return;
+    }
+
+    const hasProcessingDocument = documents.some(
+      (document) => document.workspaceId === currentWorkspaceId && !["chunked", "ready", "failed", "deleted"].includes(document.status),
+    );
+    if (!hasProcessingDocument) {
+      return;
+    }
+
+    const refreshDocuments = async () => {
+      try {
+        const response = await fetch(`/api/workspaces/${currentWorkspaceId}/documents`, { cache: "no-store" });
+        const payload = await readResponseJsonSafely<DocumentListResponseDto>(response);
+        if (!response.ok || !payload) {
+          return;
+        }
+        const workspaceDocuments = payload.items.map(toUiDocument);
+        const nextDocuments = replaceDocumentsForWorkspace(currentWorkspaceId, workspaceDocuments, documentsRef.current);
+        setDocuments(nextDocuments);
+        syncDb(DB_DOCUMENTS_KEY, nextDocuments);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    const timer = window.setInterval(() => {
+      void refreshDocuments();
+    }, 1_500);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [currentWorkspaceId, documents, isAuthHydrating, replaceDocumentsForWorkspace, user]);
 
   const switchWorkspace = useCallback((id: string) => {
     setCurrentWorkspaceId(id);

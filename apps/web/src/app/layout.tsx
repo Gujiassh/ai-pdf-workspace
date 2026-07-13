@@ -17,6 +17,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const themeInitScript = `(() => {
+  try {
+    const key = "ai_pdf_workspace_theme";
+    const saved = localStorage.getItem(key);
+    const theme = saved === "light" || saved === "dark" ? saved : "dark";
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  } catch {
+    document.documentElement.classList.add("dark");
+  }
+})();`;
+
 export const metadata: Metadata = {
   title: "AI PDF Workspace",
   description: "A multi-workspace text PDF knowledge workspace.",
@@ -30,8 +41,12 @@ export default function RootLayout({
   return (
     <html
       lang="zh-CN"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full bg-background text-foreground transition-colors duration-200">
         <I18nProvider>
           <ThemeProvider>

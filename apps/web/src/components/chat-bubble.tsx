@@ -54,7 +54,7 @@ export function ChatBubble({
           <div className="text-xs leading-6 text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
             {msg.content || (
               <span className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 font-medium italic">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400 dark:text-zinc-650" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400 dark:text-zinc-500" />
                 {t("chat.retrieving")}
               </span>
             )}
@@ -70,7 +70,7 @@ export function ChatBubble({
                   <div key={cit.id} className="relative inline-flex items-center">
                     <button
                       onClick={() => onCitationClick(cit)}
-                      className="flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-850 px-2.5 py-0.5 text-[9px] font-bold text-zinc-600 dark:text-zinc-450 transition hover:scale-105 active:scale-95 cursor-pointer"
+                      className="flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2.5 py-0.5 text-[9px] font-bold text-zinc-600 dark:text-zinc-400 transition hover:scale-105 active:scale-95 cursor-pointer"
                     >
                       <FileText className="h-3 w-3 shrink-0 text-zinc-400" />
                       <span>{cit.documentName.split(".pdf")[0]} p.{cit.pageNumber}</span>
@@ -95,7 +95,7 @@ export function ChatBubble({
               key={`editor-${cit.id}`}
               className="mt-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 space-y-3 animate-in slide-in-from-top-2 duration-300 text-zinc-700 dark:text-zinc-300 shadow-lg"
             >
-              <div className="flex justify-between items-center pb-1 border-b border-zinc-200 dark:border-zinc-850">
+              <div className="flex justify-between items-center pb-1 border-b border-zinc-200 dark:border-zinc-800">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">{t("chat.popoverTitle")}</span>
                 <button
                   onClick={() => setShowNoteEditorId(null)}
@@ -135,7 +135,7 @@ export function ChatBubble({
                 </button>
                 <button
                   onClick={() => onSaveQuickNote(cit)}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 dark:bg-indigo-600 dark:hover:bg-indigo-550 px-2.5 py-1.5 text-[10px] font-bold text-white transition active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 px-2.5 py-1.5 text-[10px] font-bold text-white transition active:scale-95 cursor-pointer"
                 >
                   <Check className="h-3 w-3 shrink-0" />
                   {t("chat.saveToNote")}

@@ -33,6 +33,17 @@ export type DocumentListResponseDto = {
   nextCursor: string | null;
 };
 
+export type DocumentPageContentDto = {
+  pageNumber: number;
+  text: string;
+  charCount: number;
+};
+
+export type DocumentDetailResponseDto = {
+  document: DocumentSummaryDto;
+  pages: DocumentPageContentDto[];
+};
+
 export type UploadDescriptorDto = {
   method: string;
   objectKey: string;
