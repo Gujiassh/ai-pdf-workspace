@@ -4,17 +4,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from ai_pdf_api.core.settings import settings
 from ai_pdf_api.db.session import get_db
-from ai_pdf_api.models import Document, IngestionJob, User
+from ai_pdf_api.models import Document, DocumentChunk, DocumentPage, IngestionJob, User
 from ai_pdf_api.routers.deps import get_accessible_workspace, require_existing_user, require_user_id
 from ai_pdf_api.schemas.document import (
     CreateUploadSessionRequest,
     CreateUploadSessionResponse,
+    DocumentDetailResponse,
     DocumentListResponse,
+    DocumentPageContent,
     DocumentSummary,
     FinalizeUploadRequest,
     FinalizeUploadResponse,
@@ -96,6 +98,28 @@ def list_documents(
     return DocumentListResponse(items=[to_document_summary(document) for document in items], nextCursor=None)
 
 
+@router.get("/{document_id}", response_model=DocumentDetailResponse)
+def get_document_detail(
+    workspace_id: str,
+    document_id: str,
+    page_number: int = Query(1, alias="pageNumber", ge=1),
+    user_id: str = Depends(require_user_id),
+    db: Session = Depends(get_db),
+) -> DocumentDetailResponse:
+    get_accessible_workspace(db, user_id, workspace_id)
+    document = get_workspace_document(db, workspace_id, document_id)
+    page = db.scalar(
+        select(DocumentPage)
+        .where(DocumentPage.document_id == document.id, DocumentPage.page_number == page_number),
+    )
+    if page is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document page not found.")
+    return DocumentDetailResponse(
+        document=to_document_summary(document),
+        pages=[DocumentPageContent(pageNumber=page.page_number, text=page.extracted_text, charCount=page.char_count)],
+    )
+
+
 @router.post("/upload-session", response_model=CreateUploadSessionResponse, status_code=status.HTTP_201_CREATED)
 def create_upload_session(
     workspace_id: str,
@@ -104,6 +128,8 @@ def create_upload_session(
     db: Session = Depends(get_db),
 ) -> CreateUploadSessionResponse:
     get_accessible_workspace(db, user.id, workspace_id)
+    if payload.mimeType != "application/pdf" or Path(payload.sourceFilename).suffix.lower() != ".pdf":
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Only PDF uploads are supported.")
     now = datetime.now(UTC)
     title = (payload.title or Path(payload.sourceFilename).stem).strip()
     document = Document(
@@ -238,6 +264,8 @@ def delete_document(
 
     document = get_workspace_document(db, workspace_id, document_id)
     delete_object_if_exists(document.object_key)
+    db.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
+    db.execute(delete(DocumentPage).where(DocumentPage.document_id == document.id))
     document.deleted_at = datetime.now(UTC)
     document.status = "deleted"
     document.updated_at = datetime.now(UTC)

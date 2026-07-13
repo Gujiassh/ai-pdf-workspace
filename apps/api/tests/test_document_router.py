@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
@@ -10,9 +10,15 @@ from sqlalchemy.pool import StaticPool
 
 from ai_pdf_api.db.base import Base
 from ai_pdf_api.db.session import get_db
-from ai_pdf_api.models import Document, IngestionJob, User, Workspace, WorkspaceMembership
+from ai_pdf_api.models import Document, DocumentChunk, DocumentPage, IngestionJob, User, Workspace, WorkspaceMembership
 from ai_pdf_api.routers.documents import router as documents_router
 from ai_pdf_api.routers.jobs import router as jobs_router
+from ai_pdf_api.services.ingestion import (
+    INGESTION_LEASE_TIMEOUT,
+    claim_next_ingestion_job,
+    estimate_token_count,
+    process_ingestion_job,
+)
 
 
 @pytest.fixture()
@@ -164,6 +170,24 @@ def test_create_upload_session_persists_pending_document(client: TestClient, db_
     assert document.object_key == payload["upload"]["objectKey"]
 
 
+def test_create_upload_session_rejects_non_pdf(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+
+    response = client.post(
+        f"/v1/workspaces/{workspace.id}/documents/upload-session",
+        headers={"x-user-id": owner.id},
+        json={
+            "sourceFilename": "notes.txt",
+            "mimeType": "text/plain",
+            "byteSize": 12,
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Only PDF uploads are supported."
+
+
 def test_binary_upload_and_finalize_creates_queued_ingestion_job(client: TestClient, db_session: Session) -> None:
     owner = create_user(db_session, email="owner@example.com", name="Owner")
     workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
@@ -239,6 +263,208 @@ def test_get_job_returns_persisted_job(client: TestClient, db_session: Session) 
     assert payload["job"]["documentId"] == document.id
 
 
+def test_ingestion_worker_persists_pages_and_chunks(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="uploaded")
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="ingest",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={"source": "test"},
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.commit()
+
+    class FakePage:
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+        def extract_text(self) -> str:
+            return self.text
+
+    class FakeReader:
+        pages = [FakePage("Page one heading\n" + "alpha " * 300), FakePage("Page two body")]
+
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.download_bytes", lambda object_key: b"pdf")
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.PdfReader", lambda payload: FakeReader())
+
+    claimed_job_id = claim_next_ingestion_job(db_session)
+    assert claimed_job_id == job.id
+    assert db_session.get(Document, document.id).status == "parsing"
+
+    process_ingestion_job(db_session, claimed_job_id)
+
+    refreshed_document = db_session.get(Document, document.id)
+    refreshed_job = db_session.get(IngestionJob, job.id)
+    pages = db_session.scalars(select(DocumentPage).where(DocumentPage.document_id == document.id)).all()
+    chunks = db_session.scalars(select(DocumentChunk).where(DocumentChunk.document_id == document.id)).all()
+    assert refreshed_document is not None
+    assert refreshed_document.status == "chunked"
+    assert refreshed_document.page_count == 2
+    assert refreshed_job is not None
+    assert refreshed_job.status == "succeeded"
+    assert len(pages) == 2
+    assert len(chunks) >= 2
+    assert {chunk.index_version for chunk in chunks} == {1}
+
+
+def test_ingestion_worker_uses_ocr_for_image_only_pdf(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="uploaded")
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="ingest",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={"source": "test"},
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+
+    class FakePage:
+        def extract_text(self) -> str:
+            return ""
+
+    class FakeReader:
+        pages = [FakePage(), FakePage()]
+
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.download_bytes", lambda object_key: b"image-pdf")
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.PdfReader", lambda payload: FakeReader())
+
+    claimed_job_id = claim_next_ingestion_job(db_session)
+    assert claimed_job_id == job.id
+    process_ingestion_job(
+        db_session,
+        claimed_job_id,
+        ocr_extract_page_texts=lambda payload: [(1, "扫描件第一页"), (2, "扫描件第二页")],
+    )
+
+    refreshed_document = db_session.get(Document, document.id)
+    pages = db_session.scalars(select(DocumentPage).where(DocumentPage.document_id == document.id)).all()
+    assert refreshed_document is not None
+    assert refreshed_document.status == "chunked"
+    assert [page.extracted_text for page in pages] == ["扫描件第一页", "扫描件第二页"]
+
+
+def test_ingestion_worker_reclaims_stale_job(db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="parsing")
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="ingest",
+        status="running",
+        attempt_count=1,
+        config_snapshot={"source": "test"},
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC) - INGESTION_LEASE_TIMEOUT - timedelta(minutes=1),
+        started_at=datetime.now(UTC) - INGESTION_LEASE_TIMEOUT - timedelta(minutes=1),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+
+    claimed_job_id = claim_next_ingestion_job(db_session)
+
+    refreshed_job = db_session.get(IngestionJob, job.id)
+    assert claimed_job_id == job.id
+    assert refreshed_job is not None
+    assert refreshed_job.status == "running"
+    assert refreshed_job.attempt_count == 2
+    assert db_session.get(Document, document.id).status == "parsing"
+
+
+def test_ingestion_worker_marks_invalid_pdf_failed(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="uploaded")
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="ingest",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={"source": "test"},
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.download_bytes", lambda object_key: b"not a pdf")
+    claimed_job_id = claim_next_ingestion_job(db_session)
+    assert claimed_job_id == job.id
+
+    process_ingestion_job(db_session, claimed_job_id)
+
+    refreshed_document = db_session.get(Document, document.id)
+    refreshed_job = db_session.get(IngestionJob, job.id)
+    assert refreshed_document is not None
+    assert refreshed_document.status == "failed"
+    assert refreshed_job is not None
+    assert refreshed_job.status == "failed"
+    assert refreshed_job.error_code == "ingestion_failed"
+
+
+def test_token_count_estimate_handles_cjk_and_words() -> None:
+    assert estimate_token_count("中文文本") == 4
+    assert estimate_token_count("hello world") == 2
+
+
+def test_document_detail_returns_persisted_page_text(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="chunked")
+    db_session.add(
+        DocumentPage(
+            workspace_id=workspace.id,
+            document_id=document.id,
+            page_number=1,
+            extracted_text="Extracted page text.",
+            char_count=20,
+        ),
+    )
+    db_session.commit()
+
+    response = client.get(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}",
+        params={"pageNumber": 1},
+        headers={"x-user-id": owner.id},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["document"]["id"] == document.id
+    assert payload["pages"] == [{"pageNumber": 1, "text": "Extracted page text.", "charCount": 20}]
+
+    missing_page = client.get(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}",
+        params={"pageNumber": 2},
+        headers={"x-user-id": owner.id},
+    )
+    assert missing_page.status_code == 404
+    assert missing_page.json()["detail"] == "Document page not found."
+
+
 def test_delete_document_requires_owner_and_soft_deletes(client: TestClient, db_session: Session) -> None:
     owner = create_user(db_session, email="owner@example.com", name="Owner")
     member = create_user(db_session, email="member@example.com", name="Member")
@@ -246,6 +472,29 @@ def test_delete_document_requires_owner_and_soft_deletes(client: TestClient, db_
     db_session.add(WorkspaceMembership(workspace_id=workspace.id, user_id=member.id, role="member"))
     db_session.commit()
     document = create_document(db_session, workspace=workspace, user=owner)
+    page = DocumentPage(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        page_number=1,
+        extracted_text="Delete me.",
+        char_count=10,
+    )
+    db_session.add(page)
+    db_session.flush()
+    db_session.add(
+        DocumentChunk(
+            workspace_id=workspace.id,
+            document_id=document.id,
+            page_id=page.id,
+            chunk_index=0,
+            chunk_text="Delete me.",
+            token_count=2,
+            char_start=0,
+            char_end=10,
+            index_version=1,
+        ),
+    )
+    db_session.commit()
 
     forbidden = client.delete(f"/v1/workspaces/{workspace.id}/documents/{document.id}", headers={"x-user-id": member.id})
     assert forbidden.status_code == 403
@@ -257,6 +506,8 @@ def test_delete_document_requires_owner_and_soft_deletes(client: TestClient, db_
     assert refreshed is not None
     assert refreshed.deleted_at is not None
     assert refreshed.status == "deleted"
+    assert db_session.scalars(select(DocumentPage).where(DocumentPage.document_id == document.id)).all() == []
+    assert db_session.scalars(select(DocumentChunk).where(DocumentChunk.document_id == document.id)).all() == []
 
     list_response = client.get(f"/v1/workspaces/{workspace.id}/documents", headers={"x-user-id": owner.id})
     assert list_response.status_code == 200

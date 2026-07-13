@@ -45,6 +45,16 @@ def object_exists(object_key: str) -> bool:
         raise
 
 
+def download_bytes(object_key: str) -> bytes:
+    client = build_storage_client()
+    response = client.get_object(settings.minio_bucket, object_key)
+    try:
+        return response.read()
+    finally:
+        response.close()
+        response.release_conn()
+
+
 def delete_object_if_exists(object_key: str) -> None:
     client = build_storage_client()
     try:

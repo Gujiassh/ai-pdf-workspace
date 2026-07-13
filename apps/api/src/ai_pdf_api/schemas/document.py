@@ -24,6 +24,17 @@ class DocumentListResponse(BaseModel):
     nextCursor: str | None
 
 
+class DocumentPageContent(BaseModel):
+    pageNumber: int
+    text: str
+    charCount: int
+
+
+class DocumentDetailResponse(BaseModel):
+    document: DocumentSummary
+    pages: list[DocumentPageContent]
+
+
 class UploadDescriptor(BaseModel):
     method: str
     objectKey: str
