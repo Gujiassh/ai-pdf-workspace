@@ -9,11 +9,11 @@
 - 各类接口的请求/响应语义
 - 哪些接口是同步读写，哪些接口是异步任务触发，哪些接口是流式接口
 
-当前范围只覆盖 `文本 PDF 主链`。
+当前范围覆盖 `文本 PDF 主链`，其中扫描 PDF 的 OCR 是 Worker 内部 fallback，不单独暴露接口。
 
 不覆盖：
 
-- OCR / 多模态接口
+- 独立 OCR / 多模态接口
 - 图表 / 图片理解接口
 - 后台管理接口
 
@@ -539,20 +539,26 @@ Chat 不用普通 JSON 完整返回。
 }
 ```
 
-### `GET /api/workspaces/:workspaceId/documents/:documentId`
+### `GET /api/workspaces/:workspaceId/documents/:documentId?pageNumber=8`
 
 作用：
 
-- 获取文档详情
+- 获取文档摘要和指定页文本
+- `pageNumber` 从 1 开始，默认读取第 1 页
+- 只返回请求页，避免一次返回整份 PDF 的全部正文
 
 返回：
 
 ```json
 {
   "document": "DocumentSummary",
-  "pages": {
-    "pageCount": 15
-  }
+  "pages": [
+    {
+      "pageNumber": 1,
+      "text": "这一页已提取的文本",
+      "charCount": 12
+    }
+  ]
 }
 ```
 

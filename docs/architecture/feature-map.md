@@ -54,12 +54,12 @@ AI PDF Workspace
 当前功能地图只覆盖 `文本 PDF 工作流`：
 
 - 可直接提取文本的 PDF
+- 无文本层扫描 PDF 的 OCR fallback（结果复用普通页面文本）
 - 文本 chunk
 - 文本检索与问答
 
 暂不纳入：
 
-- 扫描件 OCR
 - 图表 / 表格 / 图片区域理解
 - 多模态 chunk
 - 页内区域级 citation
@@ -181,7 +181,6 @@ V2 再补：
 
 如果未来确认要做多模态，再单独新增：
 
-- OCR fallback
 - 图表 / 表格 / 图片区域检测
 - visual chunk
 - region-level citation

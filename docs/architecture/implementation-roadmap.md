@@ -90,7 +90,7 @@
 
 目标：
 
-- 解析文本 PDF
+- 解析文本 PDF；无文本层时执行 Worker 内部 OCR fallback
 - 建立 `document_pages`
 - 建立 `document_chunks`
 
@@ -151,8 +151,7 @@
 
 当前不进入主线：
 
-- 多模态 PDF
-- OCR
+- 多模态 PDF 页面理解
 - Agent 自动编排平台
 - 多模型策略路由
 - 复杂权限系统

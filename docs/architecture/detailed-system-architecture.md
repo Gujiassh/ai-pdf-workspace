@@ -23,7 +23,7 @@
 - 字段级 schema 细节
 - 接口 request/response 细节
 - 任务状态机细节
-- 扫描件 OCR、图表/表格/图片物体理解等多模态方案
+- 独立 OCR API、图表/表格/图片物体理解等多模态方案
 
 这些会在后续专门文档中补齐。
 
@@ -47,14 +47,14 @@
 3. 检索与业务数据强耦合，V1 不值得独立上向量专用数据库
 4. 用户面向的是 Workspace，不是全局知识池
 5. V1 架构必须可讲清楚、可本地复现、可后续演进，而不是先做企业级重平台
-6. 当前架构只服务文本型 PDF，不引入 OCR 和多模态页面理解链
+6. 当前架构以文本型 PDF 为主；无文本层扫描 PDF 在 Worker 内通过 RapidOCR fallback 转为普通页面文本，不引入独立 OCR API 和多模态页面理解链
 
 ### 2.3 当前文档范围
 
 当前架构按 `文本 PDF 主链` 设计：
 
-- 只处理可直接提取文本的 PDF
-- 不处理扫描件 OCR
+- 直接提取文本层 PDF；无文本层扫描 PDF 走 Worker 内部 OCR fallback
+- OCR 结果不扩展持久化模型，复用 `document_pages.extracted_text`
 - 不处理图表、表格、图片区域的视觉理解
 - 不引入 visual chunk、region-level citation、多模态 embedding
 
@@ -729,6 +729,8 @@ V1 任务粒度建议：
 - API 只创建任务和读状态
 - Worker 只执行重任务和更新状态
 - 任何任务最终状态都写回 Postgres
+
+当前实现已先落 `ingest` 消费：Worker 轮询 Postgres 中 queued job，以行锁领取任务，优先提取 PDF 文本层；没有文本时用 RapidOCR + ONNX Runtime 渲染页面并识别，再写入 `document_pages`、`document_chunks`。这一段完成后文档状态为 `chunked`；embedding、reindex 和 cleanup 仍是下一阶段能力。
 
 ## 8. 数据库架构
 

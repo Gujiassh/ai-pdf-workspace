@@ -8,10 +8,10 @@
 2. 每张表负责什么
 3. 表和表之间如何关联
 
-当前数据库设计只覆盖 `文本 PDF 主链`：
+当前数据库设计覆盖 `文本 PDF 主链`，也承接 Worker 的 OCR fallback 结果：
 
-- 只支持可直接提取文本的 PDF
-- 不做 OCR
+- 文本层 PDF 直接提取文本
+- 无文本层扫描 PDF 的 OCR 文本复用 `document_pages.extracted_text` 和 `document_chunks`
 - 不做图表、表格、图片的多模态理解
 - 不做 visual chunk 和 region-level citation
 
@@ -408,12 +408,16 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `embedding_version`
 - `created_at`
 
+当前 `token_count` 是与模型无关的估算值：英文按词、中文按字符、标点按单元计数。真实 embedding provider 接入后，应按实际 tokenizer 重新计算并记录处理配置。
+
 为什么这里同时保留 `vector(1024)` 和 `embedding_dimensions`：
 
 - 当前本地 `qwen3-embedding:0.6b` 是 `1024` 维
 - OpenAI 也可以在调用时收敛到 `1024` 维
 - V1 的在线向量列仍统一为 `1024` 维，便于只维护一套 pgvector 索引
 - 同时保留 `embedding_dimensions` 字段，是为了把“当时用的维度”作为元数据记录下来，避免后续 provider 或维度策略变化时丢失上下文
+
+当前实现边界：本轮迁移先落页面和文本块字段，尚未创建 `embedding`、`embedding_dimensions`、`embedding_provider` 等向量字段；Worker 收口状态为 `chunked`。接入真实 embedding provider 时，再通过独立迁移补齐向量列和索引，文档状态才进入 `embedding -> ready`。
 
 关键约束：
 
@@ -1003,11 +1007,11 @@ erDiagram
 
 ## 9. 当前数据库设计的边界
 
-这份数据库设计是给当前 `文本 PDF V1` 用的。
+这份数据库设计是给当前 `文本 PDF V1` 用的。扫描 PDF 的 OCR 结果直接作为普通页面文本落在现有表中，不新增 OCR 专用数据表。
 
 明确不包括：
 
-- 扫描件 OCR 结果表
+- 独立的扫描件 OCR 结果表
 - 图表 / 表格 / 图片区域表
 - 多模态 chunk
 - region-level citation

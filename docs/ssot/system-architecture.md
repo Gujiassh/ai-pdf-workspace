@@ -40,9 +40,9 @@ V1 架构不追求：
 - 跨 Workspace 联邦检索
 - 多模型 Agent 编排平台
 - 超高吞吐搜索集群
-- 扫描件 OCR、图表/表格/图片物体理解等多模态文档能力
+- 图表/表格/图片物体理解等多模态文档能力
 
-当前范围只支持可直接提取文本的 PDF。扫描件、图片 PDF 和页内视觉理解能力不进入当前架构范围。
+当前范围支持可直接提取文本的 PDF，也支持无文本层的扫描 PDF 在 Worker 内通过 RapidOCR fallback 转为页面文本。OCR 不提供独立 API；图表、表格结构化理解和页内视觉理解仍不进入当前架构范围。
 
 ## 3. 顶层架构
 
@@ -284,9 +284,11 @@ Worker 任务：
 - `rebuild_index`
 - `delete_document_artifacts`
 
+当前已实现：Worker 通过 Postgres 轮询领取 `ingestion_jobs.status=queued` 的 `ingest` 任务，先用 pypdf 提取文本；页面没有文本时，使用 RapidOCR + ONNX Runtime 渲染并识别，再统一写入 `document_pages` 和按页文本块 `document_chunks`；领取时会回收超时的 running ingest job。文档详情按页读取，删除文档会清理页块。本轮到 `documents.status=chunked` 收口；真实 embedding 与向量检索尚未接入。
+
 ### 5.4 任务编排方式
 
-V1 采用：
+目标架构采用：
 
 - `Redis queue + Worker`
 - `Postgres ingestion_jobs` 作为最终状态记录
@@ -297,6 +299,8 @@ V1 采用：
 - 数据库负责真相状态
 - Redis 宕掉后可重新投递
 - Postgres 仍保留任务最终结果与失败原因
+
+当前实现采用 Postgres 轮询作为最小可运行调度：Worker 用 `FOR UPDATE SKIP LOCKED` 领取 queued job，再把 `running/succeeded/failed` 状态写回同一事务边界。Redis 队列会在重试、延迟任务和横向扩展进入主线时接入；当前不保留一套未使用的双队列逻辑。
 
 ## 6. 数据库架构
 
@@ -630,9 +634,10 @@ V1 支持两类：
 3. API 创建 document + ingestion_job
 4. Browser 直传 MinIO
 5. Browser finalize
-6. API 投递 Worker 任务
-7. Worker 解析、切块、embedding、写 pgvector
-8. API/DB 更新状态为 `ready`
+6. API 创建 queued ingestion job
+7. Worker 领取任务，提取文本；无文本层时执行 OCR fallback，再切块并持久化 pages/chunks
+8. API/DB 更新状态为 `chunked`
+9. 后续 embedding Worker 写 pgvector 后更新为 `ready`
 
 ### 13.2 Chat 问答
 

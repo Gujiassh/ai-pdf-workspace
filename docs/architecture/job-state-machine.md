@@ -8,7 +8,7 @@
 - `documents.status` 和 `ingestion_jobs.status` 的职责如何区分
 - 初次入库、失败重试、重建索引、删除清理分别如何建模
 
-当前范围只覆盖 `文本 PDF 主链`。
+当前范围覆盖 `文本 PDF 主链`，扫描 PDF 的 OCR 作为 ingest Worker 内部 fallback，不单独建状态机。
 
 ## 2. 设计目标
 
@@ -90,6 +90,7 @@
 - `uploaded`
 - `parsing`
 - `chunking`
+- `chunked`
 - `embedding`
 - `ready`
 - `failed`
@@ -140,6 +141,14 @@
 
 - Worker 正在调用 embedding provider 并写入向量
 
+### `chunked`
+
+含义：
+
+- 页面和文本块已持久化
+- 当前可以供 Viewer 读取页面文本
+- 尚未生成检索向量，不能作为问答检索来源
+
 ### `ready`
 
 含义：
@@ -152,6 +161,7 @@
 含义：
 
 - 最近一次入库主任务失败
+- 失败原因通过 `error_code` / `error_message` 保存，例如 `ocr_failed` 或 `no_extractable_text`
 - 当前没有可用在线索引
 
 ### `deleting`
@@ -228,6 +238,7 @@ pending_upload
   -> uploaded
   -> parsing
   -> chunking
+  -> chunked
   -> embedding
   -> ready
 ```
@@ -365,6 +376,8 @@ job_type=delete_cleanup: queued -> running -> succeeded
 2. 清理过程中失败时，删除任务进入 `failed`
 3. 文档主记录是否立即隐藏，由前端列表策略决定，但业务上不应继续让它参与检索
 
+当前实现会在文档软删除事务中同步清理 `document_pages` 和 `document_chunks`；对象存储删除仍由删除接口执行。后续引入 `delete_cleanup` Worker 时，再把对象存储和大规模产物清理拆成可重试任务。
+
 ## 10. 前端如何消费这些状态
 
 ## 10.1 文档列表
@@ -452,7 +465,7 @@ job_type=delete_cleanup: queued -> running -> succeeded
 
 这份状态机设计当前不覆盖：
 
-- OCR 流程状态
+- 独立 OCR 流程状态（OCR fallback 复用 ingest 的 `parsing -> chunking` 状态）
 - 多模态页面理解状态
 - 批量导入多个文档的聚合状态
 - 多 worker 竞争同一文档的并发控制细节

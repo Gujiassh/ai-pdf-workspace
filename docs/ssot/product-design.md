@@ -93,7 +93,7 @@ Note 是 Workspace 内的知识沉淀单元，支持：
 - 生成 chunk
 - 生成 embedding
 - 建立向量索引
-- 为后续 OCR fallback 与重建索引预留能力
+- 支持无文本层扫描 PDF 的 OCR fallback，并为重建索引预留能力
 
 ### 5.4 文档浏览模块
 
@@ -234,7 +234,7 @@ Note 是 Workspace 内的知识沉淀单元，支持：
 
 ### 8.3 V2 检索质量升级
 
-- OCR fallback
+- OCR 质量评估与版面能力升级
 - hybrid search
 - rerank
 - structured output 抽取模板

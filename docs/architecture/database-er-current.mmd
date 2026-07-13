@@ -54,10 +54,37 @@ erDiagram
         timestamptz created_at
     }
 
+    DOCUMENT_PAGES {
+        varchar id PK
+        varchar workspace_id FK
+        varchar document_id FK
+        int page_number
+        text extracted_text
+        int char_count
+        timestamptz created_at
+    }
+
+    DOCUMENT_CHUNKS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar document_id FK
+        varchar page_id FK
+        int chunk_index
+        text chunk_text
+        int token_count
+        int char_start
+        int char_end
+        int index_version
+        timestamptz created_at
+    }
+
     USERS ||--o{ WORKSPACES : creates
     USERS ||--o{ WORKSPACE_MEMBERSHIPS : joins
     WORKSPACES ||--o{ WORKSPACE_MEMBERSHIPS : has
     WORKSPACES ||--o{ DOCUMENTS : owns
     USERS ||--o{ DOCUMENTS : uploads
     DOCUMENTS ||--o{ INGESTION_JOBS : queued_as
+    DOCUMENTS ||--o{ DOCUMENT_PAGES : contains
+    DOCUMENTS ||--o{ DOCUMENT_CHUNKS : indexes
+    DOCUMENT_PAGES ||--o{ DOCUMENT_CHUNKS : splits_into
     WORKSPACES ||--o{ INGESTION_JOBS : contains
