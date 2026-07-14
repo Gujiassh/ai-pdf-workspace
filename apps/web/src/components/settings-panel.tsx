@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Check, Cpu, Save, Settings2, Sliders } from "lucide-react";
+import { Check, Cpu, Save, Settings2, Sliders } from "lucide-react";
 
 import { translations, useTranslation } from "@/lib/i18n-context";
 import { Workspace, useWorkspace } from "@/lib/workspace-context";
@@ -151,30 +151,6 @@ function SettingsForm({ currentWorkspace, onSavePrompt, t }: SettingsFormProps) 
           </div>
         </div>
 
-        <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
-
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-900/10 p-3.5">
-          <h5 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Activity className="h-3.5 w-3.5 text-zinc-400" />
-            {t("settings.healthChecks")}
-          </h5>
-          <dl className="mt-2.5 grid grid-cols-2 gap-2 text-[9px] text-zinc-500 dark:text-zinc-400 font-semibold">
-            <div>
-              <dt>{t("settings.dbStatus")}</dt>
-              <dd className="text-emerald-600 dark:text-emerald-500 font-bold flex items-center gap-1 mt-0.5">
-                <Check className="h-3 w-3 shrink-0" />
-                {t("settings.connected")}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("settings.s3Status")}</dt>
-              <dd className="text-emerald-600 dark:text-emerald-500 font-bold flex items-center gap-1 mt-0.5">
-                <Check className="h-3 w-3 shrink-0" />
-                {t("settings.connected")}
-              </dd>
-            </div>
-          </dl>
-        </div>
       </div>
     </div>
   );

@@ -53,6 +53,13 @@ export default function WorkspaceDetailPage() {
     }
   }, [isAuthHydrating, isWorkspaceHydrating, router, switchWorkspace, user, workspaceId, workspaces]);
 
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setLeftSidebarOpen(false);
+      setRightPanelOpen(false);
+    }
+  }, [setLeftSidebarOpen, setRightPanelOpen]);
+
   if (isAuthHydrating || isWorkspaceHydrating || !currentWorkspace) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-zinc-100 text-sm font-medium text-zinc-500 dark:bg-zinc-950">

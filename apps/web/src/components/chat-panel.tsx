@@ -68,21 +68,24 @@ export function ChatPanel() {
     setQuickNoteContent(t("chat.noteContentTemplate").replace("{snippet}", citation.snippet));
   };
 
-  const handleSaveQuickNote = (citation: Citation) => {
+  const handleSaveQuickNote = async (citation: Citation) => {
     if (!quickNoteTitle.trim()) return;
-    
-    createNote(quickNoteTitle, quickNoteContent, {
-      documentId: citation.documentId,
-      documentName: citation.documentName,
-      pageNumber: citation.pageNumber,
-      snippet: citation.snippet,
-    });
 
-    setShowNoteEditorId(null);
-    setQuickNoteTitle("");
-    setQuickNoteContent("");
-    
-    setActiveTab("notes");
+    try {
+      await createNote(quickNoteTitle, quickNoteContent, {
+        messageCitationId: citation.id,
+        documentId: citation.documentId,
+        documentName: citation.documentName,
+        pageNumber: citation.pageNumber,
+        snippet: citation.snippet,
+      });
+      setShowNoteEditorId(null);
+      setQuickNoteTitle("");
+      setQuickNoteContent("");
+      setActiveTab("notes");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to save note.");
+    }
   };
 
   return (

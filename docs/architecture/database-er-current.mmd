@@ -78,6 +78,88 @@ erDiagram
         timestamptz created_at
     }
 
+    CHAT_THREADS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar created_by_user_id FK
+        varchar title
+        timestamptz archived_at
+        timestamptz last_message_at
+        timestamptz created_at
+    }
+
+    CHAT_MESSAGES {
+        varchar id PK
+        varchar workspace_id FK
+        varchar thread_id FK
+        varchar role
+        text content
+        varchar status
+        timestamptz created_at
+    }
+
+    MESSAGE_CITATIONS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar message_id FK
+        varchar document_id FK
+        varchar chunk_id FK
+        int citation_index
+        int page_number_snapshot
+        varchar document_title_snapshot
+        text excerpt_snapshot
+    }
+
+    NOTES {
+        varchar id PK
+        varchar workspace_id FK
+        varchar created_by_user_id FK
+        varchar updated_by_user_id FK
+        varchar title
+        text body_md
+        boolean is_pinned
+        timestamptz archived_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    NOTE_SOURCES {
+        varchar id PK
+        varchar workspace_id FK
+        varchar note_id FK
+        varchar message_citation_id FK
+        varchar document_id FK
+        int source_order
+        int page_number_snapshot
+        text excerpt_snapshot
+    }
+
+    TAGS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar name
+        varchar slug
+        varchar color
+        varchar created_by_user_id FK
+        timestamptz created_at
+    }
+
+    DOCUMENT_TAGS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar document_id FK
+        varchar tag_id FK
+        timestamptz created_at
+    }
+
+    NOTE_TAGS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar note_id FK
+        varchar tag_id FK
+        timestamptz created_at
+    }
+
     USERS ||--o{ WORKSPACES : creates
     USERS ||--o{ WORKSPACE_MEMBERSHIPS : joins
     WORKSPACES ||--o{ WORKSPACE_MEMBERSHIPS : has
@@ -88,3 +170,18 @@ erDiagram
     DOCUMENTS ||--o{ DOCUMENT_CHUNKS : indexes
     DOCUMENT_PAGES ||--o{ DOCUMENT_CHUNKS : splits_into
     WORKSPACES ||--o{ INGESTION_JOBS : contains
+    WORKSPACES ||--o{ CHAT_THREADS : owns
+    USERS ||--o{ CHAT_THREADS : starts
+    CHAT_THREADS ||--o{ CHAT_MESSAGES : contains
+    CHAT_MESSAGES ||--o{ MESSAGE_CITATIONS : cites
+    DOCUMENTS ||--o{ MESSAGE_CITATIONS : sourced_from
+    DOCUMENT_CHUNKS ||--o{ MESSAGE_CITATIONS : sourced_from
+    WORKSPACES ||--o{ NOTES : owns
+    USERS ||--o{ NOTES : writes
+    NOTES ||--o{ NOTE_SOURCES : cites
+    MESSAGE_CITATIONS ||--o{ NOTE_SOURCES : source_for
+    WORKSPACES ||--o{ TAGS : defines
+    DOCUMENTS ||--o{ DOCUMENT_TAGS : tagged
+    TAGS ||--o{ DOCUMENT_TAGS : applied_to
+    NOTES ||--o{ NOTE_TAGS : tagged
+    TAGS ||--o{ NOTE_TAGS : applied_to

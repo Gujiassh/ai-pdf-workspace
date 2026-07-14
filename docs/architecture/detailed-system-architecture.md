@@ -215,7 +215,7 @@ ai-pdf-workspace/
 
 > [!IMPORTANT]
 > **当前实现态 (Current Interactive Frontend Prototype)**:  
-> 目前处于“真实链路逐段替换 UI 壳”的过渡阶段：真实项目依赖仍较轻，但 `workspace` 与 `documents` 的核心 BFF/API 已落地；`workspace-context.tsx` 当前只是一层临时胶水，不应继续作为长期架构扩张。未接真的能力可以暂时保留 LocalStorage/UI 壳，但这些 mock 数据流不再作为兼容对象，后续会直接按正式结构重建并删除旧逻辑。
+> 当前核心数据链路已落地：`workspace`、`documents`、Chat thread/message/citation、notes、tags 及其 BFF/API 均已接通；`workspace-context.tsx` 仍是一层过渡胶水，不应继续承载更多业务规则。notes/tags 的 LocalStorage/mock 数据流已删除，后续新增能力应继续沿用 API client + BFF + workspace hydrate 的边界。
 > 
 > **规划目标态 (Target Production Architecture)**:  
 > 后续对接真实 FastAPI 服务时，将全面引入并升级至以下生产级模块架构：
@@ -361,7 +361,9 @@ apps/web/src/
 
 负责：
 
-- PDF 渲染
+- 通过受权限保护的原始 PDF 文件流渲染页面
+- 使用 PDF.js canvas 保留源文件图片、排版和视觉内容
+- 为原生文本 PDF 渲染 text layer，为 PDF 内置链接/批注渲染 annotation layer
 - 页码跳转
 - 当前 citation 定位
 - 视图模式切换
@@ -515,6 +517,7 @@ BFF 不是可选层，而是前端架构的一部分。
 4. 上传成功后调用 finalize
 5. React Query 开始轮询 job 状态
 6. 文档 ready 后刷新文档列表和 viewer 可用状态
+7. Viewer 从 `/documents/{documentId}/file` 读取原始 PDF，PDF.js 负责页面渲染；`document_pages`/`document_chunks` 只作为检索和 citation 数据源
 
 #### citation 跳转链路
 
@@ -730,7 +733,7 @@ V1 任务粒度建议：
 - Worker 只执行重任务和更新状态
 - 任何任务最终状态都写回 Postgres
 
-当前实现已先落 `ingest` 消费：Worker 轮询 Postgres 中 queued job，以行锁领取任务，优先提取 PDF 文本层；没有文本时用 RapidOCR + ONNX Runtime 渲染页面并识别，再写入 `document_pages`、`document_chunks`。这一段完成后文档状态为 `chunked`；embedding、reindex 和 cleanup 仍是下一阶段能力。
+当前实现已落 `ingest/embed_chunks` 消费：Worker 轮询 Postgres 中 queued job，以行锁领取任务，优先提取 PDF 文本层；没有文本时用 RapidOCR + ONNX Runtime 渲染页面并识别，再写入 `document_pages`、`document_chunks`，批量调用 Ollama/OpenAI embedding provider 写入 pgvector，并把文档推进到 `ready`。Web Viewer 另从原始 PDF 文件流读取源文件，使用 PDF.js canvas/text/annotation layers 阅读，不把 OCR 文本重新排版成假 PDF。检索服务按 workspace 和 embedding version 做 cosine top-k，Chat API 已持久化 thread/message/citation 并通过 SSE 返回；Notes/Tags API 已持久化 `notes`、`note_sources`、`tags`、`document_tags`、`note_tags`，citation -> note 使用 `message_citations` 快照校验与落库。
 
 ## 8. 数据库架构
 

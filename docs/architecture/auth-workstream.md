@@ -79,5 +79,5 @@
 - BFF session 现已要求显式配置 `AI_PDF_SESSION_SECRET`，cookie 的 `secure` 将随 `NODE_ENV` 自动切换
 - 已补 FastAPI auth 接口自动化测试：覆盖注册成功、重复注册、正确登录、错误密码四个基本行为
 - 模块 2 第一段已完成：`users / workspaces / workspace_memberships` 最小真表链路已接通，`/api/workspaces` 与 `/v1/workspaces` 已改为按当前登录用户 membership 返回列表/详情，并支持创建和 owner 归档
-- 当前主工作台里的 notes / threads / tags 仍只有 UI 外壳和临时本地状态；后续接真链路时默认直接重建正式逻辑，不围绕旧 mock 数据流做兼容迁就
+- 当前主工作台里的 notes / tags 已切到真实表、API、BFF 和前端恢复链路；citation -> note 会校验当前 workspace 的 `message_citations` 并保存来源快照，旧 notes/tags localStorage/mock 数据流已删除。threads 同样使用真实表、API、BFF 和前端恢复链路。
 - 模块 3 及之后尚未开始

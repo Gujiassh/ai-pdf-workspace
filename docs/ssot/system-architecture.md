@@ -156,7 +156,8 @@ FastAPI 主业务服务。
    - [WorkspaceList](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/workspace-list.tsx)：主门户 100% 宽度 cardless 行列表。
 
 2. `Document Workspace UI`
-   - [PdfViewer](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/pdf-viewer.tsx)：标签式多 PDF 阅读器。
+   - [PdfViewer](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/pdf-viewer.tsx)：标签式多 PDF 阅读器，负责工作区级文档切换和阅读状态。
+   - [PdfRenderer](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/pdf-renderer.tsx)：通过 PDF.js 文件流渲染原始页面 canvas、原生文本层和 annotation layer，保留图片、排版与 PDF 内置链接。
    - [OutlineTree](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/outline-tree.tsx)：文档章节目录大纲树，支持基于 `${activeDocumentId}-${node.page}-${node.title}` 复合 Key 进行无冲突折叠。
    - [SelectionPopover](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/selection-popover.tsx)：划词即时问答/记录笔记浮空菜单。
 
@@ -284,7 +285,7 @@ Worker 任务：
 - `rebuild_index`
 - `delete_document_artifacts`
 
-当前已实现：Worker 通过 Postgres 轮询领取 `ingestion_jobs.status=queued` 的 `ingest` 任务，先用 pypdf 提取文本；页面没有文本时，使用 RapidOCR + ONNX Runtime 渲染并识别，再统一写入 `document_pages` 和按页文本块 `document_chunks`；领取时会回收超时的 running ingest job。文档详情按页读取，删除文档会清理页块。本轮到 `documents.status=chunked` 收口；真实 embedding 与向量检索尚未接入。
+当前已实现：Worker 通过 Postgres 轮询领取 `ingestion_jobs.status=queued` 的 `ingest/embed_chunks` 任务，先用 pypdf 提取文本；页面没有文本时，使用 RapidOCR + ONNX Runtime 渲染并识别，再统一写入 `document_pages` 和按页文本块 `document_chunks`；随后批量调用配置的 embedding provider 写入 `vector(1024)` 和 provider 元数据，把文档推进到 `ready`。领取时会回收超时的 running job。检索服务按 workspace、当前 index version 和 provider metadata 过滤后执行 pgvector cosine top-k；Chat API 将检索片段交给 Responses API，并持久化 thread/message/citation 快照；Notes/Tags API 通过 `notes`、`note_sources`、`tags`、`document_tags`、`note_tags` 持久化知识沉淀和关系，citation -> note 只接受当前 workspace 的真实 `message_citations` 并保存来源快照。
 
 ### 5.4 任务编排方式
 
@@ -636,8 +637,8 @@ V1 支持两类：
 5. Browser finalize
 6. API 创建 queued ingestion job
 7. Worker 领取任务，提取文本；无文本层时执行 OCR fallback，再切块并持久化 pages/chunks
-8. API/DB 更新状态为 `chunked`
-9. 后续 embedding Worker 写 pgvector 后更新为 `ready`
+8. Worker 批量 embedding 并写入 pgvector
+9. API/DB 更新状态为 `ready`
 
 ### 13.2 Chat 问答
 
@@ -645,9 +646,9 @@ V1 支持两类：
 2. Web 校验会话和 workspace
 3. API 执行 retrieval
 4. API 调用 Responses API 生成答案
-5. API 返回流式回答和 citations
-6. Web 转发流到浏览器
-7. Browser 展示回答并支持 citation 跳页
+5. API 先持久化 assistant message 和 citation 快照
+6. API 通过 SSE 返回 `meta/delta/citations/done`
+7. Web 转发流到浏览器，Browser 展示回答并支持 citation 跳页
 
 ### 13.3 Citation 生成笔记
 

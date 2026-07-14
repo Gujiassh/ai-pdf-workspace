@@ -33,6 +33,8 @@ export function WorkspaceSidebar() {
     switchThread,
     deleteThread,
     addTag,
+    deleteTag,
+    toggleDocumentTag,
     setLeftSidebarOpen,
     setSelectedTagIds,
   } = useWorkspace();
@@ -72,11 +74,15 @@ export function WorkspaceSidebar() {
 
 
 
-  const handleAddTag = (e: React.FormEvent) => {
+  const handleAddTag = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTagName.trim()) return;
-    addTag(newTagName.trim());
-    setNewTagName("");
+    try {
+      await addTag(newTagName.trim());
+      setNewTagName("");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to create tag.");
+    }
   };
 
   const toggleTagFilter = (tagId: string) => {
@@ -325,6 +331,28 @@ export function WorkspaceSidebar() {
                             </>
                           )}
                         </div>
+                        {wsTags.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {wsTags.map((tag) => {
+                              const hasTag = doc.tags.includes(tag.name);
+                              return (
+                                <button
+                                  key={tag.id}
+                                  type="button"
+                                  title={tag.name}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void toggleDocumentTag(doc.id, tag.name).catch((error) => alert(error instanceof Error ? error.message : "Failed to update document tags."));
+                                  }}
+                                  className={`rounded-full px-1.5 py-0.5 text-[8px] font-bold transition ${hasTag ? "text-zinc-950" : "bg-zinc-900 text-zinc-600 hover:text-zinc-300"}`}
+                                  style={{ backgroundColor: hasTag ? tag.color : undefined }}
+                                >
+                                  {tag.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -382,19 +410,31 @@ export function WorkspaceSidebar() {
               wsTags.map((tag) => {
                 const isSelected = selectedTagIds.includes(tag.id);
                 return (
-                  <button
-                    key={tag.id}
-                    onClick={() => toggleTagFilter(tag.id)}
-                    className={`flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-[9px] font-bold transition ${
-                      isSelected
-                        ? "text-zinc-950 font-black"
-                        : "bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
-                    }`}
-                    style={{ backgroundColor: isSelected ? tag.color : undefined }}
-                  >
-                    <TagIcon className="h-2 w-2 shrink-0" />
-                    {tag.name}
-                  </button>
+                  <div key={tag.id} className="group/tag flex items-center rounded-full">
+                    <button
+                      onClick={() => toggleTagFilter(tag.id)}
+                      className={`flex items-center gap-0.5 rounded-full px-2.5 py-0.5 text-[9px] font-bold transition ${
+                        isSelected
+                          ? "text-zinc-950 font-black"
+                          : "bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
+                      }`}
+                      style={{ backgroundColor: isSelected ? tag.color : undefined }}
+                    >
+                      <TagIcon className="h-2 w-2 shrink-0" />
+                      {tag.name}
+                    </button>
+                    <button
+                      type="button"
+                      title={t("sidebar.deleteTag")}
+                      onClick={() => {
+                        if (!window.confirm(t("sidebar.confirmDeleteTag"))) return;
+                        void deleteTag(tag.id).catch((error) => alert(error instanceof Error ? error.message : "Failed to delete tag."));
+                      }}
+                      className="-ml-1 hidden rounded-full p-0.5 text-zinc-500 hover:text-rose-400 group-hover/tag:block"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
                 );
               })
             )}

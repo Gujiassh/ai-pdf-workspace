@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from io import BytesIO
 
 from minio import Minio
@@ -50,6 +51,17 @@ def download_bytes(object_key: str) -> bytes:
     response = client.get_object(settings.minio_bucket, object_key)
     try:
         return response.read()
+    finally:
+        response.close()
+        response.release_conn()
+
+
+def stream_bytes(object_key: str, chunk_size: int = 1024 * 1024) -> Iterator[bytes]:
+    client = build_storage_client()
+    response = client.get_object(settings.minio_bucket, object_key)
+    try:
+        while chunk := response.read(chunk_size):
+            yield chunk
     finally:
         response.close()
         response.release_conn()

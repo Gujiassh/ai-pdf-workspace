@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,6 +10,34 @@ class Settings(BaseSettings):
     minio_bucket: str = "ai-pdf-workspace"
     minio_secure: bool = False
     max_upload_bytes: int = Field(default=1024 * 1024 * 100)
+
+    embedding_provider: str = Field(default="openai", pattern="^(openai|ollama)$")
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = Field(default=1024, ge=1024, le=1024)
+    embedding_version: str = "embedding-v1"
+    embedding_batch_size: int = Field(default=32, ge=1, le=256)
+    embedding_timeout_seconds: float = Field(default=120.0, gt=0)
+    embedding_query_instruction: str = (
+        "Given a user question, retrieve the most relevant PDF chunks that answer the question."
+    )
+
+    generation_provider: str = Field(default="openai", pattern="^openai$")
+    generation_model: str = "gpt-5.5"
+    generation_timeout_seconds: float = Field(default=120.0, gt=0)
+    generation_max_output_tokens: int = Field(default=1200, ge=64, le=8192)
+
+    openai_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("AI_PDF_OPENAI_API_KEY", "OPENAI_API_KEY"),
+    )
+    openai_api_base: str = Field(
+        default="https://api.openai.com/v1",
+        validation_alias=AliasChoices("AI_PDF_OPENAI_API_BASE", "OPENAI_API_BASE"),
+    )
+    ollama_base_url: str = Field(
+        default="http://127.0.0.1:11434",
+        validation_alias=AliasChoices("AI_PDF_OLLAMA_BASE_URL", "OLLAMA_BASE_URL"),
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="AI_PDF_",

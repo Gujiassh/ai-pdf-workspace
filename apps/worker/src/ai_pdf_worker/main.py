@@ -5,6 +5,7 @@ import time
 
 from ai_pdf_api.db.session import SessionLocal
 from ai_pdf_api.services.ingestion import claim_next_ingestion_job, process_ingestion_job
+from ai_pdf_api.services.providers import get_embedding_provider
 
 from ai_pdf_worker.ocr import extract_page_texts_with_ocr
 
@@ -16,7 +17,12 @@ def process_one_job() -> bool:
         job_id = claim_next_ingestion_job(db)
         if job_id is None:
             return False
-        process_ingestion_job(db, job_id, ocr_extract_page_texts=extract_page_texts_with_ocr)
+        process_ingestion_job(
+            db,
+            job_id,
+            ocr_extract_page_texts=extract_page_texts_with_ocr,
+            embedding_provider=get_embedding_provider(),
+        )
         return True
 
 

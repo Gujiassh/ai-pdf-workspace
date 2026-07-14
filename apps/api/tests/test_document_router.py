@@ -18,6 +18,7 @@ from ai_pdf_api.services.ingestion import (
     claim_next_ingestion_job,
     estimate_token_count,
     process_ingestion_job,
+    process_embedding_job,
 )
 
 
@@ -139,6 +140,37 @@ def test_list_documents_requires_membership(client: TestClient, db_session: Sess
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Workspace not found."
+
+
+def test_get_document_file_streams_original_pdf_for_members(client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    member = create_user(db_session, email="member@example.com", name="Member")
+    stranger = create_user(db_session, email="stranger@example.com", name="Stranger")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Private")
+    db_session.add(WorkspaceMembership(workspace_id=workspace.id, user_id=member.id, role="editor"))
+    db_session.commit()
+    document = create_document(db_session, workspace=workspace, user=owner, source_filename="原始资料.pdf")
+    monkeypatch.setattr(
+        "ai_pdf_api.routers.documents.stream_bytes",
+        lambda object_key: iter((b"%PDF-1.7\n", b"original page bytes")),
+    )
+
+    for user_id in (owner.id, member.id):
+        response = client.get(
+            f"/v1/workspaces/{workspace.id}/documents/{document.id}/file",
+            headers={"x-user-id": user_id},
+        )
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert response.headers["content-disposition"].startswith("inline; filename*=")
+        assert response.content == b"%PDF-1.7\noriginal page bytes"
+
+    forbidden_response = client.get(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}/file",
+        headers={"x-user-id": stranger.id},
+    )
+    assert forbidden_response.status_code == 404
+    assert forbidden_response.json()["detail"] == "Workspace not found."
 
 
 def test_create_upload_session_persists_pending_document(client: TestClient, db_session: Session) -> None:
@@ -312,6 +344,267 @@ def test_ingestion_worker_persists_pages_and_chunks(db_session: Session, monkeyp
     assert len(pages) == 2
     assert len(chunks) >= 2
     assert {chunk.index_version for chunk in chunks} == {1}
+
+
+def test_ingestion_worker_embeds_chunks_and_marks_document_ready(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="uploaded")
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="ingest",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={"source": "test"},
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+
+    class FakePage:
+        def extract_text(self) -> str:
+            return "embedding regression text"
+
+    class FakeReader:
+        pages = [FakePage()]
+
+    class FakeEmbeddingProvider:
+        provider = "fake"
+        model = "fake-embedding"
+        dimensions = 3
+        version = "fake-v1"
+
+        def embed_documents(self, texts: list[str]) -> list[list[float]]:
+            return [[1.0, 0.0, 0.0] for _ in texts]
+
+        def embed_query(self, text: str) -> list[float]:
+            return [1.0, 0.0, 0.0]
+
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.download_bytes", lambda object_key: b"pdf")
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.PdfReader", lambda payload: FakeReader())
+
+    claimed_job_id = claim_next_ingestion_job(db_session)
+    process_ingestion_job(db_session, claimed_job_id, embedding_provider=FakeEmbeddingProvider())
+
+    refreshed_document = db_session.get(Document, document.id)
+    refreshed_job = db_session.get(IngestionJob, job.id)
+    chunks = db_session.scalars(select(DocumentChunk).where(DocumentChunk.document_id == document.id)).all()
+    assert refreshed_document is not None
+    assert refreshed_document.status == "ready"
+    assert refreshed_job is not None
+    assert refreshed_job.status == "succeeded"
+    assert chunks and chunks[0].embedding == [1.0, 0.0, 0.0]
+    assert chunks[0].embedding_provider == "fake"
+    assert chunks[0].embedding_dimensions == 3
+
+
+def test_ingestion_worker_rejects_embedding_config_drift(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="uploaded")
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="ingest",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={
+            "embeddingProvider": "ollama",
+            "embeddingModel": "qwen3-embedding:0.6b",
+            "embeddingDimensions": 1024,
+            "embeddingVersion": "embedding-v1",
+        },
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+
+    class DifferentEmbeddingProvider:
+        provider = "fake"
+        model = "fake-embedding"
+        dimensions = 3
+        version = "fake-v1"
+
+        def embed_documents(self, texts: list[str]) -> list[list[float]]:
+            return [[1.0, 0.0, 0.0] for _ in texts]
+
+        def embed_query(self, text: str) -> list[float]:
+            return [1.0, 0.0, 0.0]
+
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.download_bytes", lambda object_key: b"unreachable")
+    claimed_job_id = claim_next_ingestion_job(db_session)
+    process_ingestion_job(db_session, claimed_job_id, embedding_provider=DifferentEmbeddingProvider())
+
+    refreshed_document = db_session.get(Document, document.id)
+    refreshed_job = db_session.get(IngestionJob, job.id)
+    assert refreshed_document is not None
+    assert refreshed_document.status == "failed"
+    assert refreshed_job is not None
+    assert refreshed_job.status == "failed"
+    assert refreshed_job.error_code == "embedding_configuration_mismatch"
+
+
+def test_embedding_failure_does_not_mark_partial_index_ready(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="ready")
+    now = datetime.now(UTC)
+    pages = [
+        DocumentPage(
+            workspace_id=workspace.id,
+            document_id=document.id,
+            page_number=index,
+            extracted_text=f"page {index}",
+            char_count=6,
+            created_at=now,
+        )
+        for index in (1, 2)
+    ]
+    db_session.add_all(pages)
+    db_session.flush()
+    chunks = [
+        DocumentChunk(
+            workspace_id=workspace.id,
+            document_id=document.id,
+            page_id=page.id,
+            chunk_index=0,
+            chunk_text=f"chunk {index}",
+            token_count=2,
+            char_start=0,
+            char_end=7,
+            index_version=1,
+            created_at=now,
+        )
+        for index, page in enumerate(pages, start=1)
+    ]
+    chunks[0].embedding = [0.0, 1.0, 0.0]
+    chunks[0].embedding_dimensions = 3
+    chunks[0].embedding_provider = "fake"
+    chunks[0].embedding_model = "fake-embedding"
+    chunks[0].embedding_version = "fake-v1"
+    db_session.add_all(chunks)
+    db_session.flush()
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="embed_chunks",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={
+            "embeddingProvider": "fake",
+            "embeddingModel": "fake-embedding",
+            "embeddingDimensions": 3,
+            "embeddingVersion": "fake-v1",
+        },
+        requested_by_user_id=owner.id,
+        queued_at=now,
+        created_at=now,
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+
+    class FailingEmbeddingProvider:
+        provider = "fake"
+        model = "fake-embedding"
+        dimensions = 3
+        version = "fake-v1"
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def embed_documents(self, texts: list[str]) -> list[list[float]]:
+            self.calls += 1
+            if self.calls == 1:
+                return [[1.0, 0.0, 0.0] for _ in texts]
+            raise RuntimeError("provider stopped")
+
+        def embed_query(self, text: str) -> list[float]:
+            return [1.0, 0.0, 0.0]
+
+    monkeypatch.setattr("ai_pdf_api.services.ingestion.settings.embedding_batch_size", 1)
+    claimed_job_id = claim_next_ingestion_job(db_session)
+    process_embedding_job(db_session, claimed_job_id, FailingEmbeddingProvider())
+
+    refreshed_document = db_session.get(Document, document.id)
+    refreshed_job = db_session.get(IngestionJob, job.id)
+    assert refreshed_document is not None
+    assert refreshed_document.status == "chunked"
+    assert refreshed_job is not None
+    assert refreshed_job.status == "failed"
+
+
+def test_reindex_queues_embed_job_with_embedding_config_snapshot(
+    client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="ready")
+    now = datetime.now(UTC)
+    page = DocumentPage(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        page_number=1,
+        extracted_text="reindex text",
+        char_count=12,
+        created_at=now,
+    )
+    db_session.add(page)
+    db_session.flush()
+    db_session.add(
+        DocumentChunk(
+            workspace_id=workspace.id,
+            document_id=document.id,
+            page_id=page.id,
+            chunk_index=0,
+            chunk_text="reindex text",
+            token_count=2,
+            char_start=0,
+            char_end=12,
+            index_version=1,
+            created_at=now,
+        )
+    )
+    db_session.commit()
+
+    monkeypatch.setattr("ai_pdf_api.routers.documents.settings.embedding_provider", "fake")
+    monkeypatch.setattr("ai_pdf_api.routers.documents.settings.embedding_model", "fake-embedding")
+    monkeypatch.setattr("ai_pdf_api.routers.documents.settings.embedding_dimensions", 3)
+    monkeypatch.setattr("ai_pdf_api.routers.documents.settings.embedding_version", "fake-v1")
+
+    response = client.post(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}/reindex",
+        headers={"x-user-id": owner.id},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job"]["jobType"] == "embed_chunks"
+    job = db_session.get(IngestionJob, payload["job"]["id"])
+    assert job is not None
+    assert job.config_snapshot == {
+        "source": "reindex",
+        "embeddingProvider": "fake",
+        "embeddingModel": "fake-embedding",
+        "embeddingDimensions": 3,
+        "embeddingVersion": "fake-v1",
+    }
 
 
 def test_ingestion_worker_uses_ocr_for_image_only_pdf(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:

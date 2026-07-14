@@ -417,7 +417,7 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - V1 的在线向量列仍统一为 `1024` 维，便于只维护一套 pgvector 索引
 - 同时保留 `embedding_dimensions` 字段，是为了把“当时用的维度”作为元数据记录下来，避免后续 provider 或维度策略变化时丢失上下文
 
-当前实现边界：本轮迁移先落页面和文本块字段，尚未创建 `embedding`、`embedding_dimensions`、`embedding_provider` 等向量字段；Worker 收口状态为 `chunked`。接入真实 embedding provider 时，再通过独立迁移补齐向量列和索引，文档状态才进入 `embedding -> ready`。
+当前实现：迁移 `f4d9c0e7a2b1` 已启用 `vector` 扩展，并创建 `embedding`、`embedding_dimensions`、`embedding_provider`、`embedding_model`、`embedding_version` 字段和 HNSW cosine 索引；Worker 会在 embedding 成功后把文档推进到 `ready`。当前运行回归使用 Ollama `qwen3-embedding:0.6b` 的 1024 维向量，OpenAI embedding 仍可通过 provider 配置切换。
 
 关键约束：
 
@@ -440,7 +440,7 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `id uuid pk`
 - `workspace_id`
 - `document_id`
-- `job_type`，例如 `ingest/reindex/delete_cleanup`
+- `job_type`，例如 `ingest/embed_chunks/delete_cleanup`；用户触发的 reindex 动作当前落为 `embed_chunks` job
 - `status`，例如 `queued/running/succeeded/failed/cancelled`
 - `attempt_count int`
 - `config_snapshot jsonb`
@@ -751,7 +751,7 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 
 先放两张图，避免把“当前已落地”与“V1 目标全景”混在一起：
 
-### 8.1 当前已落地最小 ER 图
+### 8.1 当前已落地真表 ER 图
 
 这张图只反映当前代码和本地数据库里已经真正落地的真表链路：
 
@@ -759,7 +759,17 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `workspaces`
 - `workspace_memberships`
 - `documents`
+- `document_pages`
+- `document_chunks`
 - `ingestion_jobs`
+- `chat_threads`
+- `chat_messages`
+- `message_citations`
+- `notes`
+- `note_sources`
+- `tags`
+- `document_tags`
+- `note_tags`
 
 对应文件：
 
@@ -822,13 +832,137 @@ erDiagram
         timestamptz created_at
     }
 
+    DOCUMENT_PAGES {
+        varchar id PK
+        varchar workspace_id FK
+        varchar document_id FK
+        int page_number
+        text extracted_text
+        int char_count
+        timestamptz created_at
+    }
+
+    DOCUMENT_CHUNKS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar document_id FK
+        varchar page_id FK
+        int chunk_index
+        text chunk_text
+        int token_count
+        int char_start
+        int char_end
+        int index_version
+        timestamptz created_at
+    }
+
+    CHAT_THREADS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar created_by_user_id FK
+        varchar title
+        timestamptz archived_at
+        timestamptz last_message_at
+        timestamptz created_at
+    }
+
+    CHAT_MESSAGES {
+        varchar id PK
+        varchar workspace_id FK
+        varchar thread_id FK
+        varchar role
+        text content
+        varchar status
+        timestamptz created_at
+    }
+
+    MESSAGE_CITATIONS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar message_id FK
+        varchar document_id FK
+        varchar chunk_id FK
+        int citation_index
+        int page_number_snapshot
+        varchar document_title_snapshot
+        text excerpt_snapshot
+    }
+
+    NOTES {
+        varchar id PK
+        varchar workspace_id FK
+        varchar created_by_user_id FK
+        varchar updated_by_user_id FK
+        varchar title
+        text body_md
+        boolean is_pinned
+        timestamptz archived_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    NOTE_SOURCES {
+        varchar id PK
+        varchar workspace_id FK
+        varchar note_id FK
+        varchar message_citation_id FK
+        varchar document_id FK
+        int source_order
+        int page_number_snapshot
+        text excerpt_snapshot
+    }
+
+    TAGS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar name
+        varchar slug
+        varchar color
+        varchar created_by_user_id FK
+        timestamptz created_at
+    }
+
+    DOCUMENT_TAGS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar document_id FK
+        varchar tag_id FK
+        timestamptz created_at
+    }
+
+    NOTE_TAGS {
+        varchar id PK
+        varchar workspace_id FK
+        varchar note_id FK
+        varchar tag_id FK
+        timestamptz created_at
+    }
+
     USERS ||--o{ WORKSPACES : creates
     USERS ||--o{ WORKSPACE_MEMBERSHIPS : joins
     WORKSPACES ||--o{ WORKSPACE_MEMBERSHIPS : has
     WORKSPACES ||--o{ DOCUMENTS : owns
     USERS ||--o{ DOCUMENTS : uploads
     DOCUMENTS ||--o{ INGESTION_JOBS : queued_as
+    DOCUMENTS ||--o{ DOCUMENT_PAGES : contains
+    DOCUMENTS ||--o{ DOCUMENT_CHUNKS : indexes
+    DOCUMENT_PAGES ||--o{ DOCUMENT_CHUNKS : splits_into
     WORKSPACES ||--o{ INGESTION_JOBS : contains
+    WORKSPACES ||--o{ CHAT_THREADS : owns
+    USERS ||--o{ CHAT_THREADS : starts
+    CHAT_THREADS ||--o{ CHAT_MESSAGES : contains
+    CHAT_MESSAGES ||--o{ MESSAGE_CITATIONS : cites
+    DOCUMENTS ||--o{ MESSAGE_CITATIONS : sourced_from
+    DOCUMENT_CHUNKS ||--o{ MESSAGE_CITATIONS : sourced_from
+    WORKSPACES ||--o{ NOTES : owns
+    USERS ||--o{ NOTES : writes
+    NOTES ||--o{ NOTE_SOURCES : cites
+    MESSAGE_CITATIONS ||--o{ NOTE_SOURCES : source_for
+    WORKSPACES ||--o{ TAGS : defines
+    DOCUMENTS ||--o{ DOCUMENT_TAGS : tagged
+    TAGS ||--o{ DOCUMENT_TAGS : applied_to
+    NOTES ||--o{ NOTE_TAGS : tagged
+    TAGS ||--o{ NOTE_TAGS : applied_to
 ```
 
 ### 8.2 V1 目标全景 ER 图

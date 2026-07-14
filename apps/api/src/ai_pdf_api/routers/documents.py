@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -23,7 +25,7 @@ from ai_pdf_api.schemas.document import (
     UploadDescriptor,
 )
 from ai_pdf_api.schemas.job import JobStatus
-from ai_pdf_api.services.storage import delete_object_if_exists, object_exists, upload_bytes
+from ai_pdf_api.services.storage import delete_object_if_exists, object_exists, stream_bytes, upload_bytes
 
 router = APIRouter(prefix="/v1/workspaces/{workspace_id}/documents", tags=["documents"])
 
@@ -117,6 +119,29 @@ def get_document_detail(
     return DocumentDetailResponse(
         document=to_document_summary(document),
         pages=[DocumentPageContent(pageNumber=page.page_number, text=page.extracted_text, charCount=page.char_count)],
+    )
+
+
+@router.get("/{document_id}/file")
+def get_document_file(
+    workspace_id: str,
+    document_id: str,
+    user_id: str = Depends(require_user_id),
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    get_accessible_workspace(db, user_id, workspace_id)
+    document = get_workspace_document(db, workspace_id, document_id)
+    if not object_exists(document.object_key):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document file not found.")
+
+    return StreamingResponse(
+        stream_bytes(document.object_key),
+        media_type=document.mime_type,
+        headers={
+            "Cache-Control": "private, max-age=3600",
+            "Content-Disposition": f"inline; filename*=UTF-8''{quote(document.source_filename)}",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
@@ -228,7 +253,13 @@ def finalize_upload(
         job_type="ingest",
         status="queued",
         attempt_count=1,
-        config_snapshot={"source": "finalize_upload"},
+        config_snapshot={
+            "source": "finalize_upload",
+            "embeddingProvider": settings.embedding_provider,
+            "embeddingModel": settings.embedding_model,
+            "embeddingDimensions": settings.embedding_dimensions,
+            "embeddingVersion": settings.embedding_version,
+        },
         requested_by_user_id=user.id,
         queued_at=now,
         created_at=now,
@@ -245,6 +276,62 @@ def finalize_upload(
     db.refresh(document)
     db.refresh(job)
 
+    return FinalizeUploadResponse(document=to_document_summary(document), job=to_job_status(job))
+
+
+@router.post("/{document_id}/reindex", response_model=FinalizeUploadResponse)
+def reindex_document(
+    workspace_id: str,
+    document_id: str,
+    user: User = Depends(require_existing_user),
+    db: Session = Depends(get_db),
+) -> FinalizeUploadResponse:
+    get_accessible_workspace(db, user.id, workspace_id)
+    document = get_workspace_document(db, workspace_id, document_id)
+    db.refresh(document, with_for_update=True)
+    if document.status in {"pending_upload", "uploaded", "parsing", "chunking", "deleting", "deleted"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Document is not ready to reindex.",
+        )
+    if db.scalar(
+        select(IngestionJob.id).where(
+            IngestionJob.document_id == document.id,
+            IngestionJob.job_type == "embed_chunks",
+            IngestionJob.status.in_(("queued", "running")),
+        )
+    ) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document reindex is already running.")
+    if db.scalar(select(DocumentChunk.id).where(DocumentChunk.document_id == document.id)) is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document has no chunks to reindex.")
+
+    now = datetime.now(UTC)
+    job = IngestionJob(
+        workspace_id=workspace_id,
+        document_id=document.id,
+        job_type="embed_chunks",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={
+            "source": "reindex",
+            "embeddingProvider": settings.embedding_provider,
+            "embeddingModel": settings.embedding_model,
+            "embeddingDimensions": settings.embedding_dimensions,
+            "embeddingVersion": settings.embedding_version,
+        },
+        requested_by_user_id=user.id,
+        queued_at=now,
+        created_at=now,
+    )
+    db.add(job)
+    db.flush()
+    document.latest_ingestion_job_id = job.id
+    document.last_error_code = None
+    document.last_error_message = None
+    document.updated_at = now
+    db.commit()
+    db.refresh(document)
+    db.refresh(job)
     return FinalizeUploadResponse(document=to_document_summary(document), job=to_job_status(job))
 
 

@@ -9,7 +9,7 @@
 - 各类接口的请求/响应语义
 - 哪些接口是同步读写，哪些接口是异步任务触发，哪些接口是流式接口
 
-当前范围覆盖 `文本 PDF 主链`，其中扫描 PDF 的 OCR 是 Worker 内部 fallback，不单独暴露接口。
+当前范围覆盖 `原始 PDF 阅读 + 文本检索主链`：原始 PDF 通过文件流接口供 Viewer 阅读，扫描 PDF 的 OCR 是 Worker 内部 fallback，不单独暴露接口。
 
 不覆盖：
 
@@ -216,7 +216,7 @@ Chat 不用普通 JSON 完整返回。
 允许的 `jobType` 值：
 
 - `ingest`
-- `reindex`
+- `embed_chunks`
 - `delete_cleanup`
 
 允许的 `status` 值：
@@ -300,7 +300,10 @@ Chat 不用普通 JSON 完整返回。
   "bodyMd": "这是我的笔记",
   "isPinned": false,
   "createdAt": "2026-07-07T12:00:00Z",
-  "updatedAt": "2026-07-07T12:00:00Z"
+  "updatedAt": "2026-07-07T12:00:00Z",
+  "sources": [],
+  "tagIds": [],
+  "tags": []
 }
 ```
 
@@ -313,8 +316,10 @@ Chat 不用普通 JSON 完整返回。
   "id": "ns_xxx",
   "messageCitationId": "cit_xxx",
   "documentId": "doc_xxx",
+  "documentTitle": "Attention Is All You Need",
   "pageNumber": 8,
-  "excerpt": "We propose a new simple network architecture..."
+  "excerpt": "We propose a new simple network architecture...",
+  "createdAt": "2026-07-07T12:00:00Z"
 }
 ```
 
@@ -327,7 +332,9 @@ Chat 不用普通 JSON 完整返回。
   "name": "重点",
   "slug": "important",
   "color": "#f97316",
-  "createdAt": "2026-07-07T12:00:00Z"
+  "createdAt": "2026-07-07T12:00:00Z",
+  "documentIds": [],
+  "noteIds": []
 }
 ```
 
@@ -562,6 +569,25 @@ Chat 不用普通 JSON 完整返回。
 }
 ```
 
+### `GET /api/workspaces/:workspaceId/documents/:documentId/file`
+
+作用：
+
+- 返回当前用户有权访问的原始 PDF 文件流
+- 供浏览器端 PDF.js 渲染原始页面、图片、排版和 PDF 内置链接
+
+返回：
+
+- 二进制 PDF，不是 JSON
+- `Content-Type: application/pdf`
+- `Content-Disposition: inline`，浏览器内嵌打开
+
+说明：
+
+- 这个接口返回的是对象存储中的源文件，不返回 `document_pages` 的 OCR/提取文本
+- PDF.js 的 canvas 是页面主视觉结果；原生文本 PDF 额外渲染 text layer，PDF 内置链接/批注额外渲染 annotation layer
+- `document_pages`、`document_chunks` 仍由详情和后续检索接口读取，不能反向替代源 PDF 阅读
+
 ### `DELETE /api/workspaces/:workspaceId/documents/:documentId`
 
 作用：
@@ -622,7 +648,7 @@ Chat 不用普通 JSON 完整返回。
   },
   "job": {
     "id": "job_xxx",
-    "jobType": "reindex",
+    "jobType": "embed_chunks",
     "status": "queued"
   }
 }
@@ -630,8 +656,8 @@ Chat 不用普通 JSON 完整返回。
 
 说明：
 
-- 重建索引时，现有 `ready` 文档保持可用
-- 新 job 成功后才切换 `currentIndexVersion`
+- 重建索引排队时，现有 `ready` 文档保持可用；Worker 开始运行后文档进入 `embedding`，当前 V1 不维护 shadow 向量，检索会暂时等待任务完成
+- 当前 V1 的 `embed_chunks` 在现有 `currentIndexVersion` 上事务性替换向量；新版本并行索引和最终切换留给后续索引版本升级
 
 ## 6.4 Jobs
 
@@ -671,6 +697,12 @@ Chat 不用普通 JSON 完整返回。
 }
 ```
 
+### `DELETE /api/workspaces/:workspaceId/threads/:threadId`
+
+作用：
+
+- 归档当前 thread；历史消息保留在数据库，但不再出现在默认列表
+
 ### `GET /api/workspaces/:workspaceId/threads/:threadId/messages`
 
 作用：
@@ -684,7 +716,9 @@ Chat 不用普通 JSON 完整返回。
   "thread": "ThreadSummary",
   "messages": [
     {
-      "message": "Message",
+      "id": "msg_xxx",
+      "role": "assistant",
+      "content": "这是回答正文",
       "citations": ["Citation"]
     }
   ]
@@ -714,11 +748,14 @@ Chat 不用普通 JSON 完整返回。
 - 再转发到 FastAPI 的内部流式接口
 - 流结束后，服务端必须已经持久化 assistant message 和 citations
 
-完成后的最终结构化结果应至少包含：
+流媒体使用 Server-Sent Events，事件格式为：
 
-- `threadId`
-- `assistantMessageId`
-- `citations[]`
+- `meta`：`threadId`、`userMessageId`、`assistantMessageId`
+- `delta`：`text`，用于逐段展示已生成的回答
+- `citations`：`items[]`，包含服务端保存的 citation 快照
+- `done`：`threadId`、`assistantMessageId`
+
+回答与 citations 在流开始前已经持久化；流结束后的 `done` 只表示浏览器已收到完整结果。"流式"描述的是浏览器传输体验，当前 provider 调用本身先生成完整答案再分段发送。
 
 ## 6.7 Notes
 
@@ -774,6 +811,12 @@ Chat 不用普通 JSON 完整返回。
 
 - 归档或删除 note
 
+实现约定：
+
+- API 以归档为默认删除语义，保留来源快照；列表只返回未归档 note
+- `sourceCitationIds` 必须属于当前 workspace 的 `message_citations`
+- citation 来源会复制页码、文档标题和 excerpt 快照到 `note_sources`
+
 ## 6.8 Tags
 
 ### `GET /api/workspaces/:workspaceId/tags`
@@ -826,6 +869,18 @@ Chat 不用普通 JSON 完整返回。
 }
 ```
 
+### `PATCH /api/workspaces/:workspaceId/tags/:tagId`
+
+作用：
+
+- 更新 workspace 内 tag 的名称、slug 或颜色
+
+### `DELETE /api/workspaces/:workspaceId/tags/:tagId`
+
+作用：
+
+- 删除 tag，并清理 `document_tags` / `note_tags` 关系
+
 ## 7. FastAPI 内部业务接口
 
 这一层接口不直接暴露给浏览器。
@@ -872,6 +927,7 @@ FastAPI 只信任这组内部上下文，不信任浏览器 body 里的身份字
 - `POST /v1/workspaces/{workspaceId}/documents/{documentId}/finalize-upload`
 - `GET /v1/workspaces/{workspaceId}/documents`
 - `GET /v1/workspaces/{workspaceId}/documents/{documentId}`
+- `GET /v1/workspaces/{workspaceId}/documents/{documentId}/file`
 - `DELETE /v1/workspaces/{workspaceId}/documents/{documentId}`
 - `POST /v1/workspaces/{workspaceId}/documents/{documentId}/retry`
 - `POST /v1/workspaces/{workspaceId}/documents/{documentId}/reindex`
@@ -882,6 +938,7 @@ FastAPI 只信任这组内部上下文，不信任浏览器 body 里的身份字
 - `GET /v1/workspaces/{workspaceId}/threads`
 - `POST /v1/workspaces/{workspaceId}/threads`
 - `GET /v1/workspaces/{workspaceId}/threads/{threadId}/messages`
+- `DELETE /v1/workspaces/{workspaceId}/threads/{threadId}`
 - `POST /v1/workspaces/{workspaceId}/chat/stream`
 
 #### Notes / Tags
@@ -939,7 +996,7 @@ FastAPI 只信任这组内部上下文，不信任浏览器 body 里的身份字
 这份文档当前不展开：
 
 - OpenAPI 级字段必填/可选矩阵
-- Streaming chunk 的细粒度事件格式
+- 失败重试和断线续传协议
 - 内部签名算法
 - 对象存储预签名细节
 

@@ -8,7 +8,7 @@
 - `documents.status` 和 `ingestion_jobs.status` 的职责如何区分
 - 初次入库、失败重试、重建索引、删除清理分别如何建模
 
-当前范围覆盖 `文本 PDF 主链`，扫描 PDF 的 OCR 作为 ingest Worker 内部 fallback，不单独建状态机。
+当前范围覆盖 `原始 PDF 阅读 + 文本检索主链`，扫描 PDF 的 OCR 作为 ingest Worker 内部 fallback，不单独建状态机。
 
 ## 2. 设计目标
 
@@ -55,7 +55,7 @@
 例如：
 
 - 这次 ingest 任务是否在排队
-- 这次 reindex 是否执行成功
+- 这次 `embed_chunks` / reindex 是否执行成功
 - 这次 delete cleanup 有没有失败
 
 它回答的是：
@@ -181,9 +181,10 @@
 ## 4.3 状态语义规则
 
 1. `ready` 是唯一“当前可用”状态
-2. `failed` 只表示当前没有可用在线索引
-3. `deleting` 表示进入删除流程后，前端应把文档视为不可用
-4. `deleted` 主要用于软删语义，不是前端常态展示状态
+2. `embed_chunks` 负责给已有页面/chunk 批量补写向量；初次 `ingest` 也会在切块后执行同一 embedding 阶段
+3. 初次入库的 `failed` 表示当前没有可用在线索引；`embed_chunks` 失败时先回滚事务，已有完整索引则保留 `ready`
+4. `deleting` 表示进入删除流程后，前端应把文档视为不可用
+5. `deleted` 主要用于软删语义，不是前端常态展示状态
 
 ## 5. `ingestion_jobs.status` 设计
 
@@ -192,7 +193,7 @@
 当前建议：
 
 - `ingest`
-- `reindex`
+- `embed_chunks`
 - `delete_cleanup`
 
 ## 5.2 任务状态值
@@ -215,6 +216,8 @@
 ### `running`
 
 - Worker 已取到任务并开始执行
+
+Embedding job 执行前会校验任务快照中的 provider、model、dimensions、version；配置漂移会让 job 显式失败，不会写入与当前检索配置不一致的向量。
 
 ### `succeeded`
 
@@ -319,34 +322,36 @@ failed
 
 ## 8.2 正确设计
 
-对于 `job_type=reindex`：
+对于用户触发的 reindex 动作（当前实现为 `job_type=embed_chunks`）：
 
-- 文档现有 `documents.status` 保持 `ready`
-- 新建一条 `reindex` job
-- Worker 在后台生成新的 `index_version`
-- 只有新索引成功后，才切换 `documents.current_index_version`
+- 文档在 job 排队期间保持 `ready`
+- 新建一条 `embed_chunks` job；Worker 开始运行时把文档置为 `embedding`
+- 当前 V1 不维护 shadow 向量，运行期间检索暂时等待；Worker 在当前 chunk 版本上批量更新向量
+- 成功后回到 `ready`；失败时事务回滚，旧向量存在则恢复 `ready`，否则恢复 `chunked`
+
+当前 V1 在现有 `current_index_version` 上事务性替换向量；未来引入并行索引版本后再做成功切换。
 
 ## 8.3 主流程
 
 ```text
-Document stays: ready
+Document stays: ready while queued
 Reindex job: queued -> running -> succeeded
-After success: switch current_index_version
+After success: current chunk vectors are replaced
 ```
 
 ## 8.4 失败流
 
 ```text
-Document stays: ready
+Document keeps its previous usable state after rollback
 Reindex job: queued -> running -> failed
-Current index remains unchanged
+Previous vectors remain unchanged
 ```
 
 ## 8.5 关键规则
 
-1. 重建索引不应该让当前文档下线
-2. 当前在线索引版本只有在新版本完全成功后才切换
-3. reindex 失败不能把现有 ready 文档误标成 failed
+1. V1 重建索引排队时不让当前文档下线；运行期间暂时进入 `embedding`
+2. V1 在现有在线索引版本上事务性替换向量，未来并行索引版本只有完全成功后才切换
+3. reindex 失败不能把已有完整向量的文档误标成 `failed`
 
 ## 9. 删除状态机
 
@@ -444,13 +449,14 @@ job_type=delete_cleanup: queued -> running -> succeeded
 - 文档进入 `failed`
 - job 进入 `failed`
 - 保留错误原因，允许 retry
+- 只有所有当前 chunk 都有完整向量和 provider 元数据时，文档才会恢复为 `ready`；部分索引恢复为 `chunked`
 
 ### 场景 4：reindex 失败
 
 处理：
 
-- 现有文档仍保持 `ready`
-- 旧索引继续服务
+- 排队期间现有文档仍保持 `ready`
+- Worker 运行期间文档进入 `embedding`，当前 V1 没有 shadow 索引，检索暂时等待
 - 只有 reindex job 失败
 
 ### 场景 5：删除时对象存储清理失败

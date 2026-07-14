@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useWorkspace, Note } from "@/lib/workspace-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
-  Plus, Trash2, FileText, ExternalLink, Tag as TagIcon, BookOpen
+  Plus, Trash2, FileText, ExternalLink, Tag as TagIcon, BookOpen, Pencil
 } from "lucide-react";
 
 export function NotesPanel() {
@@ -14,6 +14,7 @@ export function NotesPanel() {
     tags,
     selectedTagIds,
     createNote,
+    updateNote,
     deleteNote,
     toggleNoteTag,
     setActiveDocumentId,
@@ -26,6 +27,8 @@ export function NotesPanel() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [search, setSearch] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   const safeLower = (value: string | null | undefined) => value?.toLowerCase() ?? "";
 
@@ -49,14 +52,33 @@ export function NotesPanel() {
     return matchesSearch && matchesTags;
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim() || !content.trim() || saving) return;
 
-    createNote(title.trim(), content.trim());
-    setTitle("");
-    setContent("");
-    setShowAddForm(false);
+    setSaving(true);
+    try {
+      if (editingNoteId) {
+        await updateNote(editingNoteId, title.trim(), content.trim());
+      } else {
+        await createNote(title.trim(), content.trim());
+      }
+      setTitle("");
+      setContent("");
+      setEditingNoteId(null);
+      setShowAddForm(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to create note.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const beginEdit = (note: Note) => {
+    setEditingNoteId(note.id);
+    setTitle(note.title);
+    setContent(note.content);
+    setShowAddForm(true);
   };
 
   const handleSourceClick = (note: Note) => {
@@ -116,7 +138,9 @@ export function NotesPanel() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {showAddForm && (
           <form onSubmit={handleSubmit} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 space-y-3.5 animate-in slide-in-from-top-1 duration-150 text-zinc-800 dark:text-zinc-200">
-            <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">{t("notes.formTitle")}</h4>
+            <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
+              {editingNoteId ? t("notes.formEditTitle") : t("notes.formTitle")}
+            </h4>
             <div>
               <label className="block text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{t("notes.formTitleLabel")}</label>
               <input
@@ -142,13 +166,19 @@ export function NotesPanel() {
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => setShowAddForm(false)}
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingNoteId(null);
+                  setTitle("");
+                  setContent("");
+                }}
                 className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-500 hover:bg-zinc-100 transition cursor-pointer"
               >
                 {t("chat.cancel")}
               </button>
               <button
                 type="submit"
+                disabled={saving}
                 className="rounded-lg bg-zinc-950 dark:bg-white px-3 py-1.5 text-xs font-bold text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition cursor-pointer"
               >
                 {t("notes.formSave")}
@@ -170,12 +200,22 @@ export function NotesPanel() {
             >
               <div className="flex items-start justify-between gap-3">
                 <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-snug">{note.title}</h4>
-                <button
-                  onClick={() => deleteNote(note.id)}
-                  className="text-zinc-400 hover:text-rose-600 transition p-0.5 shrink-0 cursor-pointer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    onClick={() => beginEdit(note)}
+                    title={t("notes.edit")}
+                    className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition p-0.5 cursor-pointer"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => void deleteNote(note.id).catch((error) => alert(error instanceof Error ? error.message : "Failed to delete note."))}
+                    title={t("notes.delete")}
+                    className="text-zinc-400 hover:text-rose-600 transition p-0.5 cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
               <p className="text-xs leading-6 text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{note.content}</p>
@@ -208,7 +248,7 @@ export function NotesPanel() {
                   return (
                     <button
                       key={tag.id}
-                      onClick={() => toggleNoteTag(note.id, tag.name)}
+                      onClick={() => void toggleNoteTag(note.id, tag.name).catch((error) => alert(error instanceof Error ? error.message : "Failed to update note tags."))}
                       className={`rounded-full px-2 py-0.5 text-[9px] font-bold transition ${
                         hasTag 
                           ? "text-white shadow-xs" 

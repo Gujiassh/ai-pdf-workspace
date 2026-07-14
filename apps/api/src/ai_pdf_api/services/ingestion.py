@@ -8,7 +8,9 @@ from pypdf import PdfReader
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from ai_pdf_api.core.settings import settings
 from ai_pdf_api.models import Document, DocumentChunk, DocumentPage, IngestionJob
+from ai_pdf_api.services.providers import EmbeddingProvider, ModelProviderError
 from ai_pdf_api.services.storage import download_bytes
 
 CHUNK_SIZE = 1_200
@@ -71,7 +73,7 @@ def recover_stale_ingestion_jobs(db: Session, now: datetime) -> None:
         select(IngestionJob)
         .where(
             IngestionJob.status == "running",
-            IngestionJob.job_type == "ingest",
+            IngestionJob.job_type.in_(("ingest", "embed_chunks")),
             (IngestionJob.started_at.is_(None)) | (IngestionJob.started_at < cutoff),
         )
         .with_for_update(skip_locked=True),
@@ -96,7 +98,7 @@ def recover_stale_ingestion_jobs(db: Session, now: datetime) -> None:
         job.error_code = None
         job.error_message = None
         if document.status not in {"deleted", "deleting"}:
-            document.status = "uploaded"
+            document.status = "uploaded" if job.job_type == "ingest" else _available_document_status(db, document.id)
             document.updated_at = now
     db.flush()
 
@@ -106,7 +108,7 @@ def claim_next_ingestion_job(db: Session) -> str | None:
     recover_stale_ingestion_jobs(db, now)
     job = db.scalar(
         select(IngestionJob)
-        .where(IngestionJob.status == "queued", IngestionJob.job_type == "ingest")
+        .where(IngestionJob.status == "queued", IngestionJob.job_type.in_(("ingest", "embed_chunks")))
         .order_by(IngestionJob.queued_at)
         .with_for_update(skip_locked=True)
         .limit(1),
@@ -124,7 +126,7 @@ def claim_next_ingestion_job(db: Session) -> str | None:
 
     job.status = "running"
     job.started_at = now
-    document.status = "parsing"
+    document.status = "parsing" if job.job_type == "ingest" else "embedding"
     document.last_error_code = None
     document.last_error_message = None
     document.updated_at = now
@@ -141,16 +143,23 @@ def process_ingestion_job(
     db: Session,
     job_id: str,
     ocr_extract_page_texts: PageTextExtractor | None = None,
+    embedding_provider: EmbeddingProvider | None = None,
 ) -> None:
     job = db.get(IngestionJob, job_id)
     if job is None or job.status != "running":
         return
+    if job.job_type == "embed_chunks":
+        process_embedding_job(db, job_id, embedding_provider)
+        return
+
     document = db.get(Document, job.document_id)
     if document is None:
         _mark_job_failed(db, job, None, "document_missing", "Document disappeared before processing.")
         return
 
     try:
+        if embedding_provider is not None:
+            _validate_job_embedding_config(job, embedding_provider)
         payload = download_bytes(document.object_key)
         page_texts = extract_pdf_page_texts(payload)
         if not page_texts:
@@ -209,15 +218,135 @@ def process_ingestion_job(
                     ),
                 )
 
-        document.status = "chunked"
-        document.updated_at = now
+        db.flush()
+        if embedding_provider is None:
+            document.status = "chunked"
+        else:
+            document.status = "embedding"
+            document.updated_at = datetime.now(UTC)
+            _embed_document_chunks(db, document, embedding_provider)
+            document.status = "ready"
+        document.updated_at = datetime.now(UTC)
         job.status = "succeeded"
-        job.finished_at = now
+        job.finished_at = datetime.now(UTC)
         db.commit()
     except IngestionError as error:
         _mark_job_failed(db, job, document, error.code, str(error))
+    except ModelProviderError as error:
+        _mark_job_failed(db, job, document, error.code, error.message)
     except Exception as error:
         _mark_job_failed(db, job, document, "ingestion_failed", str(error))
+
+
+def process_embedding_job(
+    db: Session,
+    job_id: str,
+    embedding_provider: EmbeddingProvider | None,
+) -> None:
+    job = db.get(IngestionJob, job_id)
+    if job is None or job.status != "running":
+        return
+    document = db.get(Document, job.document_id)
+    if document is None:
+        _mark_job_failed(db, job, None, "document_missing", "Document disappeared before embedding.")
+        return
+    if embedding_provider is None:
+        _mark_embedding_job_failed(db, job, document, "embedding_provider_missing", "Embedding provider is not configured.")
+        return
+
+    try:
+        _validate_job_embedding_config(job, embedding_provider)
+        document.status = "embedding"
+        document.updated_at = datetime.now(UTC)
+        _embed_document_chunks(db, document, embedding_provider)
+        document.status = "ready"
+        document.updated_at = datetime.now(UTC)
+        job.status = "succeeded"
+        job.finished_at = datetime.now(UTC)
+        db.commit()
+    except ModelProviderError as error:
+        _mark_embedding_job_failed(db, job, document, error.code, error.message)
+    except Exception as error:
+        _mark_embedding_job_failed(db, job, document, "embedding_failed", str(error))
+
+
+def _embed_document_chunks(db: Session, document: Document, embedding_provider: EmbeddingProvider) -> None:
+    chunks = db.scalars(
+        select(DocumentChunk)
+        .where(
+            DocumentChunk.document_id == document.id,
+            DocumentChunk.workspace_id == document.workspace_id,
+            DocumentChunk.index_version == document.current_index_version,
+        )
+        .order_by(DocumentChunk.page_id, DocumentChunk.chunk_index),
+    ).all()
+    if not chunks:
+        raise IngestionError("no_chunks", "Document produced no non-empty chunks.")
+
+    batch_size = settings.embedding_batch_size
+    for offset in range(0, len(chunks), batch_size):
+        batch = chunks[offset : offset + batch_size]
+        vectors = embedding_provider.embed_documents([chunk.chunk_text for chunk in batch])
+        if len(vectors) != len(batch):
+            raise ModelProviderError("embedding_invalid_response", "Embedding provider returned an invalid vector count.")
+        for chunk, vector in zip(batch, vectors, strict=True):
+            chunk.embedding = vector
+            chunk.embedding_dimensions = embedding_provider.dimensions
+            chunk.embedding_provider = embedding_provider.provider
+            chunk.embedding_model = embedding_provider.model
+            chunk.embedding_version = embedding_provider.version
+        db.flush()
+
+
+def _validate_job_embedding_config(job: IngestionJob, embedding_provider: EmbeddingProvider) -> None:
+    snapshot = job.config_snapshot or {}
+    expected = {
+        "embeddingProvider": embedding_provider.provider,
+        "embeddingModel": embedding_provider.model,
+        "embeddingDimensions": embedding_provider.dimensions,
+        "embeddingVersion": embedding_provider.version,
+    }
+    if any(key in snapshot and snapshot[key] != value for key, value in expected.items()):
+        raise ModelProviderError(
+            "embedding_configuration_mismatch",
+            "Embedding provider configuration does not match the job snapshot.",
+        )
+
+
+def _available_document_status(db: Session, document_id: str) -> str:
+    chunks = db.scalars(
+        select(DocumentChunk).where(DocumentChunk.document_id == document_id),
+    ).all()
+    if not chunks:
+        return "chunked"
+    return "ready" if all(
+        chunk.embedding is not None
+        and chunk.embedding_dimensions is not None
+        and chunk.embedding_provider is not None
+        and chunk.embedding_model is not None
+        and chunk.embedding_version is not None
+        for chunk in chunks
+    ) else "chunked"
+
+
+def _mark_embedding_job_failed(
+    db: Session,
+    job: IngestionJob,
+    document: Document,
+    error_code: str,
+    error_message: str,
+) -> None:
+    db.rollback()
+    now = datetime.now(UTC)
+    job.status = "failed"
+    job.error_code = error_code
+    job.error_message = error_message
+    job.finished_at = now
+    document.status = _available_document_status(db, document.id)
+    document.last_error_code = error_code
+    document.last_error_message = error_message
+    document.updated_at = now
+    db.commit()
 
 
 def _mark_job_failed(
