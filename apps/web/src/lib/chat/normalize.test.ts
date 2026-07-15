@@ -56,6 +56,7 @@ test("chat message and thread DTOs map server summaries to UI state", () => {
           id: "msg_1",
           workspaceId: "ws_1",
           threadId: "thread_1",
+          parentMessageId: null,
           role: "user",
           content: "Question",
           status: "completed",

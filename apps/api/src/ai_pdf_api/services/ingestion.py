@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
 
@@ -16,7 +17,16 @@ from ai_pdf_api.services.storage import download_bytes
 CHUNK_SIZE = 1_200
 CHUNK_OVERLAP = 200
 INGESTION_LEASE_TIMEOUT = timedelta(minutes=15)
-PageTextExtractor = Callable[[bytes], list[tuple[int, str]]]
+
+
+@dataclass(frozen=True)
+class PageTextResult:
+    page_number: int
+    text: str
+    ocr_blocks: list[dict[str, object]] = field(default_factory=list)
+
+
+PageTextExtractor = Callable[[bytes], list[PageTextResult | tuple[int, str]]]
 
 
 class IngestionError(Exception):
@@ -139,6 +149,20 @@ def extract_pdf_page_texts(payload: bytes) -> list[tuple[int, str]]:
     return [(page_number, page.extract_text() or "") for page_number, page in enumerate(reader.pages, start=1)]
 
 
+def _coerce_page_text_result(value: PageTextResult | tuple[int, str]) -> PageTextResult:
+    if isinstance(value, PageTextResult):
+        return value
+    page_number, text = value
+    return PageTextResult(page_number=page_number, text=text)
+
+
+def _ocr_page_results(payload: bytes, extractor: PageTextExtractor) -> dict[int, PageTextResult]:
+    return {
+        result.page_number: result
+        for result in (_coerce_page_text_result(item) for item in extractor(payload))
+    }
+
+
 def process_ingestion_job(
     db: Session,
     job_id: str,
@@ -161,26 +185,33 @@ def process_ingestion_job(
         if embedding_provider is not None:
             _validate_job_embedding_config(job, embedding_provider)
         payload = download_bytes(document.object_key)
-        page_texts = extract_pdf_page_texts(payload)
+        native_page_texts = [_coerce_page_text_result(item) for item in extract_pdf_page_texts(payload)]
+        page_texts = native_page_texts
         if not page_texts:
             raise IngestionError("empty_pdf", "PDF has no pages.")
-        if not any(text.strip() for _, text in page_texts):
+        if not any(page.text.strip() for page in page_texts):
             if ocr_extract_page_texts is None:
                 raise IngestionError("no_extractable_text", "PDF has no extractable text.")
             try:
-                page_texts = ocr_extract_page_texts(payload)
+                ocr_pages = _ocr_page_results(payload, ocr_extract_page_texts)
+                page_texts = [
+                    ocr_pages.get(page.page_number, PageTextResult(page.page_number, ""))
+                    for page in native_page_texts
+                ]
             except Exception as error:
                 raise IngestionError("ocr_failed", str(error)) from error
-        elif ocr_extract_page_texts is not None and any(not text.strip() for _, text in page_texts):
+        elif ocr_extract_page_texts is not None and any(not page.text.strip() for page in page_texts):
             try:
-                ocr_page_texts = dict(ocr_extract_page_texts(payload))
+                ocr_pages = _ocr_page_results(payload, ocr_extract_page_texts)
             except Exception as error:
                 raise IngestionError("ocr_failed", str(error)) from error
             page_texts = [
-                (page_number, text if text.strip() else ocr_page_texts.get(page_number, ""))
-                for page_number, text in page_texts
+                page
+                if page.text.strip()
+                else ocr_pages.get(page.page_number, PageTextResult(page.page_number, ""))
+                for page in page_texts
             ]
-        if not any(text.strip() for _, text in page_texts):
+        if not any(page.text.strip() for page in page_texts):
             raise IngestionError("no_extractable_text", "PDF has no extractable text after OCR.")
 
         now = datetime.now(UTC)
@@ -191,18 +222,19 @@ def process_ingestion_job(
         db.execute(delete(DocumentPage).where(DocumentPage.document_id == document.id))
         db.flush()
 
-        for page_number, page_text in page_texts:
+        for page_result in page_texts:
             page = DocumentPage(
                 workspace_id=document.workspace_id,
                 document_id=document.id,
-                page_number=page_number,
-                extracted_text=page_text,
-                char_count=len(page_text),
+                page_number=page_result.page_number,
+                extracted_text=page_result.text,
+                char_count=len(page_result.text),
+                ocr_blocks=page_result.ocr_blocks,
                 created_at=now,
             )
             db.add(page)
             db.flush()
-            for chunk_index, (char_start, char_end, chunk_text) in enumerate(split_page_text(page_text)):
+            for chunk_index, (char_start, char_end, chunk_text) in enumerate(split_page_text(page_result.text)):
                 db.add(
                     DocumentChunk(
                         workspace_id=document.workspace_id,

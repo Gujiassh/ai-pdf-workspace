@@ -1,11 +1,13 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from ai_pdf_api.db.base import Base
 from ai_pdf_api.models import (
+    ChatMessage,
     ChatThread,
     Document,
     DocumentChunk,
@@ -14,7 +16,7 @@ from ai_pdf_api.models import (
     Workspace,
     WorkspaceMembership,
 )
-from ai_pdf_api.services.chat import complete_chat
+from ai_pdf_api.services.chat import ChatError, active_message_path, complete_chat
 from ai_pdf_api.services.retrieval import retrieve_chunks
 
 
@@ -164,3 +166,78 @@ def test_complete_chat_persists_messages_and_citation_snapshot() -> None:
     assert result.citations[0].document_title_snapshot == "Source PDF"
     assert thread.title == "What is the evidence?"
     assert session.query(DocumentChunk).count() == 1
+
+
+def test_chat_messages_form_ordered_branches_and_active_path() -> None:
+    session, workspace_id, thread = build_session()
+
+    first = complete_chat(
+        session,
+        workspace_id=workspace_id,
+        user_id="owner",
+        thread=thread,
+        question="First question",
+        embedding_provider=FakeEmbeddingProvider(),
+        generation_provider=FakeGenerationProvider(),
+    )
+    second = complete_chat(
+        session,
+        workspace_id=workspace_id,
+        user_id="owner",
+        thread=thread,
+        question="Follow-up question",
+        parent_message_id=first.assistant_message.id,
+        embedding_provider=FakeEmbeddingProvider(),
+        generation_provider=FakeGenerationProvider(),
+    )
+
+    assert first.user_message.parent_message_id is None
+    assert first.assistant_message.parent_message_id == first.user_message.id
+    assert second.user_message.parent_message_id == first.assistant_message.id
+    assert thread.active_message_id == second.assistant_message.id
+    assert [message.id for message in active_message_path(session, thread)] == [
+        first.user_message.id,
+        first.assistant_message.id,
+        second.user_message.id,
+        second.assistant_message.id,
+    ]
+
+    edited = complete_chat(
+        session,
+        workspace_id=workspace_id,
+        user_id="owner",
+        thread=thread,
+        question="Edited first question",
+        parent_message_id=None,
+        use_thread_active_parent=False,
+        embedding_provider=FakeEmbeddingProvider(),
+        generation_provider=FakeGenerationProvider(),
+    )
+
+    assert edited.user_message.parent_message_id is None
+    assert [message.id for message in active_message_path(session, thread)] == [
+        edited.user_message.id,
+        edited.assistant_message.id,
+    ]
+
+
+def test_active_message_path_rejects_a_missing_active_leaf() -> None:
+    session, _workspace_id, thread = build_session()
+    message = ChatMessage(
+        id=str(uuid4()),
+        workspace_id=thread.workspace_id,
+        thread_id=thread.id,
+        parent_message_id=None,
+        role="user",
+        content="orphaned message",
+        status="completed",
+        created_at=datetime.now(UTC),
+    )
+    session.add(message)
+    session.commit()
+
+    try:
+        with pytest.raises(ChatError, match="no active leaf"):
+            active_message_path(session, thread)
+    finally:
+        session.close()

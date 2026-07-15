@@ -37,6 +37,7 @@ class Message(BaseModel):
     id: str
     workspaceId: str
     threadId: str
+    parentMessageId: str | None
     role: str
     content: str
     status: str
@@ -55,3 +56,5 @@ class ChatStreamRequest(BaseModel):
     threadId: str
     question: str = Field(min_length=1, max_length=12000)
     selectionText: str | None = Field(default=None, max_length=12000)
+    parentMessageId: str | None = None
+    editMessageId: str | None = None

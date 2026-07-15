@@ -24,10 +24,19 @@ class DocumentListResponse(BaseModel):
     nextCursor: str | None
 
 
+class DocumentPageOcrBlock(BaseModel):
+    text: str
+    x: float
+    y: float
+    width: float
+    height: float
+
+
 class DocumentPageContent(BaseModel):
     pageNumber: int
     text: str
     charCount: int
+    ocrBlocks: list[DocumentPageOcrBlock] = Field(default_factory=list)
 
 
 class DocumentDetailResponse(BaseModel):

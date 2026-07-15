@@ -19,6 +19,7 @@ from ai_pdf_api.schemas.document import (
     DocumentDetailResponse,
     DocumentListResponse,
     DocumentPageContent,
+    DocumentPageOcrBlock,
     DocumentSummary,
     FinalizeUploadRequest,
     FinalizeUploadResponse,
@@ -118,7 +119,14 @@ def get_document_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document page not found.")
     return DocumentDetailResponse(
         document=to_document_summary(document),
-        pages=[DocumentPageContent(pageNumber=page.page_number, text=page.extracted_text, charCount=page.char_count)],
+        pages=[
+            DocumentPageContent(
+                pageNumber=page.page_number,
+                text=page.extracted_text,
+                charCount=page.char_count,
+                ocrBlocks=[DocumentPageOcrBlock.model_validate(block) for block in (page.ocr_blocks or [])],
+            )
+        ],
     )
 
 

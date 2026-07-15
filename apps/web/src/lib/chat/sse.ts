@@ -2,6 +2,7 @@ import type {
   ChatStreamCitationsDto,
   ChatStreamDeltaDto,
   ChatStreamDoneDto,
+  ChatStreamErrorDto,
   ChatStreamMetaDto,
   CitationDto,
 } from "./types";
@@ -16,6 +17,7 @@ export type ChatStreamHandlers = {
   onDelta?: (payload: ChatStreamDeltaDto) => void;
   onCitations?: (payload: ChatStreamCitationsDto) => void;
   onDone?: (payload: ChatStreamDoneDto) => void;
+  onError?: (payload: ChatStreamErrorDto) => void;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -122,6 +124,11 @@ function dispatchEvent(event: ParsedSseEvent, handlers: ChatStreamHandlers): voi
     if (isString(event.data.threadId) && isString(event.data.assistantMessageId)) {
       handlers.onDone?.(event.data as unknown as ChatStreamDoneDto);
     }
+    return;
+  }
+
+  if (event.name === "error" && isRecord(event.data) && isString(event.data.code) && isString(event.data.message)) {
+    handlers.onError?.(event.data as unknown as ChatStreamErrorDto);
   }
 }
 

@@ -24,6 +24,8 @@ export function toUiMessage(message: MessageDto): Message {
     content: message.content,
     citations: message.citations.map(toUiCitation),
     createdAt: message.createdAt,
+    ...(message.parentMessageId ? { parentMessageId: message.parentMessageId } : {}),
+    ...(message.status && message.status !== "completed" ? { status: message.status } : {}),
   };
 }
 

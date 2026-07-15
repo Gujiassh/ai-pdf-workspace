@@ -372,6 +372,7 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `page_number int`
 - `extracted_text text`
 - `char_count int`
+- `ocr_blocks json`，扫描 PDF 的归一化文本框；原生文本 PDF 为空数组
 - `created_at`
 
 关键约束：
@@ -475,6 +476,7 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `workspace_id`
 - `created_by_user_id`
 - `title nullable`
+- `active_message_id nullable`，当前展示分支的叶子消息
 - `archived_at nullable`
 - `last_message_at`
 - `created_at`
@@ -496,6 +498,7 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `id uuid pk`
 - `workspace_id`
 - `thread_id`
+- `parent_message_id nullable`，指向当前消息的父节点；编辑问题通过它创建新分支
 - `role`，例如 `user/assistant`
 - `content text`
 - `status`，例如 `completed/failed`
@@ -509,6 +512,11 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 为什么要存模型信息：
 
 - 后续调试效果差异时要知道当时是哪套模型和 prompt 在工作
+
+消息展示约定：
+
+- 默认沿 `chat_threads.active_message_id` 反向追溯父节点，再正向展示当前分支
+- 用户问题和 assistant 答案是相邻的父子节点；旧分支仍保留在表中，但不混入默认展示路径
 
 ### `message_citations`
 

@@ -61,6 +61,7 @@ erDiagram
         int page_number
         text extracted_text
         int char_count
+        json ocr_blocks
         timestamptz created_at
     }
 
@@ -83,6 +84,7 @@ erDiagram
         varchar workspace_id FK
         varchar created_by_user_id FK
         varchar title
+        varchar active_message_id FK
         timestamptz archived_at
         timestamptz last_message_at
         timestamptz created_at
@@ -92,6 +94,7 @@ erDiagram
         varchar id PK
         varchar workspace_id FK
         varchar thread_id FK
+        varchar parent_message_id FK
         varchar role
         text content
         varchar status
@@ -173,6 +176,8 @@ erDiagram
     WORKSPACES ||--o{ CHAT_THREADS : owns
     USERS ||--o{ CHAT_THREADS : starts
     CHAT_THREADS ||--o{ CHAT_MESSAGES : contains
+    CHAT_THREADS ||--o| CHAT_MESSAGES : active_leaf
+    CHAT_MESSAGES ||--o{ CHAT_MESSAGES : branches
     CHAT_MESSAGES ||--o{ MESSAGE_CITATIONS : cites
     DOCUMENTS ||--o{ MESSAGE_CITATIONS : sourced_from
     DOCUMENT_CHUNKS ||--o{ MESSAGE_CITATIONS : sourced_from

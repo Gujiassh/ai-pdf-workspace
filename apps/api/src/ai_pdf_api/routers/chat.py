@@ -21,7 +21,8 @@ from ai_pdf_api.schemas.chat import (
     ThreadMessagesResponse,
     ThreadSummary,
 )
-from ai_pdf_api.services.chat import ChatError, complete_chat
+from ai_pdf_api.services.chat import ChatError, active_message_path, fail_chat, finalize_chat, prepare_chat
+from ai_pdf_api.services.providers import ModelProviderError
 
 router = APIRouter(prefix="/v1/workspaces/{workspace_id}", tags=["chat"])
 
@@ -54,6 +55,7 @@ def to_message(message: ChatMessage, citations: list[MessageCitation]) -> Messag
         id=message.id,
         workspaceId=message.workspace_id,
         threadId=message.thread_id,
+        parentMessageId=message.parent_message_id,
         role=message.role,
         content=message.content,
         status=message.status,
@@ -141,9 +143,7 @@ def list_thread_messages(
 ) -> ThreadMessagesResponse:
     get_accessible_workspace(db, user_id, workspace_id)
     thread = get_workspace_thread(db, workspace_id, thread_id)
-    messages = db.scalars(
-        select(ChatMessage).where(ChatMessage.thread_id == thread.id).order_by(ChatMessage.created_at, ChatMessage.id)
-    ).all()
+    messages = active_message_path(db, thread)
     citations = db.scalars(
         select(MessageCitation)
         .where(MessageCitation.message_id.in_([message.id for message in messages]))
@@ -168,26 +168,43 @@ def stream_chat(
     get_accessible_workspace(db, user_id, workspace_id)
     thread = get_workspace_thread(db, workspace_id, payload.threadId)
     try:
-        result = complete_chat(
+        parent_message_id = _resolve_parent_message_id(db, thread, payload)
+        prepared = prepare_chat(
             db,
             workspace_id=workspace_id,
             user_id=user_id,
             thread=thread,
             question=payload.question,
             selection_text=payload.selectionText,
+            parent_message_id=parent_message_id,
+            use_thread_active_parent=not bool(payload.editMessageId),
         )
     except ChatError as error:
         raise HTTPException(status_code=error.status_code, detail=error.message) from error
 
-    citations = [to_citation(citation).model_dump() for citation in result.citations]
-
     def events():
-        yield _sse("meta", {"threadId": thread.id, "userMessageId": result.user_message.id, "assistantMessageId": result.assistant_message.id})
-        answer = result.assistant_message.content
-        for start in range(0, len(answer), 48):
-            yield _sse("delta", {"text": answer[start : start + 48]})
-        yield _sse("citations", {"items": citations})
-        yield _sse("done", {"threadId": thread.id, "assistantMessageId": result.assistant_message.id})
+        yield _sse(
+            "meta",
+            {
+                "threadId": thread.id,
+                "userMessageId": prepared.user_message.id,
+                "assistantMessageId": prepared.assistant_message.id,
+            },
+        )
+        answer_parts: list[str] = []
+        try:
+            for delta in prepared.generation_provider.stream(prepared.generation_messages):
+                answer_parts.append(delta)
+                yield _sse("delta", {"text": delta})
+            completed = finalize_chat(db, prepared, "".join(answer_parts))
+            yield _sse("citations", {"items": [to_citation(citation).model_dump() for citation in completed.citations]})
+            yield _sse("done", {"threadId": thread.id, "assistantMessageId": completed.assistant_message.id})
+        except ModelProviderError as error:
+            fail_chat(db, prepared, error.code, error.message)
+            yield _sse("error", {"code": error.code, "message": error.message})
+        except Exception:
+            fail_chat(db, prepared, "generation_failed", "Chat generation failed.")
+            yield _sse("error", {"code": "generation_failed", "message": "Chat generation failed."})
 
     return StreamingResponse(
         events(),
@@ -202,3 +219,32 @@ def stream_chat(
 
 def _sse(event: str, payload: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _resolve_parent_message_id(db: Session, thread: ChatThread, payload: ChatStreamRequest) -> str | None:
+    if payload.editMessageId:
+        message = db.scalar(
+            select(ChatMessage).where(
+                ChatMessage.id == payload.editMessageId,
+                ChatMessage.thread_id == thread.id,
+                ChatMessage.workspace_id == thread.workspace_id,
+            )
+        )
+        if message is None or message.role != "user" or message.status != "completed":
+            raise ChatError("invalid_edit_message", "Only a completed user question can be edited.", 422)
+        return message.parent_message_id
+
+    parent_id = payload.parentMessageId if payload.parentMessageId is not None else thread.active_message_id
+    if parent_id is None:
+        return None
+    parent = db.scalar(
+        select(ChatMessage).where(
+            ChatMessage.id == parent_id,
+            ChatMessage.thread_id == thread.id,
+            ChatMessage.workspace_id == thread.workspace_id,
+            ChatMessage.status == "completed",
+        )
+    )
+    if parent is None:
+        raise ChatError("invalid_parent_message", "The conversation parent is no longer available.", 422)
+    return parent.id

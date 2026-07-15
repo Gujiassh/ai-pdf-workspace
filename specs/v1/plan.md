@@ -207,7 +207,7 @@ Must:
 
 ## 10. 风险与约束
 
-- 扫描版 PDF 在 V1 可能无法稳定处理
+- 扫描版 PDF 当前通过 Worker 内 RapidOCR fallback 处理；识别质量和复杂版面仍需持续评估
 - 仅使用 embedding 不带 rerank 时，复杂问题质量有限
 - 没有 bbox 时，V1 引用只能做到页级跳转，不能保证精确高亮
 - 多 provider embedding 需要在 schema 里提前预留维度与模型字段
@@ -215,7 +215,7 @@ Must:
 ## 11. 验收标准
 
 - 能创建至少 3 个 Workspace，并验证数据隔离
-- 能上传至少 1 份文本型 PDF 并完成索引
+- 能上传至少 1 份文本型 PDF，并能处理 1 份无文本层扫描 PDF，完成索引
 - 能在 Workspace 内提出问题并获得带页码引用的回答
 - 能点击引用并跳到对应 PDF 页面
 - 能基于引用生成笔记并打标签
@@ -224,7 +224,7 @@ Must:
 
 V1 完成后，优先进入 V2：
 
-- OCR fallback
+- OCR 质量评估与复杂版面/表格能力升级
 - rerank
 - structured output 抽取模板
 - embedding provider 抽象，接入开源本地模型

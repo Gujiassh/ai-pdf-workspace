@@ -30,6 +30,7 @@ export type MessageDto = {
   id: string;
   workspaceId: string;
   threadId: string;
+  parentMessageId?: string | null;
   role: string;
   content: string;
   status: string;
@@ -48,6 +49,8 @@ export type ChatStreamRequestDto = {
   threadId: string;
   question: string;
   selectionText?: string;
+  parentMessageId?: string | null;
+  editMessageId?: string;
 };
 
 export type ChatStreamMetaDto = {
@@ -69,6 +72,11 @@ export type ChatStreamDoneDto = {
   assistantMessageId: string;
 };
 
+export type ChatStreamErrorDto = {
+  code: string;
+  message: string;
+};
+
 export type Citation = {
   id: string;
   documentId: string;
@@ -83,6 +91,8 @@ export type Message = {
   content: string;
   citations?: Citation[];
   createdAt: string;
+  parentMessageId?: string | null;
+  status?: string;
 };
 
 export type ChatThread = {

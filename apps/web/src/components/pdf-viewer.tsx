@@ -17,6 +17,7 @@ import {
 
 import { useTranslation } from "@/lib/i18n-context";
 import { useWorkspace } from "@/lib/workspace-context";
+import type { OcrTextBlockDto } from "@/lib/documents/types";
 
 import { OutlineTree } from "./outline-tree";
 import { PdfPageSurface } from "./pdf-renderer";
@@ -53,6 +54,7 @@ export function PdfViewer() {
   const [showSelectionPopup, setShowSelectionPopup] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [viewerWidth, setViewerWidth] = useState(760);
+  const [ocrPage, setOcrPage] = useState<{ key: string; blocks: OcrTextBlockDto[] }>({ key: "", blocks: [] });
   const paperRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
 
@@ -61,9 +63,37 @@ export function PdfViewer() {
     (document) => document.id === activeDocumentId && (document.status === "chunked" || document.status === "ready"),
   );
   const activePdfDocumentId = activeDoc?.id ?? null;
+  const ocrPageKey = `${activePdfDocumentId ?? ""}:${activePdfPage}`;
+  const ocrBlocks = ocrPage.key === ocrPageKey ? ocrPage.blocks : [];
   const pdfUrl = currentWorkspace && activeDoc
     ? `/api/workspaces/${currentWorkspace.id}/documents/${activeDoc.id}/file`
     : null;
+
+  useEffect(() => {
+    const workspaceId = currentWorkspace?.id;
+    if (!workspaceId || !activePdfDocumentId || !activeDoc) {
+      return;
+    }
+
+    let cancelled = false;
+    fetch(`/api/workspaces/${workspaceId}/documents/${activePdfDocumentId}?pageNumber=${activePdfPage}`, {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("OCR page data request failed.");
+        return response.json() as Promise<{ pages?: Array<{ ocrBlocks?: OcrTextBlockDto[] }> }>;
+      })
+      .then((payload) => {
+        if (!cancelled) {
+          setOcrPage({ key: ocrPageKey, blocks: payload.pages?.[0]?.ocrBlocks ?? [] });
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDoc, activePdfDocumentId, activePdfPage, currentWorkspace?.id, ocrPageKey]);
   const {
     pdf: activePdfDocument,
     pageCount,
@@ -406,6 +436,7 @@ export function PdfViewer() {
                 pdf={activePdfDocument}
                 pageNumber={Math.min(activePdfPage, pageCount || 1)}
                 width={pdfPageWidth}
+                ocrBlocks={ocrBlocks}
                 onError={handlePageError}
                 onNavigate={setActivePdfPage}
               />

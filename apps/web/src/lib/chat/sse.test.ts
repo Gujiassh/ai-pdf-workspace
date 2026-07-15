@@ -47,3 +47,19 @@ test("chat stream dispatch ignores unknown events and handles split response chu
     "done:thread_1",
   ]);
 });
+
+test("SSE parser dispatches provider errors", async () => {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('event: error\ndata: {"code":"generation_failed","message":"provider failed"}\n\n'));
+      controller.close();
+    },
+  });
+
+  let error: string | undefined;
+  await consumeChatStream(new Response(stream), {
+    onError: (payload) => { error = `${payload.code}:${payload.message}`; },
+  });
+
+  assert.equal(error, "generation_failed:provider failed");
+});

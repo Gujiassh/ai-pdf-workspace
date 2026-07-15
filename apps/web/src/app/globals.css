@@ -73,3 +73,26 @@ body {
 .animate-citation-pulse {
   animation: citationPulse 2.2s ease-in-out infinite;
 }
+
+.ocrTextLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  user-select: text;
+  -webkit-user-select: text;
+  pointer-events: none;
+  color: transparent;
+  line-height: 1;
+}
+
+.ocrTextLayer span {
+  position: absolute;
+  display: block;
+  overflow: hidden;
+  white-space: pre-wrap;
+  color: transparent;
+  cursor: text;
+  pointer-events: auto;
+  transform-origin: 0 0;
+}

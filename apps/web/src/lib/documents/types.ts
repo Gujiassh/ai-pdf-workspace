@@ -37,6 +37,15 @@ export type DocumentPageContentDto = {
   pageNumber: number;
   text: string;
   charCount: number;
+  ocrBlocks: OcrTextBlockDto[];
+};
+
+export type OcrTextBlockDto = {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
 export type DocumentDetailResponseDto = {

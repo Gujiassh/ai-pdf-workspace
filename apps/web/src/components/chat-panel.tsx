@@ -57,6 +57,13 @@ export function ChatPanel() {
     setLoading(false);
   };
 
+  const handleEditMessage = async (messageId: string, content: string) => {
+    if (loading) return;
+    setLoading(true);
+    await sendMessage(content, { editMessageId: messageId });
+    setLoading(false);
+  };
+
   const handleCitationClick = (citation: Citation) => {
     setActiveDocumentId(citation.documentId);
     setActivePdfPage(citation.pageNumber);
@@ -132,6 +139,7 @@ export function ChatPanel() {
               quickNoteContent={quickNoteContent}
               setQuickNoteContent={setQuickNoteContent}
               onSaveQuickNote={handleSaveQuickNote}
+              onEditMessage={handleEditMessage}
               t={t}
             />
           ))

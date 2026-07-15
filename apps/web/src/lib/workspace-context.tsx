@@ -115,7 +115,7 @@ type WorkspaceContextType = {
   createThread: () => Promise<void>;
   switchThread: (id: string) => void;
   deleteThread: (id: string) => Promise<void>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, options?: SendMessageOptions) => Promise<void>;
   createNote: (title: string, content: string, source?: NoteSource) => Promise<void>;
   updateNote: (id: string, title: string, content: string) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
@@ -130,6 +130,10 @@ type WorkspaceContextType = {
   setRightPanelOpen: (open: boolean) => void;
   setSelectionText: (text: string | null) => void;
   setSelectedTagIds: React.Dispatch<React.SetStateAction<string[]>>;
+};
+
+export type SendMessageOptions = {
+  editMessageId?: string;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -971,13 +975,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, options: SendMessageOptions = {}) => {
       const question = content.trim();
       const workspaceId = currentWorkspaceId;
       const threadId = activeThreadId ?? threadsRef.current.find((thread) => thread.workspaceId === workspaceId)?.id ?? null;
       if (!workspaceId || !threadId || !question) {
         return;
       }
+
+      const currentThread = threadsRef.current.find((thread) => thread.id === threadId);
+      const editIndex = options.editMessageId && currentThread
+        ? currentThread.messages.findIndex((message) => message.id === options.editMessageId)
+        : -1;
+      const parentMessageId = editIndex >= 0
+        ? currentThread?.messages[editIndex]?.parentMessageId ?? null
+        : currentThread?.messages[currentThread.messages.length - 1]?.id ?? null;
 
       const now = new Date().toISOString();
       const temporaryUserMessageId = `pending-user-${Date.now()}`;
@@ -987,6 +999,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         role: "user",
         content: question,
         createdAt: now,
+        parentMessageId,
+        status: "completed",
       };
       const assistantMessage: Message = {
         id: temporaryAssistantMessageId,
@@ -994,6 +1008,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         content: "",
         citations: [],
         createdAt: now,
+        parentMessageId: temporaryUserMessageId,
+        status: "streaming",
       };
 
       setThreads((prev) => prev.map((thread) =>
@@ -1001,7 +1017,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           ? {
               ...thread,
               title: thread.messages.length === 0 ? question.slice(0, 80) : thread.title,
-              messages: [...thread.messages, userMessage, assistantMessage],
+              messages: [
+                ...(editIndex >= 0 ? thread.messages.slice(0, editIndex) : thread.messages),
+                userMessage,
+                assistantMessage,
+              ],
             }
           : thread,
       ));
@@ -1019,13 +1039,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       };
 
       const replaceMessageId = (from: string, to: string) => {
-        updateThreadMessages((message) => message.id === from ? { ...message, id: to } : message);
+        updateThreadMessages((message) => ({
+          ...message,
+          ...(message.id === from ? { id: to } : {}),
+          ...(message.parentMessageId === from ? { parentMessageId: to } : {}),
+        }));
       };
 
       try {
         const response = await startChatStream(workspaceId, {
           threadId,
           question,
+          parentMessageId,
+          ...(options.editMessageId ? { editMessageId: options.editMessageId } : {}),
           ...(selectionText?.trim() ? { selectionText: selectionText.trim() } : {}),
         });
 
@@ -1053,6 +1079,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             streamCompleted = payload.threadId === threadId;
             assistantMessageId = payload.assistantMessageId;
             replaceMessageId(temporaryAssistantMessageId, assistantMessageId);
+          },
+          onError: (payload) => {
+            updateThreadMessages((message) => message.id === assistantMessageId
+              ? { ...message, content: payload.message, status: "failed" }
+              : message,
+            );
           },
         });
 

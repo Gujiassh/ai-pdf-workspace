@@ -92,6 +92,35 @@ def test_openai_generation_provider_reads_responses_output_text() -> None:
     assert provider.generate([{"role": "user", "content": "question"}]) == "answer from provider"
 
 
+def test_openai_generation_provider_streams_response_text_deltas() -> None:
+    requests: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request.read())
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            content=(
+                'event: response.output_text.delta\n'
+                'data: {"type":"response.output_text.delta","delta":"first"}\n\n'
+                'data: {"type":"response.output_text.delta","delta":" second"}\n\n'
+                'data: {"type":"response.completed"}\n\n'
+            ).encode(),
+        )
+
+    provider = OpenAIGenerationProvider(
+        model="gpt-5.5",
+        api_key="test-key",
+        api_base="https://example.test/v1",
+        timeout_seconds=2,
+        max_output_tokens=100,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    assert list(provider.stream([{"role": "user", "content": "question"}])) == ["first", " second"]
+    assert '"stream":true' in requests[0].decode()
+
+
 def test_openai_generation_provider_rejects_null_content_items() -> None:
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"output": [{"content": None}]})

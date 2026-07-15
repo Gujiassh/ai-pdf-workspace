@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 
+import type { OcrTextBlockDto } from "@/lib/documents/types";
 import type { OutlineNode } from "./outline-tree";
 import { createPdfLinkService } from "./pdf-viewer-links";
 
@@ -29,13 +30,15 @@ type PdfPageSurfaceProps = {
   pdf: PDFDocumentProxy;
   pageNumber: number;
   width: number;
+  ocrBlocks: OcrTextBlockDto[];
   onError: (error: unknown) => void;
   onNavigate: (page: number) => void;
 };
 
-export function PdfPageSurface({ pdf, pageNumber, width, onError, onNavigate }: PdfPageSurfaceProps) {
+export function PdfPageSurface({ pdf, pageNumber, width, ocrBlocks, onError, onNavigate }: PdfPageSurfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
+  const ocrTextLayerRef = useRef<HTMLDivElement>(null);
   const annotationLayerRef = useRef<HTMLDivElement>(null);
   const onErrorRef = useRef(onError);
   const onNavigateRef = useRef(onNavigate);
@@ -55,6 +58,7 @@ export function PdfPageSurface({ pdf, pageNumber, width, onError, onNavigate }: 
     let textLayer: { render: () => Promise<unknown>; cancel: () => void } | null = null;
     const canvas = canvasRef.current;
     const textLayerContainer = textLayerRef.current;
+    const ocrTextLayerContainer = ocrTextLayerRef.current;
     const annotationLayerContainer = annotationLayerRef.current;
 
     async function renderPage() {
@@ -67,7 +71,7 @@ export function PdfPageSurface({ pdf, pageNumber, width, onError, onNavigate }: 
           return;
         }
 
-        if (!canvas || !textLayerContainer || !annotationLayerContainer) {
+        if (!canvas || !textLayerContainer || !ocrTextLayerContainer || !annotationLayerContainer) {
           throw new Error("PDF page surface is unavailable.");
         }
 
@@ -89,6 +93,9 @@ export function PdfPageSurface({ pdf, pageNumber, width, onError, onNavigate }: 
         textLayerContainer.style.width = `${Math.floor(viewport.width)}px`;
         textLayerContainer.style.height = `${Math.floor(viewport.height)}px`;
         textLayerContainer.replaceChildren();
+        ocrTextLayerContainer.style.width = `${Math.floor(viewport.width)}px`;
+        ocrTextLayerContainer.style.height = `${Math.floor(viewport.height)}px`;
+        ocrTextLayerContainer.replaceChildren();
         annotationLayerContainer.style.width = `${Math.floor(viewport.width)}px`;
         annotationLayerContainer.style.height = `${Math.floor(viewport.height)}px`;
         annotationLayerContainer.style.setProperty("--total-scale-factor", String(scale));
@@ -119,6 +126,21 @@ export function PdfPageSurface({ pdf, pageNumber, width, onError, onNavigate }: 
         } catch (error) {
           if (!cancelled) {
             console.error("PDF text layer render failed", error);
+          }
+        }
+
+        if (textLayerContainer.childElementCount === 0 && ocrBlocks.length > 0) {
+          for (const block of ocrBlocks) {
+            const span = document.createElement("span");
+            span.textContent = block.text;
+            span.dataset.ocrBlock = "true";
+            span.setAttribute("aria-label", block.text);
+            span.style.left = `${Math.max(0, Math.min(1, block.x)) * 100}%`;
+            span.style.top = `${Math.max(0, Math.min(1, block.y)) * 100}%`;
+            span.style.width = `${Math.max(0, Math.min(1, block.width)) * 100}%`;
+            span.style.height = `${Math.max(0, Math.min(1, block.height)) * 100}%`;
+            span.style.fontSize = `${Math.max(8, block.height * viewport.height * 0.82)}px`;
+            ocrTextLayerContainer.append(span);
           }
         }
 
@@ -181,13 +203,14 @@ export function PdfPageSurface({ pdf, pageNumber, width, onError, onNavigate }: 
       renderTask?.cancel();
       textLayer?.cancel();
       annotationLayerContainer?.replaceChildren();
+      ocrTextLayerContainer?.replaceChildren();
       page?.cleanup();
       if (canvas) {
         canvas.width = 0;
         canvas.height = 0;
       }
     };
-  }, [pageNumber, pdf, width]);
+  }, [ocrBlocks, pageNumber, pdf, width]);
 
   return (
     <>
@@ -198,6 +221,7 @@ export function PdfPageSurface({ pdf, pageNumber, width, onError, onNavigate }: 
         onMouseDown={(event) => event.currentTarget.classList.add("selecting")}
         onMouseUp={(event) => event.currentTarget.classList.remove("selecting")}
       />
+      <div ref={ocrTextLayerRef} className="ocrTextLayer" />
       <div ref={annotationLayerRef} className="annotationLayer" />
     </>
   );

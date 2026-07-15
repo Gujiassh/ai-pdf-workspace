@@ -47,14 +47,14 @@
 3. 检索与业务数据强耦合，V1 不值得独立上向量专用数据库
 4. 用户面向的是 Workspace，不是全局知识池
 5. V1 架构必须可讲清楚、可本地复现、可后续演进，而不是先做企业级重平台
-6. 当前架构以文本型 PDF 为主；无文本层扫描 PDF 在 Worker 内通过 RapidOCR fallback 转为普通页面文本，不引入独立 OCR API 和多模态页面理解链
+6. 当前架构以文本型 PDF 为主；无文本层扫描 PDF 在 Worker 内通过 RapidOCR fallback 转为页面文本和归一化 OCR blocks，不引入独立 OCR API 和多模态页面理解链
 
 ### 2.3 当前文档范围
 
 当前架构按 `文本 PDF 主链` 设计：
 
 - 直接提取文本层 PDF；无文本层扫描 PDF 走 Worker 内部 OCR fallback
-- OCR 结果不扩展持久化模型，复用 `document_pages.extracted_text`
+- OCR 结果写入 `document_pages.ocr_blocks`，页面详情返回坐标块供 Viewer 叠加透明可选层；`extracted_text` 仍用于检索和 citation
 - 不处理图表、表格、图片区域的视觉理解
 - 不引入 visual chunk、region-level citation、多模态 embedding
 
@@ -733,7 +733,7 @@ V1 任务粒度建议：
 - Worker 只执行重任务和更新状态
 - 任何任务最终状态都写回 Postgres
 
-当前实现已落 `ingest/embed_chunks` 消费：Worker 轮询 Postgres 中 queued job，以行锁领取任务，优先提取 PDF 文本层；没有文本时用 RapidOCR + ONNX Runtime 渲染页面并识别，再写入 `document_pages`、`document_chunks`，批量调用 Ollama/OpenAI embedding provider 写入 pgvector，并把文档推进到 `ready`。Web Viewer 另从原始 PDF 文件流读取源文件，使用 PDF.js canvas/text/annotation layers 阅读，不把 OCR 文本重新排版成假 PDF。检索服务按 workspace 和 embedding version 做 cosine top-k，Chat API 已持久化 thread/message/citation 并通过 SSE 返回；Notes/Tags API 已持久化 `notes`、`note_sources`、`tags`、`document_tags`、`note_tags`，citation -> note 使用 `message_citations` 快照校验与落库。
+当前实现已落 `ingest/embed_chunks` 消费：Worker 轮询 Postgres 中 queued job，以行锁领取任务，优先提取 PDF 文本层；没有文本时用 RapidOCR + ONNX Runtime 渲染页面并识别，再写入 `document_pages`（含 OCR blocks）、`document_chunks`，批量调用 Ollama/OpenAI embedding provider 写入 pgvector，并把文档推进到 `ready`。Web Viewer 另从原始 PDF 文件流读取源文件，使用 PDF.js canvas/text/annotation layers 阅读，扫描页额外叠加透明 OCR 可选层，不把 OCR 文本重新排版成假 PDF。检索服务按 workspace 和 embedding version 做 cosine top-k，Chat API 已持久化 thread/message/citation，按父节点链支持编辑分支，并通过真实 Responses API delta SSE 返回；Notes/Tags API 已持久化 `notes`、`note_sources`、`tags`、`document_tags`、`note_tags`，citation -> note 使用 `message_citations` 快照校验与落库。
 
 ## 8. 数据库架构
 

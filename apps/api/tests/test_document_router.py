@@ -15,6 +15,7 @@ from ai_pdf_api.routers.documents import router as documents_router
 from ai_pdf_api.routers.jobs import router as jobs_router
 from ai_pdf_api.services.ingestion import (
     INGESTION_LEASE_TIMEOUT,
+    PageTextResult,
     claim_next_ingestion_job,
     estimate_token_count,
     process_ingestion_job,
@@ -642,7 +643,14 @@ def test_ingestion_worker_uses_ocr_for_image_only_pdf(db_session: Session, monke
     process_ingestion_job(
         db_session,
         claimed_job_id,
-        ocr_extract_page_texts=lambda payload: [(1, "扫描件第一页"), (2, "扫描件第二页")],
+        ocr_extract_page_texts=lambda payload: [
+            PageTextResult(
+                page_number=1,
+                text="扫描件第一页",
+                ocr_blocks=[{"text": "扫描件第一页", "x": 0.1, "y": 0.2, "width": 0.7, "height": 0.1}],
+            ),
+            PageTextResult(page_number=2, text="扫描件第二页"),
+        ],
     )
 
     refreshed_document = db_session.get(Document, document.id)
@@ -650,6 +658,10 @@ def test_ingestion_worker_uses_ocr_for_image_only_pdf(db_session: Session, monke
     assert refreshed_document is not None
     assert refreshed_document.status == "chunked"
     assert [page.extracted_text for page in pages] == ["扫描件第一页", "扫描件第二页"]
+    assert pages[0].ocr_blocks == [
+        {"text": "扫描件第一页", "x": 0.1, "y": 0.2, "width": 0.7, "height": 0.1}
+    ]
+    assert pages[1].ocr_blocks == []
 
 
 def test_ingestion_worker_reclaims_stale_job(db_session: Session) -> None:
@@ -747,7 +759,9 @@ def test_document_detail_returns_persisted_page_text(client: TestClient, db_sess
     assert response.status_code == 200
     payload = response.json()
     assert payload["document"]["id"] == document.id
-    assert payload["pages"] == [{"pageNumber": 1, "text": "Extracted page text.", "charCount": 20}]
+    assert payload["pages"] == [
+        {"pageNumber": 1, "text": "Extracted page text.", "charCount": 20, "ocrBlocks": []}
+    ]
 
     missing_page = client.get(
         f"/v1/workspaces/{workspace.id}/documents/{document.id}",
@@ -756,6 +770,34 @@ def test_document_detail_returns_persisted_page_text(client: TestClient, db_sess
     )
     assert missing_page.status_code == 404
     assert missing_page.json()["detail"] == "Document page not found."
+
+
+def test_document_detail_returns_persisted_ocr_blocks(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="chunked")
+    db_session.add(
+        DocumentPage(
+            workspace_id=workspace.id,
+            document_id=document.id,
+            page_number=1,
+            extracted_text="扫描文本",
+            char_count=4,
+            ocr_blocks=[{"text": "扫描文本", "x": 0.1, "y": 0.2, "width": 0.7, "height": 0.1}],
+        )
+    )
+    db_session.commit()
+
+    response = client.get(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}",
+        params={"pageNumber": 1},
+        headers={"x-user-id": owner.id},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["pages"][0]["ocrBlocks"] == [
+        {"text": "扫描文本", "x": 0.1, "y": 0.2, "width": 0.7, "height": 0.1}
+    ]
 
 
 def test_delete_document_requires_owner_and_soft_deletes(client: TestClient, db_session: Session) -> None:

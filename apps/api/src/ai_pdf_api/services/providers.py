@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+import json
+from collections.abc import Iterator
 from typing import Protocol
 from urllib.parse import urlsplit
 
@@ -37,6 +39,9 @@ class GenerationProvider(Protocol):
     model: str
 
     def generate(self, messages: list[dict[str, str]]) -> str:
+        ...
+
+    def stream(self, messages: list[dict[str, str]]) -> Iterator[str]:
         ...
 
 
@@ -244,6 +249,44 @@ class OpenAIGenerationProvider:
                 return "".join(parts).strip()
         raise ModelProviderError("generation_invalid_response", "Generation provider returned no answer text.")
 
+    def stream(self, messages: list[dict[str, str]]) -> Iterator[str]:
+        if not self._api_key:
+            raise ModelProviderError("generation_provider_not_configured", "OpenAI generation API key is not configured.")
+        payload = {
+            "model": self.model,
+            "input": messages,
+            "max_output_tokens": self._max_output_tokens,
+            "stream": True,
+        }
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self._api_key}"}
+        try:
+            if self._client is not None:
+                response_context = self._client.stream(
+                    "POST",
+                    f"{self._api_base}/responses",
+                    json=payload,
+                    headers=headers,
+                    timeout=self._timeout_seconds,
+                )
+            else:
+                response_context = httpx.stream(
+                    "POST",
+                    f"{self._api_base}/responses",
+                    json=payload,
+                    headers=headers,
+                    timeout=self._timeout_seconds,
+                )
+            with response_context as response:
+                if response.is_error:
+                    raise ModelProviderError(
+                        "generation_provider_error",
+                        f"Generation provider returned HTTP {response.status_code}.",
+                    )
+                yield from _read_response_stream(response)
+        except httpx.RequestError as error:
+            logger.error("model_provider_request_failed provider=openai kind=generation_stream error_type=%s", type(error).__name__)
+            raise ModelProviderError("generation_provider_unreachable", "Generation provider is unreachable.") from error
+
     def _post(self, url: str, payload: dict) -> dict:
         if not self._api_key:
             raise ModelProviderError("generation_provider_not_configured", "OpenAI generation API key is not configured.")
@@ -309,3 +352,25 @@ def _normalize_openai_base(api_base: str) -> str:
     base = api_base.rstrip("/")
     path = urlsplit(base).path.rstrip("/")
     return base if path.endswith("/v1") else f"{base}/v1"
+
+
+def _read_response_stream(response: httpx.Response) -> Iterator[str]:
+    for line in response.iter_lines():
+        if not line or not line.startswith("data:"):
+            continue
+        raw_data = line[5:].strip()
+        if raw_data == "[DONE]":
+            return
+        try:
+            event = json.loads(raw_data)
+        except json.JSONDecodeError as error:
+            raise ModelProviderError("generation_invalid_response", "Generation provider returned invalid stream data.") from error
+        if not isinstance(event, dict):
+            continue
+        event_type = event.get("type")
+        if event_type in {"response.failed", "error"}:
+            raise ModelProviderError("generation_provider_error", "Generation provider reported a streaming error.")
+        if event_type == "response.output_text.delta":
+            delta = event.get("delta")
+            if isinstance(delta, str) and delta:
+                yield delta

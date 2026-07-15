@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { TranslationKey } from "@/lib/i18n-context";
 import { Message, Citation } from "@/lib/workspace-context";
-import { Sparkles, Loader2, FileText, BookmarkPlus, X, Check } from "lucide-react";
+import { Sparkles, Loader2, FileText, BookmarkPlus, X, Check, Pencil } from "lucide-react";
 
 interface ChatBubbleProps {
   msg: Message;
@@ -16,6 +16,7 @@ interface ChatBubbleProps {
   quickNoteContent: string;
   setQuickNoteContent: (content: string) => void;
   onSaveQuickNote: (cit: Citation) => void;
+  onEditMessage: (messageId: string, content: string) => Promise<void>;
   t: (key: TranslationKey) => string;
 }
 
@@ -30,9 +31,25 @@ export function ChatBubble({
   quickNoteContent,
   setQuickNoteContent,
   onSaveQuickNote,
+  onEditMessage,
   t,
 }: ChatBubbleProps) {
   const isUser = msg.role === "user";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(msg.content);
+  const [saving, setSaving] = useState(false);
+
+  const submitEdit = async () => {
+    const nextContent = draft.trim();
+    if (!nextContent || saving) return;
+    setSaving(true);
+    try {
+      await onEditMessage(msg.id, nextContent);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div
@@ -40,8 +57,59 @@ export function ChatBubble({
     >
       {isUser ? (
         /* User message bubble */
-        <div className="max-w-[85%] rounded-2xl bg-zinc-950 dark:bg-zinc-800 px-3.5 py-2.5 text-xs text-white dark:text-zinc-100 leading-relaxed shadow-sm hover:scale-[1.005] active:scale-[0.99] transition duration-200">
-          {msg.content}
+        <div className="group flex max-w-[92%] items-start gap-1.5">
+          {editing ? (
+            <div className="min-w-[240px] rounded-2xl border border-zinc-300 bg-white p-2 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+              <textarea
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                    event.preventDefault();
+                    void submitEdit();
+                  }
+                }}
+                rows={3}
+                autoFocus
+                disabled={saving}
+                className="w-full resize-none bg-transparent px-2 py-1 text-xs leading-relaxed text-zinc-900 outline-none dark:text-zinc-100"
+              />
+              <div className="flex justify-end gap-1 border-t border-zinc-100 pt-2 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => { setDraft(msg.content); setEditing(false); }}
+                  disabled={saving}
+                  className="rounded-md px-2 py-1 text-[10px] text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  {t("chat.cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void submitEdit()}
+                  disabled={!draft.trim() || saving}
+                  className="flex items-center gap-1 rounded-md bg-zinc-950 px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-zinc-950"
+                >
+                  <Check className="h-3 w-3" />
+                  {saving ? t("chat.retrieving") : t("chat.save")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="max-w-[85%] rounded-2xl bg-zinc-950 px-3.5 py-2.5 text-xs leading-relaxed text-white shadow-sm transition duration-200 hover:scale-[1.005] active:scale-[0.99] dark:bg-zinc-800 dark:text-zinc-100">
+                {msg.content}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setDraft(msg.content); setEditing(true); }}
+                title="编辑问题"
+                aria-label="编辑问题"
+                className="mt-1 rounded-md p-1 text-zinc-400 opacity-0 transition hover:bg-zinc-100 hover:text-zinc-900 group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-white"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
         </div>
       ) : (
         /* Assistant message bubble */

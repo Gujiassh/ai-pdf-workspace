@@ -9,11 +9,11 @@
 - 各类接口的请求/响应语义
 - 哪些接口是同步读写，哪些接口是异步任务触发，哪些接口是流式接口
 
-当前范围覆盖 `原始 PDF 阅读 + 文本检索主链`：原始 PDF 通过文件流接口供 Viewer 阅读，扫描 PDF 的 OCR 是 Worker 内部 fallback，不单独暴露接口。
+当前范围覆盖 `原始 PDF 阅读 + 文本检索主链`：原始 PDF 通过文件流接口供 Viewer 阅读，扫描 PDF 的 OCR 结果通过页面详情返回为坐标化可选文本块，供 Viewer 叠加透明选区层。
 
 不覆盖：
 
-- 独立 OCR / 多模态接口
+- 独立 OCR 识别接口 / 多模态页面理解接口
 - 图表 / 图片理解接口
 - 后台管理接口
 
@@ -262,6 +262,7 @@ Chat 不用普通 JSON 完整返回。
   "id": "msg_xxx",
   "workspaceId": "ws_xxx",
   "threadId": "thread_xxx",
+  "parentMessageId": "msg_parent_xxx",
   "role": "assistant",
   "content": "这是回答正文",
   "status": "completed",
@@ -563,11 +564,22 @@ Chat 不用普通 JSON 完整返回。
     {
       "pageNumber": 1,
       "text": "这一页已提取的文本",
-      "charCount": 12
+      "charCount": 12,
+      "ocrBlocks": [
+        {
+          "text": "这一页已提取的文本",
+          "x": 0.08,
+          "y": 0.12,
+          "width": 0.56,
+          "height": 0.06
+        }
+      ]
     }
   ]
 }
 ```
+
+`ocrBlocks` 是扫描 PDF OCR 产生的可选文本层。`x`、`y`、`width`、`height` 使用页面左上角为原点的归一化坐标，范围均为 `0..1`；原生文本 PDF 页面返回空数组，原始 PDF 文件流仍是阅读器的主视觉来源。
 
 ### `GET /api/workspaces/:workspaceId/documents/:documentId/file`
 
@@ -708,6 +720,7 @@ Chat 不用普通 JSON 完整返回。
 作用：
 
 - 获取 thread 下的消息和 citations
+- 默认只返回当前活动分支路径；编辑旧问题产生的新分支会替代当前展示路径，旧分支仍保留在数据库
 
 返回：
 
@@ -717,6 +730,14 @@ Chat 不用普通 JSON 完整返回。
   "messages": [
     {
       "id": "msg_xxx",
+      "parentMessageId": null,
+      "role": "user",
+      "content": "这篇论文的核心方法是什么？",
+      "citations": []
+    },
+    {
+      "id": "msg_answer_xxx",
+      "parentMessageId": "msg_xxx",
       "role": "assistant",
       "content": "这是回答正文",
       "citations": ["Citation"]
@@ -738,7 +759,10 @@ Chat 不用普通 JSON 完整返回。
 ```json
 {
   "threadId": "thread_xxx",
-  "question": "这篇论文的核心方法是什么？"
+  "question": "这篇论文的核心方法是什么？",
+  "parentMessageId": "msg_previous_assistant_xxx",
+  "editMessageId": null,
+  "selectionText": null
 }
 ```
 
@@ -746,7 +770,9 @@ Chat 不用普通 JSON 完整返回。
 
 - BFF 先校验 session 和 workspace
 - 再转发到 FastAPI 的内部流式接口
-- 流结束后，服务端必须已经持久化 assistant message 和 citations
+- 普通追问挂在 `parentMessageId` 指向的当前答案节点下
+- 传入 `editMessageId` 时，服务端以该用户问题的父节点创建新分支，不删除旧分支
+- 流结束后，服务端将 assistant message 标记为 `completed` 并更新 thread 的活动叶子节点
 
 流媒体使用 Server-Sent Events，事件格式为：
 
@@ -754,8 +780,9 @@ Chat 不用普通 JSON 完整返回。
 - `delta`：`text`，用于逐段展示已生成的回答
 - `citations`：`items[]`，包含服务端保存的 citation 快照
 - `done`：`threadId`、`assistantMessageId`
+- `error`：`code`、`message`，生成失败时返回
 
-回答与 citations 在流开始前已经持久化；流结束后的 `done` 只表示浏览器已收到完整结果。"流式"描述的是浏览器传输体验，当前 provider 调用本身先生成完整答案再分段发送。
+消息节点和 citation 记录会在流开始前进入 `streaming` 准备状态；`delta` 来自 provider 的真实 Responses API 流，`done` 表示生成结果已持久化并且浏览器已收到完整结果。
 
 ## 6.7 Notes
 
