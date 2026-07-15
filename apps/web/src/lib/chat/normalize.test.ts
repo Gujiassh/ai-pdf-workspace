@@ -17,6 +17,7 @@ const citation = {
 test("chat DTO mapping preserves the existing citation click fields", () => {
   assert.deepEqual(toUiCitation(citation), {
     id: "cit_1",
+    citationIndex: 0,
     documentId: "doc_1",
     documentName: "paper.pdf",
     pageNumber: 4,

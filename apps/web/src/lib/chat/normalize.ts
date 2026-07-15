@@ -10,6 +10,7 @@ import type {
 export function toUiCitation(citation: CitationDto): Citation {
   return {
     id: citation.id,
+    citationIndex: citation.citationIndex,
     documentId: citation.documentId ?? "",
     documentName: citation.documentTitle,
     pageNumber: citation.pageNumber,

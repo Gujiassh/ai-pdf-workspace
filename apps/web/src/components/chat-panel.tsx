@@ -6,6 +6,8 @@ import { useTranslation } from "@/lib/i18n-context";
 import { 
   Send, MessageCircleQuestion, ChevronRight, X
 } from "lucide-react";
+import { isNearChatBottom } from "@/lib/chat-scroll";
+
 import { ChatBubble } from "./chat-bubble";
 
 export function ChatPanel() {
@@ -18,7 +20,7 @@ export function ChatPanel() {
     setRightPanelOpen,
     sendMessage,
     createNote,
-    setActiveDocumentId,
+    openDocument,
     setActivePdfPage,
     setActiveTab,
   } = useWorkspace();
@@ -32,18 +34,41 @@ export function ChatPanel() {
   const [quickNoteTitle, setQuickNoteTitle] = useState("");
   const [quickNoteContent, setQuickNoteContent] = useState("");
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const shouldFollowMessagesRef = useRef(true);
+  const activeThreadIdRef = useRef<string | null>(null);
 
   const wsDocs = documents.filter((d) => d.workspaceId === currentWorkspace?.id);
   const docsReady = wsDocs.some((d) => d.status === "ready");
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleMessagesScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
+    }
+    shouldFollowMessagesRef.current = isNearChatBottom(container);
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [activeThread?.messages]);
+    const threadId = activeThread?.id ?? null;
+    const switchedThread = activeThreadIdRef.current !== threadId;
+    activeThreadIdRef.current = threadId;
+
+    if (switchedThread) {
+      shouldFollowMessagesRef.current = true;
+    }
+    if (!shouldFollowMessagesRef.current) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const container = messagesContainerRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeThread?.id, activeThread?.messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +90,10 @@ export function ChatPanel() {
   };
 
   const handleCitationClick = (citation: Citation) => {
-    setActiveDocumentId(citation.documentId);
+    if (!citation.documentId) {
+      return;
+    }
+    openDocument(citation.documentId);
     setActivePdfPage(citation.pageNumber);
   };
 
@@ -119,7 +147,11 @@ export function ChatPanel() {
       </div>
 
       {/* Messages list */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleMessagesScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+      >
         {!activeThread || activeThread.messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center p-6 text-zinc-300 dark:text-zinc-700">
             <MessageCircleQuestion className="h-6 w-6 animate-pulse" />
@@ -144,7 +176,6 @@ export function ChatPanel() {
             />
           ))
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Floating selected text context notice */}

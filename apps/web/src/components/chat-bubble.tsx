@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import type { TranslationKey } from "@/lib/i18n-context";
 import { Message, Citation } from "@/lib/workspace-context";
 import { Sparkles, Loader2, FileText, BookmarkPlus, X, Check, Pencil } from "lucide-react";
+import { ChatMarkdown } from "./chat-markdown";
 
 interface ChatBubbleProps {
   msg: Message;
@@ -120,14 +121,20 @@ export function ChatBubble({
             <span>{t("chat.aiConsultant")}</span>
           </div>
           
-          <div className="text-xs leading-6 text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
-            {msg.content || (
-              <span className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 font-medium italic">
+          {msg.content ? (
+            <ChatMarkdown
+              content={msg.content}
+              citations={msg.citations ?? []}
+              onCitationClick={onCitationClick}
+            />
+          ) : (
+            <div className="text-xs leading-6 text-zinc-700 dark:text-zinc-300">
+              <span className="flex items-center gap-1.5 font-medium italic text-zinc-400 dark:text-zinc-600">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400 dark:text-zinc-500" />
                 {t("chat.retrieving")}
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Citations list */}
           {msg.citations && msg.citations.length > 0 && (

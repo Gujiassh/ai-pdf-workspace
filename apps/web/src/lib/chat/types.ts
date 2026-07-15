@@ -79,6 +79,7 @@ export type ChatStreamErrorDto = {
 
 export type Citation = {
   id: string;
+  citationIndex: number;
   documentId: string;
   documentName: string;
   pageNumber: number;
