@@ -285,7 +285,7 @@ Chat 不用普通 JSON 完整返回。
 
 `Citation` 是从 `message_citations` 读取的稳定显示结构。
 
-这里的 `documentTitle`、`pageNumber`、`excerpt` 应视为服务端保存的快照字段，不要求前端在展示时再次回查 chunk 才能显示。
+这里的 `documentTitle`、`pageNumber`、`excerpt` 应视为服务端保存的快照字段，不要求前端在展示时再次回查 chunk 才能显示。`citationIndex` 按单条 assistant message 从 `0` 开始编号；回答正文中的 `[n]` 只有在存在对应 `citationIndex = n - 1` 时才转为可点击引用。
 
 ```json
 {

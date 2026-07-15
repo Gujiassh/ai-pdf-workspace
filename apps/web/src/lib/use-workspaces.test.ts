@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getNextWorkspaceIdAfterDeletion } from "./use-workspaces";
+import { getNextWorkspaceIdAfterDeletion, shouldSyncWorkspaceViewState } from "./use-workspaces";
 import type { Workspace } from "./workspace-context";
 
 const workspaces: Workspace[] = [
@@ -52,4 +52,11 @@ test("workspace deletion chooses the first remaining workspace only when deletin
   assert.equal(getNextWorkspaceIdAfterDeletion(workspaces, "ws-2", "ws-2"), "ws-1");
   assert.equal(getNextWorkspaceIdAfterDeletion(workspaces, "ws-1", "ws-2"), "ws-1");
   assert.equal(getNextWorkspaceIdAfterDeletion([workspaces[0]], "ws-1", "ws-1"), "");
+});
+
+test("workspace selection does not reset view state when selecting the current workspace again", () => {
+  assert.equal(shouldSyncWorkspaceViewState("ws-1", "ws-1"), false);
+  assert.equal(shouldSyncWorkspaceViewState("", "ws-1"), true);
+  assert.equal(shouldSyncWorkspaceViewState("ws-1", "ws-2"), true);
+  assert.equal(shouldSyncWorkspaceViewState("ws-1", ""), true);
 });

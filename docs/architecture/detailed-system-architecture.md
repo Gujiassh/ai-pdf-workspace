@@ -379,6 +379,8 @@ apps/web/src/
 
 - 问题输入
 - 流式回答展示
+- `ChatMarkdown` Markdown/GFM 渲染
+- 基于服务端 0-based `citationIndex` 的 `[n]` 内联引用映射
 - citation 展示
 - citation 点击事件发出
 
@@ -521,10 +523,10 @@ BFF 不是可选层，而是前端架构的一部分。
 
 #### citation 跳转链路
 
-1. 用户点回答里的 citation
-2. chat feature 发出跳转事件
-3. viewer store 更新 `documentId/pageNumber/chunkId`
-4. viewer feature 切换文档/跳转页码
+1. 用户点回答里的内联 `[n]` 或来源列表 citation
+2. chat feature 根据 `citationIndex` 取已持久化 citation 快照并发出跳转事件
+3. workspace view state 打开对应 `documentId` 并更新 `pageNumber`
+4. viewer feature 平滑回到阅读区顶部并短暂提示目标 PDF 页面
 
 #### citation 转 note 链路
 

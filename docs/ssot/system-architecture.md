@@ -163,6 +163,7 @@ FastAPI 主业务服务。
 3. `Knowledge UI`
    - [ChatPanel](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/chat-panel.tsx)：流式问答管理器。
    - [ChatBubble](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/chat-bubble.tsx)：对话气泡与行内快速笔记沉淀面板。
+   - [ChatMarkdown](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/chat-markdown.tsx)：助手 Markdown/GFM 渲染和 citation `[n]` 内联引用映射；只允许 `http/https` 外链。
    - [NotesPanel](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/notes-panel.tsx)：沉淀笔记仓库。
    - [SettingsPanel](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/settings-panel.tsx)：Prompt 参数调优。
 
@@ -187,9 +188,10 @@ FastAPI 主业务服务。
    - 主题和语言可以写入 LocalStorage，因为它们不属于业务数据；不能用同一机制缓存 Workspace、文档、Chat 或设置。
 3. `UI Runtime State`
    - 当前文档激活页码、划词位置坐标、缩放比、侧栏折叠状态。
+   - Chat 消息列表是否跟随流式输出：用户在底部时自动跟随，主动上滑后保留用户阅读位置。
 4. `Micro-Interaction Animations`
    - **纸张更新**：`activePdfPage` 作为 Content Key，翻页时触发 `animate-in fade-in` 动效。
-   - **引用聚焦**：点击 Citation 引用链接回跳跳页时，命中的向量 Chunk 卡片浮现 `.animate-citation-pulse` 黄金脉冲波动特效。
+   - **引用聚焦**：点击回答内联或来源列表中的 Citation 时打开对应文档并跳到快照页，阅读区平滑回到页面顶部，原始 PDF 页面短暂显示 `.animate-citation-pulse` 黄金脉冲。
    - **气泡滑入**：新对话产生时，组件以滑入渐显入场。
 
 ## 5. 后端架构
@@ -700,6 +702,7 @@ V1 支持两类：
 - `Postgres` 是真相源，`Redis` 是加速层
 - `MinIO` 存文件，`pgvector` 存检索向量
 - `EmbeddingProvider` 必须可切换，不能把模型写死进业务层
+- Workspace 视图状态只应在 workspace 实际切换时同步；重复选择当前 workspace 不能清空 active thread、文档或其他局部视图状态。
 
 
 ## 2026-07-15 运行边界

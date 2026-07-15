@@ -42,6 +42,13 @@ export function getNextWorkspaceIdAfterDeletion(
   return workspaces.find((workspace) => workspace.id !== deletedWorkspaceId)?.id ?? "";
 }
 
+export function shouldSyncWorkspaceViewState(
+  previousWorkspaceId: string,
+  nextWorkspaceId: string,
+): boolean {
+  return previousWorkspaceId !== nextWorkspaceId;
+}
+
 type UseWorkspacesOptions = {
   locale: WorkspaceLocale;
   user: AuthUser | null;
@@ -68,14 +75,17 @@ export function useWorkspaces({
 
   const selectWorkspace = useCallback(
     (id: string) => {
+      const previousWorkspaceId = currentWorkspaceIdRef.current;
       setCurrentWorkspaceId(id);
-      if (id) {
-        onWorkspaceSelected(id);
-      } else {
-        onWorkspaceCleared();
+      if (shouldSyncWorkspaceViewState(previousWorkspaceId, id)) {
+        if (id) {
+          onWorkspaceSelected(id);
+        } else {
+          onWorkspaceCleared();
+        }
       }
     },
-    [onWorkspaceCleared, onWorkspaceSelected, setCurrentWorkspaceId],
+    [currentWorkspaceIdRef, onWorkspaceCleared, onWorkspaceSelected, setCurrentWorkspaceId],
   );
 
   useEffect(() => {
