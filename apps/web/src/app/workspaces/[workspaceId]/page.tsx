@@ -62,14 +62,14 @@ export default function WorkspaceDetailPage() {
 
   if (isAuthHydrating || isWorkspaceHydrating || !currentWorkspace) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-zinc-100 text-sm font-medium text-zinc-500 dark:bg-zinc-950">
+      <div className="workspace-theme-shell flex h-screen w-screen items-center justify-center bg-background text-sm font-medium text-zinc-500 dark:text-zinc-400">
         {t("workspace.loading")}
       </div>
     );
   }
 
   return (
-    <div className="relative flex h-screen w-screen overflow-hidden bg-zinc-100 font-sans text-zinc-700 antialiased transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-300">
+    <div className="workspace-theme-shell relative flex h-screen w-screen overflow-hidden bg-background font-sans text-foreground antialiased transition-colors duration-200">
       {leftSidebarOpen && (
         <div
           onClick={() => setLeftSidebarOpen(false)}
@@ -79,7 +79,7 @@ export default function WorkspaceDetailPage() {
 
       <WorkspaceSidebar />
 
-      <div className="z-10 flex flex-1 flex-col overflow-hidden border-r border-zinc-200 dark:border-zinc-800 lg:z-auto">
+      <div className="workspace-pdf-surface z-10 flex min-w-0 flex-1 flex-col overflow-hidden border-r border-border bg-background lg:z-auto">
         <PdfViewer />
       </div>
 
@@ -91,14 +91,14 @@ export default function WorkspaceDetailPage() {
       )}
 
       {rightPanelOpen && (
-        <div className="absolute inset-y-0 right-0 z-40 flex w-[384px] max-w-[90vw] shrink-0 flex-col overflow-hidden border-l border-zinc-200 bg-zinc-50/95 shadow-2xl duration-300 animate-in slide-in-from-right dark:border-zinc-800 dark:bg-zinc-950 lg:relative lg:z-auto">
-          <div className="flex shrink-0 gap-1.5 border-b border-zinc-200 bg-zinc-100/80 p-2 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <div className="workspace-right-panel absolute inset-y-0 right-0 z-40 flex w-[384px] max-w-[90vw] shrink-0 flex-col overflow-hidden border-l border-border bg-card shadow-2xl transition-colors duration-300 animate-in slide-in-from-right lg:relative lg:z-auto">
+          <div className="flex shrink-0 gap-1.5 border-b border-border bg-background/80 p-2">
             <button
               onClick={() => setActiveTab("chat")}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition ${
                 activeTab === "chat"
-                  ? "border border-zinc-200 bg-white text-zinc-950 shadow-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
-                  : "text-zinc-500 hover:bg-white/40 hover:text-zinc-900 dark:hover:bg-zinc-900/30 dark:hover:text-white"
+                  ? "border border-border bg-card text-foreground shadow-xs"
+                  : "text-zinc-500 hover:bg-card/60 hover:text-foreground dark:text-zinc-400 dark:hover:bg-zinc-900/30 dark:hover:text-white"
               }`}
             >
               <MessageSquare className="h-3.5 w-3.5" />
@@ -108,8 +108,8 @@ export default function WorkspaceDetailPage() {
               onClick={() => setActiveTab("notes")}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition ${
                 activeTab === "notes"
-                  ? "border border-zinc-200 bg-white text-zinc-950 shadow-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
-                  : "text-zinc-500 hover:bg-white/40 hover:text-zinc-900 dark:hover:bg-zinc-900/30 dark:hover:text-white"
+                  ? "border border-border bg-card text-foreground shadow-xs"
+                  : "text-zinc-500 hover:bg-card/60 hover:text-foreground dark:text-zinc-400 dark:hover:bg-zinc-900/30 dark:hover:text-white"
               }`}
             >
               <BookOpen className="h-3.5 w-3.5" />
@@ -119,8 +119,8 @@ export default function WorkspaceDetailPage() {
               onClick={() => setActiveTab("settings")}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition ${
                 activeTab === "settings"
-                  ? "border border-zinc-200 bg-white text-zinc-950 shadow-xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
-                  : "text-zinc-500 hover:bg-white/40 hover:text-zinc-900 dark:hover:bg-zinc-900/30 dark:hover:text-white"
+                  ? "border border-border bg-card text-foreground shadow-xs"
+                  : "text-zinc-500 hover:bg-card/60 hover:text-foreground dark:text-zinc-400 dark:hover:bg-zinc-900/30 dark:hover:text-white"
               }`}
             >
               <Settings2 className="h-3.5 w-3.5" />

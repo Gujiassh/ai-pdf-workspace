@@ -17,7 +17,7 @@ export function NotesPanel() {
     updateNote,
     deleteNote,
     toggleNoteTag,
-    setActiveDocumentId,
+    openDocument,
     setActivePdfPage,
   } = useWorkspace();
 
@@ -83,7 +83,7 @@ export function NotesPanel() {
 
   const handleSourceClick = (note: Note) => {
     if (note.source) {
-      setActiveDocumentId(note.source.documentId);
+      openDocument(note.source.documentId);
       setActivePdfPage(note.source.pageNumber);
     }
   };

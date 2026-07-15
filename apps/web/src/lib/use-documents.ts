@@ -78,15 +78,48 @@ export function toUiDocument(document: DocumentSummaryDto): Document {
   };
 }
 
+function sameStringArray(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function sameDocumentSnapshot(left: Document, right: Document): boolean {
+  return (
+    left.id === right.id
+    && left.workspaceId === right.workspaceId
+    && left.name === right.name
+    && left.size === right.size
+    && left.pagesCount === right.pagesCount
+    && left.status === right.status
+    && left.progress === right.progress
+    && left.errorMsg === right.errorMsg
+    && left.createdAt === right.createdAt
+    && sameStringArray(left.tags, right.tags)
+  );
+}
+
 export function replaceDocumentsForWorkspace(
   workspaceId: string,
   workspaceDocuments: Document[],
   baseDocuments: Document[],
 ): Document[] {
-  return [
+  const previousById = new Map(
+    baseDocuments
+      .filter((document) => document.workspaceId === workspaceId)
+      .map((document) => [document.id, document]),
+  );
+  const stableWorkspaceDocuments = workspaceDocuments.map((document) => {
+    const previous = previousById.get(document.id);
+    return previous && sameDocumentSnapshot(previous, document) ? previous : document;
+  });
+  const nextDocuments = [
     ...baseDocuments.filter((document) => document.workspaceId !== workspaceId),
-    ...workspaceDocuments,
+    ...stableWorkspaceDocuments,
   ];
+
+  return nextDocuments.length === baseDocuments.length
+    && nextDocuments.every((document, index) => document === baseDocuments[index])
+    ? baseDocuments
+    : nextDocuments;
 }
 
 export function applyTagRelationsToDocuments(

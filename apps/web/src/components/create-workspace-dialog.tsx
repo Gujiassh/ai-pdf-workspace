@@ -44,8 +44,8 @@ export function CreateWorkspaceDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl text-zinc-300">
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t("dashboard.createBtn")}</h3>
+      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 text-foreground shadow-2xl">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">{t("dashboard.createBtn")}</h3>
         <p className="mt-1 text-[10px] text-zinc-500">隔离专有的 PDF 文档、模型 Prompt 和对话记忆上下文。</p>
         
         <form onSubmit={(event) => {
@@ -59,7 +59,7 @@ export function CreateWorkspaceDialog({
               placeholder="例如: 财务报表风控、大模型开发文档..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs outline-none text-white focus:border-zinc-700 transition"
+              className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-xs text-foreground outline-none transition focus:border-zinc-400 dark:focus:border-zinc-700"
             />
           </div>
           <div>
@@ -69,7 +69,7 @@ export function CreateWorkspaceDialog({
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
               rows={2}
-              className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs outline-none text-white focus:border-zinc-700 resize-none transition"
+              className="mt-1.5 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-xs text-foreground outline-none transition focus:border-zinc-400 dark:focus:border-zinc-700"
             />
           </div>
           {errorMessage ? (
@@ -83,7 +83,7 @@ export function CreateWorkspaceDialog({
                 setErrorMessage(null);
                 onClose();
               }}
-              className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-800 transition active:scale-95 cursor-pointer"
+              className="rounded-xl border border-border bg-card px-4 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-100 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-800"
             >
               取消
             </button>

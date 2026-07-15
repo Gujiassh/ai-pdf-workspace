@@ -35,3 +35,18 @@ test("document hydrate replacement changes only the requested workspace", () => 
   const next = replaceDocumentsForWorkspace("ws-1", [document("fresh-1", "ws-1")], previous);
   assert.deepEqual(next.map((item) => item.id), ["keep-1", "fresh-1"]);
 });
+
+test("document polling reuses unchanged snapshots and array references", () => {
+  const active = document("active-1", "ws-1");
+  const other = document("keep-1", "ws-2");
+  const previous = [other, active];
+  const refreshed = replaceDocumentsForWorkspace(
+    "ws-1",
+    [{ ...active }],
+    previous,
+  );
+
+  assert.equal(refreshed, previous);
+  assert.equal(refreshed[0], other);
+  assert.equal(refreshed[1], active);
+});

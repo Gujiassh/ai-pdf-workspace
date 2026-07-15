@@ -54,6 +54,7 @@ export function PdfViewer() {
   const [showSelectionPopup, setShowSelectionPopup] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [viewerWidth, setViewerWidth] = useState(760);
+  const [isCitationPulseVisible, setIsCitationPulseVisible] = useState(false);
   const [ocrPage, setOcrPage] = useState<{ key: string; blocks: OcrTextBlockDto[] }>({ key: "", blocks: [] });
   const paperRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -71,7 +72,7 @@ export function PdfViewer() {
 
   useEffect(() => {
     const workspaceId = currentWorkspace?.id;
-    if (!workspaceId || !activePdfDocumentId || !activeDoc) {
+    if (!workspaceId || !activePdfDocumentId) {
       return;
     }
 
@@ -93,7 +94,7 @@ export function PdfViewer() {
     return () => {
       cancelled = true;
     };
-  }, [activeDoc, activePdfDocumentId, activePdfPage, currentWorkspace?.id, ocrPageKey]);
+  }, [activePdfDocumentId, activePdfPage, currentWorkspace?.id, ocrPageKey]);
   const {
     pdf: activePdfDocument,
     pageCount,
@@ -129,6 +130,17 @@ export function PdfViewer() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
+
+  useEffect(() => {
+    if (!activePdfDocumentId || !viewerRef.current) {
+      return;
+    }
+
+    viewerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    setIsCitationPulseVisible(true);
+    const timeout = window.setTimeout(() => setIsCitationPulseVisible(false), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [activePdfDocumentId, activePdfPage]);
 
   const handleNextPage = () => {
     if (activePdfPage < pageCount) {
@@ -430,7 +442,9 @@ export function PdfViewer() {
               ref={paperRef}
               onMouseUp={handleTextSelection}
               style={{ width: pdfPageWidth }}
-              className="relative bg-white shadow-2xl ring-1 ring-black/10 dark:ring-white/10"
+              className={`relative bg-white shadow-2xl ring-1 ring-black/10 dark:ring-white/10 ${
+                isCitationPulseVisible ? "animate-citation-pulse" : ""
+              }`}
             >
               <PdfPageSurface
                 pdf={activePdfDocument}
