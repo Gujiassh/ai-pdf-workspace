@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 import { getApiBaseUrl } from "@/lib/api-base-url";
 
 export async function POST(
@@ -19,7 +19,7 @@ export async function POST(
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
-      "x-user-id": session.userId,
+      ...buildApiHeaders(session.userId),
     },
     body: JSON.stringify(body),
   });

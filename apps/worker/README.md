@@ -7,6 +7,14 @@
 - 已消费 `ingest` 任务，将可提取文本的 PDF 拆成页面、文本块并写入 embedding
 - 对没有文本层的 PDF 页面使用 RapidOCR fallback，再进入同一页面/文本块链路
 - 已支持 `embed_chunks` 回填已有文本块；`delete_cleanup` 仍未接入
+- 新建文档任务快照会记录 Workspace 的 `chunkSize`，Worker 按任务快照切块；旧任务缺少该字段时使用 1200 字符默认值
+
+可靠性行为：
+- 每次只领取并处理一个 job；API 已知的 PDF、OCR、embedding 业务错误仍由 API 写入 `ingestion_jobs.status=failed`，Worker 不会自动复活旧 job。
+- Worker 捕获迭代级基础设施异常，按 `1s -> 2s -> 4s -> 8s` 退避，连续 5 次仍失败后记录 `worker_retry_exhausted` 并以非零状态退出，交由外部进程管理器重启。
+- 收到 `SIGINT` 或 `SIGTERM` 后设置停止事件；正在处理的 job 允许自然结束，随后退出，不中断 API 当前的 job 状态事务。
+- 日志使用 `ai_pdf_worker` logger，包含 `worker_job_claimed`、`worker_job_handled`、`worker_iteration_failed`、`worker_retry_scheduled`、`worker_fatal` 等平面事件标记，便于按事件名、`job_id`、`error_type` 检索。
+
 
 本地启动：
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from io import BytesIO
+from typing import BinaryIO
 
 from minio import Minio
 from minio.error import S3Error
@@ -24,13 +25,17 @@ def ensure_bucket_exists(client: Minio) -> None:
 
 
 def upload_bytes(object_key: str, payload: bytes, content_type: str) -> None:
+    upload_stream(object_key, BytesIO(payload), len(payload), content_type)
+
+
+def upload_stream(object_key: str, payload: BinaryIO, length: int, content_type: str) -> None:
     client = build_storage_client()
     ensure_bucket_exists(client)
     client.put_object(
         settings.minio_bucket,
         object_key,
-        BytesIO(payload),
-        length=len(payload),
+        payload,
+        length=length,
         content_type=content_type,
     )
 

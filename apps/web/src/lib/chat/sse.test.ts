@@ -63,3 +63,22 @@ test("SSE parser dispatches provider errors", async () => {
 
   assert.equal(error, "generation_failed:provider failed");
 });
+
+
+test("chat stream surfaces a transport interruption after partial output", async () => {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('event: delta\ndata: {"text":"partial"}\n\n'));
+      controller.close();
+    },
+  });
+
+  const deltas: string[] = [];
+  await assert.rejects(
+    consumeChatStream(new Response(stream), {
+      onDelta: (payload) => deltas.push(payload.text),
+    }),
+    /ended before completion/,
+  );
+  assert.deepEqual(deltas, ["partial"]);
+});

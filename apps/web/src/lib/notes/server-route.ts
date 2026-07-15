@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 
 export async function proxyNotesRequest(
   request: Request,
@@ -13,7 +13,7 @@ export async function proxyNotesRequest(
     return unauthorizedResponse();
   }
 
-  const headers: Record<string, string> = { "x-user-id": session.userId };
+  const headers: Record<string, string> = buildApiHeaders(session.userId);
   let body: string | undefined;
   if (method === "POST" || method === "PATCH") {
     headers["Content-Type"] = request.headers.get("content-type") ?? "application/json";

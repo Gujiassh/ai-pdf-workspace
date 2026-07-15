@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: ai_pdf_workspace
+          POSTGRES_USER: ai_pdf
+          POSTGRES_PASSWORD: ai_pdf_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ai_pdf -d ai_pdf_workspace"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      AI_PDF_DATABASE_URL: postgresql+psycopg://ai_pdf:ai_pdf_dev@127.0.0.1:5432/ai_pdf_workspace
+      AI_PDF_API_INTERNAL_TOKEN: ci-internal-token-please-change
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+      - run: uv sync --project apps/api --extra dev
+      - run: uv run --project apps/api pytest apps/api/tests
+      - run: uv run --project apps/api alembic upgrade head
+      - run: uv run --project apps/api alembic check
+
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/worker/uv.lock
+      - run: uv sync --project apps/worker --dev
+      - run: uv run --project apps/worker pytest apps/worker/tests
+      - run: uv run --project apps/worker python -m compileall -q apps/worker/src apps/worker/tests
+
+  web:
+    runs-on: ubuntu-latest
+    env:
+      AI_PDF_SESSION_SECRET: ci-session-secret-please-change
+      AI_PDF_API_INTERNAL_TOKEN: ci-internal-token-please-change
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir apps/web test
+      - run: pnpm --dir apps/web lint
+      - run: pnpm --dir apps/web exec tsc --noEmit
+      - run: pnpm --dir apps/web build
+
+  web-e2e:
+    runs-on: ubuntu-latest
+    env:
+      AI_PDF_SESSION_SECRET: ci-session-secret-please-change
+      AI_PDF_API_INTERNAL_TOKEN: ci-internal-token-please-change
+      PLAYWRIGHT_START_WEB: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir apps/web exec playwright install --with-deps chromium
+      - run: pnpm --dir apps/web e2e

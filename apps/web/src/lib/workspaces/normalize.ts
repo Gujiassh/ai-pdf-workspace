@@ -7,9 +7,7 @@ const DEFAULT_PROMPT_EN =
 
 export type WorkspaceLocale = "zh" | "en";
 
-export type WorkspaceUiRecord = WorkspaceSummaryDto & {
-  systemPrompt: string;
-};
+export type WorkspaceUiRecord = WorkspaceSummaryDto;
 
 export function getDefaultWorkspacePrompt(locale: WorkspaceLocale): string {
   return locale === "en" ? DEFAULT_PROMPT_EN : DEFAULT_PROMPT_ZH;
@@ -18,11 +16,12 @@ export function getDefaultWorkspacePrompt(locale: WorkspaceLocale): string {
 export function normalizeWorkspaceSummary(
   workspace: WorkspaceSummaryDto,
   locale: WorkspaceLocale,
-  promptOverride?: string,
 ): WorkspaceUiRecord {
   return {
     ...workspace,
-    systemPrompt: promptOverride ?? getDefaultWorkspacePrompt(locale),
+    systemPrompt: workspace.systemPrompt || getDefaultWorkspacePrompt(locale),
+    retrievalTopK: workspace.retrievalTopK ?? 6,
+    chunkSize: workspace.chunkSize ?? 1200,
   };
 }
 

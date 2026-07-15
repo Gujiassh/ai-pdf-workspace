@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 import { getApiBaseUrl } from "@/lib/api-base-url";
 
 export async function GET(
@@ -21,7 +21,7 @@ export async function GET(
   const response = await fetch(apiUrl, {
     cache: "no-store",
     headers: {
-      "x-user-id": session.userId,
+      ...buildApiHeaders(session.userId),
     },
   });
   const data = (await response.json()) as unknown;
@@ -47,7 +47,7 @@ export async function DELETE(
     method: "DELETE",
     cache: "no-store",
     headers: {
-      "x-user-id": session.userId,
+      ...buildApiHeaders(session.userId),
     },
   });
 

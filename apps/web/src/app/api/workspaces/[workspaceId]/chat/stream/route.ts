@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 
 const FORWARDED_HEADERS = ["cache-control", "connection", "content-type", "x-accel-buffering"];
 
@@ -15,16 +15,21 @@ export async function POST(
   }
 
   const { workspaceId } = await context.params;
-  const response = await fetch(`${getApiBaseUrl()}/v1/workspaces/${workspaceId}/chat/stream`, {
+  const requestInit: RequestInit & { duplex?: "half" } = {
     method: "POST",
     cache: "no-store",
     headers: {
       "Accept": "text/event-stream",
       "Content-Type": request.headers.get("content-type") ?? "application/json",
-      "x-user-id": session.userId,
+      ...buildApiHeaders(session.userId),
     },
-    body: await request.text(),
-  });
+    body: request.body,
+    duplex: "half",
+  };
+  const response = await fetch(
+    `${getApiBaseUrl()}/v1/workspaces/${workspaceId}/chat/stream`,
+    requestInit,
+  );
 
   const headers = new Headers();
   for (const header of FORWARDED_HEADERS) {

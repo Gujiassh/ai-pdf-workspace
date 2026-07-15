@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 
 export async function GET(
   _request: Request,
@@ -15,7 +15,7 @@ export async function GET(
   const { workspaceId } = await context.params;
   const response = await fetch(`${getApiBaseUrl()}/v1/workspaces/${workspaceId}/threads`, {
     cache: "no-store",
-    headers: { "x-user-id": session.userId },
+    headers: buildApiHeaders(session.userId),
   });
   const data = await response.json();
   return NextResponse.json(data, { status: response.status });
@@ -36,7 +36,7 @@ export async function POST(
     cache: "no-store",
     headers: {
       "Content-Type": request.headers.get("content-type") ?? "application/json",
-      "x-user-id": session.userId,
+      ...buildApiHeaders(session.userId),
     },
     body: await request.text(),
   });

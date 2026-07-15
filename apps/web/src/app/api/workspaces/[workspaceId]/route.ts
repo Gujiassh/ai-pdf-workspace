@@ -1,3 +1,4 @@
+import { buildApiHeaders } from "@/lib/auth/server-route";
 import { NextResponse } from "next/server";
 
 import { readServerSession } from "@/lib/auth/server-session";
@@ -28,7 +29,7 @@ export async function GET(
   const response = await fetch(`${getApiBaseUrl()}/v1/workspaces/${workspaceId}`, {
     cache: "no-store",
     headers: {
-      "x-user-id": session.userId,
+      ...buildApiHeaders(session.userId),
     },
   });
 
@@ -54,7 +55,7 @@ export async function DELETE(
     method: "DELETE",
     cache: "no-store",
     headers: {
-      "x-user-id": session.userId,
+      ...buildApiHeaders(session.userId),
     },
   });
 

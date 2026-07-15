@@ -1,0 +1,279 @@
+import logging
+import signal
+from collections.abc import Callable
+from threading import Event
+
+import pytest
+
+import ai_pdf_worker.main as worker
+
+
+class SessionContext:
+    def __init__(self, db: object) -> None:
+        self.db = db
+
+    def __enter__(self) -> object:
+        return self.db
+
+    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+        return None
+
+
+def test_process_one_job_claims_and_handles_one_job(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    db = object()
+    calls: list[tuple[object, str, object]] = []
+    provider = object()
+
+    monkeypatch.setattr(worker, "SessionLocal", lambda: SessionContext(db))
+    monkeypatch.setattr(worker, "claim_next_ingestion_job", lambda received_db: "job-1")
+    monkeypatch.setattr(worker, "get_embedding_provider", lambda: provider)
+
+    def fake_process(
+        received_db: object,
+        job_id: str,
+        *,
+        ocr_extract_page_texts: object,
+        embedding_provider: object,
+    ) -> None:
+        calls.append((received_db, job_id, embedding_provider))
+
+    monkeypatch.setattr(worker, "process_ingestion_job", fake_process)
+
+    with caplog.at_level(logging.INFO, logger=worker.logger.name):
+        assert worker.process_one_job() is True
+    assert calls == [(db, "job-1", provider)]
+    assert "worker_job_claimed job_id=job-1" in caplog.text
+    assert "worker_job_handled job_id=job-1" in caplog.text
+
+
+def test_process_one_job_returns_false_without_claiming_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    process_calls = 0
+
+    class FakeSession:
+        def __enter__(self) -> object:
+            return object()
+
+        def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+            return None
+
+    monkeypatch.setattr(worker, "SessionLocal", FakeSession)
+    monkeypatch.setattr(worker, "claim_next_ingestion_job", lambda _db: None)
+
+    def fake_process(*_args: object, **_kwargs: object) -> None:
+        nonlocal process_calls
+        process_calls += 1
+
+    monkeypatch.setattr(worker, "process_ingestion_job", fake_process)
+
+    assert worker.process_one_job() is False
+    assert process_calls == 0
+
+
+def test_run_worker_retries_with_backoff_and_recovers(caplog: pytest.LogCaptureFixture) -> None:
+    stop_event = Event()
+    calls = 0
+    delays: list[float] = []
+
+    def process_job() -> bool:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("temporary database outage")
+        stop_event.set()
+        return True
+
+    def wait_for_stop(delay_seconds: float) -> bool:
+        delays.append(delay_seconds)
+        return False
+
+    with caplog.at_level(logging.INFO, logger=worker.logger.name):
+        worker.run_worker(
+            stop_event=stop_event,
+            process_job=process_job,
+            wait_for_stop=wait_for_stop,
+            retry_initial_delay_seconds=1.0,
+            retry_max_delay_seconds=4.0,
+            max_consecutive_errors=3,
+        )
+
+    assert calls == 2
+    assert delays == [1.0]
+    assert "worker_retry_scheduled" in caplog.text
+    assert "worker_error_recovered previous_errors=1" in caplog.text
+    assert "worker_loop_stopped" in caplog.text
+
+
+def test_run_worker_stops_after_finite_retries(caplog: pytest.LogCaptureFixture) -> None:
+    stop_event = Event()
+    calls = 0
+    delays: list[float] = []
+
+    def process_job() -> bool:
+        nonlocal calls
+        calls += 1
+        raise RuntimeError("persistent database outage")
+
+    def wait_for_stop(delay_seconds: float) -> bool:
+        delays.append(delay_seconds)
+        return False
+
+    with (caplog.at_level(logging.INFO, logger=worker.logger.name), pytest.raises(RuntimeError)):
+        worker.run_worker(
+            stop_event=stop_event,
+            process_job=process_job,
+            wait_for_stop=wait_for_stop,
+            retry_initial_delay_seconds=1.0,
+            retry_max_delay_seconds=2.0,
+            max_consecutive_errors=3,
+        )
+
+    assert calls == 3
+    assert delays == [1.0, 2.0]
+    assert "worker_retry_exhausted attempts=3" in caplog.text
+
+
+def test_install_signal_handlers_registers_sigint_and_sigterm(monkeypatch: pytest.MonkeyPatch) -> None:
+    stop_event = Event()
+    handlers: dict[int, Callable[[int, object], None]] = {}
+
+    def fake_signal(signum: int, handler: Callable[[int, object], None]) -> None:
+        handlers[signum] = handler
+
+    monkeypatch.setattr(worker.signal, "signal", fake_signal)
+
+    worker._install_signal_handlers(stop_event)
+
+    assert set(handlers) == {signal.SIGINT, signal.SIGTERM}
+    handlers[signal.SIGINT](signal.SIGINT, None)
+    assert stop_event.is_set()
+
+
+def test_shutdown_signal_sets_event_and_logs(caplog: pytest.LogCaptureFixture) -> None:
+    stop_event = Event()
+
+    with caplog.at_level(logging.INFO, logger=worker.logger.name):
+        worker._request_shutdown(stop_event, signal.SIGTERM)
+
+    assert stop_event.is_set()
+    assert "worker_shutdown_requested signal=SIGTERM" in caplog.text
+
+
+def test_main_logs_fatal_process_error_and_reraises(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def fake_install(_stop_event: Event) -> None:
+        return None
+
+    def fail_worker(**_kwargs: object) -> None:
+        raise RuntimeError("fatal worker error")
+
+    monkeypatch.setattr(worker, "_install_signal_handlers", fake_install)
+    monkeypatch.setattr(worker, "run_worker", fail_worker)
+
+    with (
+        caplog.at_level(logging.ERROR, logger=worker.logger.name),
+        pytest.raises(RuntimeError, match="fatal worker error"),
+    ):
+        worker.main()
+
+    assert "worker_fatal error_type=RuntimeError" in caplog.text
+
+
+def test_process_one_job_propagates_handler_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    db = object()
+
+    monkeypatch.setattr(worker, "SessionLocal", lambda: SessionContext(db))
+    monkeypatch.setattr(worker, "claim_next_ingestion_job", lambda _db: "job-1")
+    monkeypatch.setattr(worker, "get_embedding_provider", lambda: object())
+
+    def fail_process(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("handler failure")
+
+    monkeypatch.setattr(worker, "process_ingestion_job", fail_process)
+
+    with pytest.raises(RuntimeError, match="handler failure"):
+        worker.process_one_job()
+
+
+def test_retry_delay_is_exponential_and_bounded() -> None:
+    assert [worker._retry_delay(attempt, 1.0, 3.0) for attempt in range(1, 5)] == [
+        1.0,
+        2.0,
+        3.0,
+        3.0,
+    ]
+
+
+def test_run_worker_stops_during_poll(caplog: pytest.LogCaptureFixture) -> None:
+    stop_event = Event()
+    process_calls = 0
+    delays: list[float] = []
+
+    def process_job() -> bool:
+        nonlocal process_calls
+        process_calls += 1
+        return False
+
+    def wait_for_stop(delay_seconds: float) -> bool:
+        delays.append(delay_seconds)
+        stop_event.set()
+        return True
+
+    with caplog.at_level(logging.INFO, logger=worker.logger.name):
+        worker.run_worker(
+            stop_event=stop_event,
+            process_job=process_job,
+            wait_for_stop=wait_for_stop,
+            poll_interval_seconds=0.25,
+        )
+
+    assert process_calls == 1
+    assert delays == [0.25]
+    assert "worker_stop_during_poll reason=shutdown_requested" in caplog.text
+
+
+def test_run_worker_stops_during_retry(caplog: pytest.LogCaptureFixture) -> None:
+    stop_event = Event()
+    process_calls = 0
+    delays: list[float] = []
+
+    def process_job() -> bool:
+        nonlocal process_calls
+        process_calls += 1
+        raise RuntimeError("temporary database outage")
+
+    def wait_for_stop(delay_seconds: float) -> bool:
+        delays.append(delay_seconds)
+        stop_event.set()
+        return True
+
+    with caplog.at_level(logging.INFO, logger=worker.logger.name):
+        worker.run_worker(
+            stop_event=stop_event,
+            process_job=process_job,
+            wait_for_stop=wait_for_stop,
+            retry_initial_delay_seconds=1.0,
+            retry_max_delay_seconds=4.0,
+        )
+
+    assert process_calls == 1
+    assert delays == [1.0]
+    assert "worker_stop_during_retry" in caplog.text
+
+
+@pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+def test_shutdown_signal_requests_stop_for_each_supported_signal(
+    signum: signal.Signals,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    stop_event = Event()
+
+    with caplog.at_level(logging.INFO, logger=worker.logger.name):
+        worker._request_shutdown(stop_event, signum)
+
+    assert stop_event.is_set()
+    assert f"worker_shutdown_requested signal={signum.name}" in caplog.text

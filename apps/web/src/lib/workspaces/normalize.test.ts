@@ -13,6 +13,15 @@ test("normalizeWorkspaceSummary adds default localized prompt", () => {
       id: "ws_1",
       name: "Papers",
       description: null,
+      systemPrompt: "",
+      retrievalTopK: 6,
+      chunkSize: 1200,
+      embeddingProvider: "ollama",
+      embeddingModel: "qwen3-embedding:0.6b",
+      embeddingDimensions: 1024,
+      embeddingVersion: "embedding-v1",
+      generationProvider: "openai",
+      generationModel: "gpt-5.5",
       role: "owner",
       documentCount: 0,
       noteCount: 0,
@@ -26,12 +35,21 @@ test("normalizeWorkspaceSummary adds default localized prompt", () => {
   assert.equal(workspace.systemPrompt, getDefaultWorkspacePrompt("en"));
 });
 
-test("normalizeWorkspaceSummary prefers explicit prompt override", () => {
+test("normalizeWorkspaceSummary keeps the persisted prompt", () => {
   const workspace = normalizeWorkspaceSummary(
     {
       id: "ws_1",
       name: "Papers",
       description: null,
+      systemPrompt: "custom prompt",
+      retrievalTopK: 6,
+      chunkSize: 1200,
+      embeddingProvider: "ollama",
+      embeddingModel: "qwen3-embedding:0.6b",
+      embeddingDimensions: 1024,
+      embeddingVersion: "embedding-v1",
+      generationProvider: "openai",
+      generationModel: "gpt-5.5",
       role: "owner",
       documentCount: 0,
       noteCount: 0,
@@ -40,7 +58,6 @@ test("normalizeWorkspaceSummary prefers explicit prompt override", () => {
       updatedAt: "2026-07-09T00:00:00Z",
     },
     "zh",
-    "custom prompt",
   );
 
   assert.equal(workspace.systemPrompt, "custom prompt");

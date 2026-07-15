@@ -35,16 +35,17 @@ class IngestionError(Exception):
         self.code = code
 
 
-def split_page_text(text: str) -> list[tuple[int, int, str]]:
+def split_page_text(text: str, chunk_size: int = CHUNK_SIZE) -> list[tuple[int, int, str]]:
     chunks: list[tuple[int, int, str]] = []
     start = 0
     text_length = len(text)
+    overlap = min(CHUNK_OVERLAP, max(1, chunk_size // 2))
     while start < text_length:
-        end = min(start + CHUNK_SIZE, text_length)
+        end = min(start + chunk_size, text_length)
         if end < text_length:
-            boundary = text.rfind("\n", start + CHUNK_SIZE // 2, end)
+            boundary = text.rfind("\n", start + chunk_size // 2, end)
             if boundary <= start:
-                boundary = text.rfind(" ", start + CHUNK_SIZE // 2, end)
+                boundary = text.rfind(" ", start + chunk_size // 2, end)
             if boundary > start:
                 end = boundary
         chunk_text = text[start:end].strip()
@@ -52,8 +53,15 @@ def split_page_text(text: str) -> list[tuple[int, int, str]]:
             chunks.append((start, end, chunk_text))
         if end == text_length:
             break
-        start = max(end - CHUNK_OVERLAP, start + 1)
+        start = max(end - overlap, start + 1)
     return chunks
+
+
+def _get_job_chunk_size(snapshot: dict) -> int:
+    value = snapshot.get("chunkSize", CHUNK_SIZE)
+    if not isinstance(value, int) or isinstance(value, bool) or not 200 <= value <= 4000:
+        raise IngestionError("invalid_chunk_size", "Ingestion job has an invalid chunk size.")
+    return value
 
 
 def estimate_token_count(text: str) -> int:
@@ -214,6 +222,8 @@ def process_ingestion_job(
         if not any(page.text.strip() for page in page_texts):
             raise IngestionError("no_extractable_text", "PDF has no extractable text after OCR.")
 
+        snapshot = job.config_snapshot or {}
+        chunk_size = _get_job_chunk_size(snapshot)
         now = datetime.now(UTC)
         document.status = "chunking"
         document.page_count = len(page_texts)
@@ -234,7 +244,9 @@ def process_ingestion_job(
             )
             db.add(page)
             db.flush()
-            for chunk_index, (char_start, char_end, chunk_text) in enumerate(split_page_text(page_result.text)):
+            for chunk_index, (char_start, char_end, chunk_text) in enumerate(
+                split_page_text(page_result.text, chunk_size=chunk_size)
+            ):
                 db.add(
                     DocumentChunk(
                         workspace_id=document.workspace_id,

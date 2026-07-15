@@ -117,7 +117,7 @@ def test_list_workspaces_returns_only_current_user_memberships(client: TestClien
     visible = create_workspace_with_membership(db_session, user=owner, name="Visible Workspace")
     create_workspace_with_membership(db_session, user=stranger, name="Hidden Workspace")
 
-    response = client.get("/v1/workspaces", headers={"x-user-id": owner.id})
+    response = client.get("/v1/workspaces", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
 
     assert response.status_code == 200
     payload = response.json()
@@ -127,6 +127,15 @@ def test_list_workspaces_returns_only_current_user_memberships(client: TestClien
             "id": visible.id,
             "name": "Visible Workspace",
             "description": None,
+            "systemPrompt": "You are an AI research assistant. Answer using only the supplied PDF context and cite supporting sources.",
+            "retrievalTopK": 6,
+            "chunkSize": 1200,
+            "embeddingProvider": "ollama",
+            "embeddingModel": "qwen3-embedding:0.6b",
+            "embeddingDimensions": 1024,
+            "embeddingVersion": "embedding-v1",
+            "generationProvider": "openai",
+            "generationModel": "gpt-5.5",
             "role": "owner",
             "documentCount": 0,
             "noteCount": 0,
@@ -144,8 +153,8 @@ def test_workspace_summary_includes_real_document_count(client: TestClient, db_s
     workspace = create_workspace_with_membership(db_session, user=owner, name="Visible Workspace")
     create_document(db_session, workspace=workspace, user=owner)
 
-    list_response = client.get("/v1/workspaces", headers={"x-user-id": owner.id})
-    detail_response = client.get(f"/v1/workspaces/{workspace.id}", headers={"x-user-id": owner.id})
+    list_response = client.get("/v1/workspaces", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
+    detail_response = client.get(f"/v1/workspaces/{workspace.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
 
     assert list_response.status_code == 200
     assert detail_response.status_code == 200
@@ -156,7 +165,7 @@ def test_create_workspace_creates_owner_membership(client: TestClient, db_sessio
 
     response = client.post(
         "/v1/workspaces",
-        headers={"x-user-id": user.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": user.id},
         json={"name": " Papers ", "description": " Research notes "},
     )
 
@@ -178,12 +187,58 @@ def test_create_workspace_creates_owner_membership(client: TestClient, db_sessio
     assert membership.role == "owner"
 
 
+def test_update_workspace_settings_persists_and_returns_runtime_metadata(
+    client: TestClient, db_session: Session
+) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Settings")
+
+    response = client.patch(
+        f"/v1/workspaces/{workspace.id}/settings",
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
+        json={
+            "systemPrompt": "Answer with a contract-review checklist.",
+            "retrievalTopK": 9,
+            "chunkSize": 900,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()["workspace"]
+    assert payload["systemPrompt"] == "Answer with a contract-review checklist."
+    assert payload["retrievalTopK"] == 9
+    assert payload["chunkSize"] == 900
+    assert payload["embeddingDimensions"] == 1024
+    persisted = db_session.get(Workspace, workspace.id)
+    assert persisted is not None
+    assert persisted.system_prompt == "Answer with a contract-review checklist."
+    assert persisted.retrieval_top_k == 9
+    assert persisted.chunk_size == 900
+
+
+def test_update_workspace_settings_requires_owner(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="owner@example.com", name="Owner")
+    member = create_user(db_session, email="member@example.com", name="Member")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Settings")
+    db_session.add(WorkspaceMembership(workspace_id=workspace.id, user_id=member.id, role="member"))
+    db_session.commit()
+
+    response = client.patch(
+        f"/v1/workspaces/{workspace.id}/settings",
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": member.id},
+        json={"systemPrompt": "no", "retrievalTopK": 2, "chunkSize": 400},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Only workspace owners can update workspace settings."
+
+
 def test_get_workspace_requires_membership(client: TestClient, db_session: Session) -> None:
     owner = create_user(db_session, email="owner@example.com", name="Owner")
     stranger = create_user(db_session, email="stranger@example.com", name="Stranger")
     workspace = create_workspace_with_membership(db_session, user=owner, name="Owner Workspace")
 
-    response = client.get(f"/v1/workspaces/{workspace.id}", headers={"x-user-id": stranger.id})
+    response = client.get(f"/v1/workspaces/{workspace.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": stranger.id})
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Workspace not found."
@@ -193,14 +248,14 @@ def test_archive_workspace_marks_archived_and_hides_from_future_lists(client: Te
     owner = create_user(db_session, email="owner@example.com", name="Owner")
     workspace = create_workspace_with_membership(db_session, user=owner, name="Archive Me")
 
-    response = client.delete(f"/v1/workspaces/{workspace.id}", headers={"x-user-id": owner.id})
+    response = client.delete(f"/v1/workspaces/{workspace.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
 
     assert response.status_code == 204
     archived_workspace = db_session.get(Workspace, workspace.id)
     assert archived_workspace is not None
     assert archived_workspace.archived_at is not None
 
-    list_response = client.get("/v1/workspaces", headers={"x-user-id": owner.id})
+    list_response = client.get("/v1/workspaces", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
     assert list_response.status_code == 200
     assert list_response.json()["items"] == []
 
@@ -218,7 +273,7 @@ def test_archive_workspace_requires_owner_role(client: TestClient, db_session: S
     )
     db_session.commit()
 
-    response = client.delete(f"/v1/workspaces/{workspace.id}", headers={"x-user-id": member.id})
+    response = client.delete(f"/v1/workspaces/{workspace.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": member.id})
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Only workspace owners can archive this workspace."
@@ -228,4 +283,13 @@ def test_workspace_routes_require_authenticated_header(client: TestClient) -> No
     response = client.get("/v1/workspaces")
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Authentication required."
+    assert response.json()["detail"] == "Internal API authentication required."
+
+
+def test_workspace_routes_require_internal_api_token(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="token-owner@example.com", name="Owner")
+
+    response = client.get("/v1/workspaces", headers={"x-user-id": owner.id})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Internal API authentication required."

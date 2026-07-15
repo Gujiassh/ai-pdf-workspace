@@ -192,16 +192,22 @@ def stream_chat(
             },
         )
         answer_parts: list[str] = []
+        stream_finalized = False
         try:
             for delta in prepared.generation_provider.stream(prepared.generation_messages):
                 answer_parts.append(delta)
                 yield _sse("delta", {"text": delta})
             completed = finalize_chat(db, prepared, "".join(answer_parts))
+            stream_finalized = True
             yield _sse("citations", {"items": [to_citation(citation).model_dump() for citation in completed.citations]})
             yield _sse("done", {"threadId": thread.id, "assistantMessageId": completed.assistant_message.id})
         except ModelProviderError as error:
             fail_chat(db, prepared, error.code, error.message)
             yield _sse("error", {"code": error.code, "message": error.message})
+        except GeneratorExit:
+            if not stream_finalized:
+                fail_chat(db, prepared, "generation_interrupted", "Chat generation was interrupted.")
+            raise
         except Exception:
             fail_chat(db, prepared, "generation_failed", "Chat generation failed.")
             yield _sse("error", {"code": "generation_failed", "message": "Chat generation failed."})

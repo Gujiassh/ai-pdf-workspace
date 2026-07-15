@@ -184,6 +184,15 @@ Chat 不用普通 JSON 完整返回。
   "id": "ws_xxx",
   "name": "论文阅读",
   "description": "可选描述",
+  "systemPrompt": "You are an AI research assistant...",
+  "retrievalTopK": 6,
+  "chunkSize": 1200,
+  "embeddingProvider": "ollama",
+  "embeddingModel": "qwen3-embedding:0.6b",
+  "embeddingDimensions": 1024,
+  "embeddingVersion": "embedding-v1",
+  "generationProvider": "openai",
+  "generationModel": "gpt-5.5",
   "role": "owner",
   "documentCount": 12,
   "noteCount": 18,
@@ -409,6 +418,32 @@ Chat 不用普通 JSON 完整返回。
   "description": "新描述"
 }
 ```
+
+### `PATCH /api/workspaces/:workspaceId/settings`
+
+作用：
+
+- 由 Workspace owner 持久化系统提示词、检索 top-k 和新文档 chunk size
+
+请求体：
+
+```json
+{
+  "systemPrompt": "Answer with evidence and cite caveats.",
+  "retrievalTopK": 6,
+  "chunkSize": 1200
+}
+```
+
+返回：
+
+```json
+{
+  "workspace": "WorkspaceSummary"
+}
+```
+
+provider、model、dimensions、version 是服务端运行配置的只读展示，不接受浏览器切换，也不返回任何 provider 密钥。新上传任务把 `chunkSize` 写入 `ingestion_jobs.config_snapshot`；聊天在请求时读取当前 Workspace 的 prompt 和 top-k。
 
 ## 6.2 Prompt
 
@@ -933,9 +968,9 @@ BFF 调 FastAPI 时，统一附带已认证上下文，例如：
 - `x-user-id`
 - `x-workspace-id`
 - `x-user-role`
-- `x-internal-signature`
+- `x-ai-pdf-internal-token`，由 Web BFF 使用 `AI_PDF_API_INTERNAL_TOKEN` 注入
 
-FastAPI 只信任这组内部上下文，不信任浏览器 body 里的身份字段。
+FastAPI 只信任 BFF 注入的 `x-user-id` 和 `x-ai-pdf-internal-token`，不信任浏览器 body 里的身份字段。生产部署必须让 FastAPI 只对 BFF/内网开放。
 
 ### 7.3 内部接口分组
 
@@ -944,7 +979,7 @@ FastAPI 只信任这组内部上下文，不信任浏览器 body 里的身份字
 - `GET /v1/workspaces`
 - `POST /v1/workspaces`
 - `GET /v1/workspaces/{workspaceId}`
-- `PATCH /v1/workspaces/{workspaceId}`
+- `PATCH /v1/workspaces/{workspaceId}/settings`
 - `GET /v1/workspaces/{workspaceId}/prompt/current`
 - `POST /v1/workspaces/{workspaceId}/prompt/versions`
 
@@ -1028,3 +1063,10 @@ FastAPI 只信任这组内部上下文，不信任浏览器 body 里的身份字
 - 对象存储预签名细节
 
 这些可以在正式实现前再下沉到更细的协议文档。
+
+
+## 10. 2026-07-15 运行边界补充
+
+- `GET /health`、`GET /health/live` 是 liveness；`GET /health/ready` 是 readiness，失败时返回 `503` 并返回不含密钥的依赖状态。
+- upload BFF 使用请求 body 流转发，API 使用 spool 临时文件后上传 MinIO；限制默认 100 MB，并校验实际字节数等于 upload-session 的 `byteSize`。
+- SSE 必须以 `done` 或显式 `error` 结束；delta 后的截断连接视为失败，不会被当成成功回答。

@@ -2,6 +2,15 @@ export type WorkspaceSummaryDto = {
   id: string;
   name: string;
   description: string | null;
+  systemPrompt: string;
+  retrievalTopK: number;
+  chunkSize: number;
+  embeddingProvider: string;
+  embeddingModel: string;
+  embeddingDimensions: number;
+  embeddingVersion: string;
+  generationProvider: string;
+  generationModel: string;
   role: string;
   documentCount: number;
   noteCount: number;
@@ -20,5 +29,10 @@ export type WorkspaceDetailResponseDto = {
 };
 
 export type CreateWorkspaceResponseDto = {
+  workspace: WorkspaceSummaryDto;
+};
+
+
+export type WorkspaceSettingsResponseDto = {
   workspace: WorkspaceSummaryDto;
 };

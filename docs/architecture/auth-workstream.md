@@ -80,4 +80,9 @@
 - 已补 FastAPI auth 接口自动化测试：覆盖注册成功、重复注册、正确登录、错误密码四个基本行为
 - 模块 2 第一段已完成：`users / workspaces / workspace_memberships` 最小真表链路已接通，`/api/workspaces` 与 `/v1/workspaces` 已改为按当前登录用户 membership 返回列表/详情，并支持创建和 owner 归档
 - 当前主工作台里的 notes / tags 已切到真实表、API、BFF 和前端恢复链路；citation -> note 会校验当前 workspace 的 `message_citations` 并保存来源快照，旧 notes/tags localStorage/mock 数据流已删除。threads 同样使用真实表、API、BFF 和前端恢复链路。
-- 模块 3 及之后尚未开始
+- 模块 3 已通过等价的 BFF httpOnly session 方案完成；业务 API 额外要求 `x-ai-pdf-internal-token`，模块 4 的生产级页面守卫和正式 IAM 仍可后续增强
+
+
+## 2026-07-15 内部调用边界
+
+FastAPI 业务路由统一由 `require_user_id` 同时校验 `x-user-id` 和 `x-ai-pdf-internal-token`。token 只在 Web/API 服务端环境变量 `AI_PDF_API_INTERNAL_TOKEN` 中配置；BFF 通过 `buildApiHeaders()` 统一注入，避免各 route 手写鉴权 header。

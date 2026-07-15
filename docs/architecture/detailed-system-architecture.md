@@ -215,7 +215,7 @@ ai-pdf-workspace/
 
 > [!IMPORTANT]
 > **当前实现态 (Current Interactive Frontend Prototype)**:  
-> 当前核心数据链路已落地：`workspace`、`documents`、Chat thread/message/citation、notes、tags 及其 BFF/API 均已接通；`workspace-context.tsx` 仍是一层过渡胶水，不应继续承载更多业务规则。notes/tags 的 LocalStorage/mock 数据流已删除，后续新增能力应继续沿用 API client + BFF + workspace hydrate 的边界。
+> 当前核心数据链路已落地：`workspace`、`documents`、Chat thread/message/citation、notes、tags 及其 BFF/API 均已接通；`workspace-context.tsx` 现在只负责 Provider 组合和视图状态暴露；`use-workspaces`、`use-documents`、`use-chat`、`use-notes-tags` 分别负责各自真实 API/BFF 数据域。LocalStorage/mock 数据流已删除，后续新增能力继续沿用 API client + BFF + feature hook hydrate 的边界。
 > 
 > **规划目标态 (Target Production Architecture)**:  
 > 后续对接真实 FastAPI 服务时，将全面引入并升级至以下生产级模块架构：
@@ -276,7 +276,7 @@ ai-pdf-workspace/
 
 > [!IMPORTANT]
 > **当前实现态 (Current Prototype Routing & Files)**:  
-> * **入口页面 (`/`)**: 承载临时 Mock 登录校验状态与全工作区管理大盘。
+> * **入口页面 (`/`)**: 承载登录态下的真实 Workspace 管理大盘。
 > * **控制台详情页 (`/workspaces/[workspaceId]`)**: 单个工作区的三栏物理分栏主体渲染页。
 > * **页面重定向 (`/workspaces`)**: 自动跳回 `/` 主门户。
 > * **物理组件群**: 集中位于 `src/components/`，状态管理器位于 `src/lib/`。

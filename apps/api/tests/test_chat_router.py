@@ -55,7 +55,7 @@ def setup_client() -> tuple[TestClient, Session, User, Workspace]:
 
 def test_thread_routes_persist_and_archive_threads() -> None:
     client, session, user, workspace = setup_client()
-    headers = {"x-user-id": user.id}
+    headers = {"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": user.id}
     try:
         created = client.post(
             f"/v1/workspaces/{workspace.id}/threads",
@@ -85,7 +85,7 @@ def test_thread_routes_persist_and_archive_threads() -> None:
 
 def test_thread_messages_returns_active_branch_in_parent_order() -> None:
     client, session, user, workspace = setup_client()
-    headers = {"x-user-id": user.id}
+    headers = {"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": user.id}
     now = datetime.now(UTC)
     thread = ChatThread(
         id=str(uuid4()),

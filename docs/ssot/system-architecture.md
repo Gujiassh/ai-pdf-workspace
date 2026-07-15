@@ -147,8 +147,7 @@ FastAPI 主业务服务。
 
 ### 4.1 组成与组件划分
 
-前端采用 `Next.js App Router + React Context (SSoT State Hub) + Tailwind CSS + Lucide Icons`。
-为严格执行“单文件物理行数 ≤ 500 行”规范，模块架构划分为：
+前端采用 `Next.js App Router + React Context Provider + feature hooks + Tailwind CSS + Lucide Icons`。Provider 只暴露稳定的 WorkspaceContext API；Workspace、Documents、Chat、Notes/Tags 和视图状态分别由 feature hooks/纯工具模块承载。
 
 1. `Shell & Navigation`
    - [WorkspaceSidebar](file:///home/cc/code/ai-pdf-workspace/apps/web/src/components/workspace-sidebar.tsx)：折叠/抽屉式导航栏。
@@ -169,7 +168,7 @@ FastAPI 主业务服务。
 
 4. `BFF & Data Layer`
    - Next.jsbff 路由转发。
-   - 当前存在一层临时数据胶水（[workspace-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/workspace-context.tsx)），但它只是过渡总线，不是长期目标架构。
+   - [workspace-context.tsx](file:///home/cc/code/ai-pdf-workspace/apps/web/src/lib/workspace-context.tsx) 只做 Provider 组合；数据域分别位于 `use-workspaces.ts`、`use-documents.ts`、`use-chat.ts`、`use-notes-tags.ts`，视图状态位于 `workspace-view-state.ts`。
 
 ### 4.2 前端自适应布局引擎 (Responsive Drawer Engine)
 
@@ -182,10 +181,10 @@ FastAPI 主业务服务。
 
 前端状态分类与持久化定义：
 
-1. `Server State & Local Sandbox`
-   - 早期原型阶段曾把工作区、文档处理列表、沉淀笔记、会话历史与独立标签等数据统一塞进本地 `LocalStorage` 沙盒。当前策略已调整为：只有未接真的 UI 壳允许暂时挂在本地状态上；一旦某条真实链路落地，就直接替换并删除对应 mock 逻辑，不再围绕旧沙盒结构做兼容。
-2. `LocalStorage Validation guards`
-   - 组件挂载（Mount）初始化加载时，必须经过类型安全检测防腐函数（如 `areWorkspacesValid` / `isUserValid`）做属性约束检测，检测失败自动丢弃受损缓存，防范由脏数据读取引发的 React 运行时白屏闪退风险。
+1. `Server State`
+   - Workspace、文档、任务、会话、笔记、标签和设置均以 FastAPI/Postgres/MinIO 为真实来源；Provider hydrate 后只保留当前页面运行时状态，不把业务数据写入 LocalStorage。
+2. `Local UI Preferences`
+   - 主题和语言可以写入 LocalStorage，因为它们不属于业务数据；不能用同一机制缓存 Workspace、文档、Chat 或设置。
 3. `UI Runtime State`
    - 当前文档激活页码、划词位置坐标、缩放比、侧栏折叠状态。
 4. `Micro-Interaction Animations`
@@ -701,3 +700,10 @@ V1 支持两类：
 - `Postgres` 是真相源，`Redis` 是加速层
 - `MinIO` 存文件，`pgvector` 存检索向量
 - `EmbeddingProvider` 必须可切换，不能把模型写死进业务层
+
+
+## 2026-07-15 运行边界
+
+- 浏览器只访问 Next.js BFF；业务 API 额外要求 `x-ai-pdf-internal-token`，该值来自 Web/API 服务端环境变量 `AI_PDF_API_INTERNAL_TOKEN`。
+- `/health/live` 只判断进程存活；`/health/ready` 检查数据库、对象存储、embedding provider 和 generation provider。
+- Worker 采用有限退避、结构化事件日志和信号优雅退出；任务业务失败仍由 ingestion 服务落库，不能用进程重试替代任务状态机。

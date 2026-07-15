@@ -149,7 +149,7 @@ def create_citation(session: Session, *, workspace: Workspace, user: User, docum
 
 
 def headers(user: User) -> dict[str, str]:
-    return {"x-user-id": user.id}
+    return {"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": user.id}
 
 
 def test_create_note_persists_citation_snapshot(notes_app) -> None:

@@ -4,12 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ai_pdf_api.core.settings import settings
 from ai_pdf_api.db.session import get_db
-from ai_pdf_api.models import ChatThread, Document, User, Workspace, WorkspaceMembership
+from ai_pdf_api.models import ChatThread, Document, Note, User, Workspace, WorkspaceMembership
 from ai_pdf_api.routers.deps import base_workspace_query_for_user, get_accessible_workspace, require_user_id
 from ai_pdf_api.schemas.workspace import (
     CreateWorkspaceRequest,
     CreateWorkspaceResponse,
+    UpdateWorkspaceSettingsRequest,
+    WorkspaceSettingsResponse,
     WorkspaceDetailResponse,
     WorkspaceListResponse,
     WorkspaceSummary,
@@ -50,16 +53,40 @@ def count_documents_for_workspaces(db: Session, workspace_ids: list[str]) -> dic
     return {workspace_id: count for workspace_id, count in rows}
 
 
+def count_notes_for_workspaces(db: Session, workspace_ids: list[str]) -> dict[str, int]:
+    if not workspace_ids:
+        return {}
+    rows = db.execute(
+        select(Note.workspace_id, func.count(Note.id))
+        .where(Note.workspace_id.in_(workspace_ids), Note.archived_at.is_(None))
+        .group_by(Note.workspace_id),
+    ).all()
+    return {workspace_id: count for workspace_id, count in rows}
+
+
 def to_workspace_summary(
-    workspace: Workspace, role: str, document_count: int = 0, thread_count: int = 0
+    workspace: Workspace,
+    role: str,
+    document_count: int = 0,
+    thread_count: int = 0,
+    note_count: int = 0,
 ) -> WorkspaceSummary:
     return WorkspaceSummary(
         id=workspace.id,
         name=workspace.name,
         description=workspace.description,
+        systemPrompt=workspace.system_prompt,
+        retrievalTopK=workspace.retrieval_top_k,
+        chunkSize=workspace.chunk_size,
+        embeddingProvider=settings.embedding_provider,
+        embeddingModel=settings.embedding_model,
+        embeddingDimensions=settings.embedding_dimensions,
+        embeddingVersion=settings.embedding_version,
+        generationProvider=settings.generation_provider,
+        generationModel=settings.generation_model,
         role=role,
         documentCount=document_count,
-        noteCount=0,
+        noteCount=note_count,
         threadCount=thread_count,
         createdAt=workspace.created_at.astimezone(UTC).isoformat(),
         updatedAt=workspace.updated_at.astimezone(UTC).isoformat(),
@@ -77,9 +104,16 @@ def list_workspaces(
     ).all()
     workspace_ids = [workspace.id for workspace, _role in rows]
     counts = count_documents_for_workspaces(db, workspace_ids)
+    note_counts = count_notes_for_workspaces(db, workspace_ids)
     thread_counts = count_threads_for_workspaces(db, workspace_ids)
     items = [
-        to_workspace_summary(workspace, role, counts.get(workspace.id, 0), thread_counts.get(workspace.id, 0))
+        to_workspace_summary(
+            workspace,
+            role,
+            counts.get(workspace.id, 0),
+            thread_counts.get(workspace.id, 0),
+            note_counts.get(workspace.id, 0),
+        )
         for workspace, role in rows
     ]
     return WorkspaceListResponse(items=items, nextCursor=None)
@@ -111,7 +145,7 @@ def create_workspace(
     db.add(membership)
     db.commit()
     db.refresh(workspace)
-    return CreateWorkspaceResponse(workspace=to_workspace_summary(workspace, membership.role, 0, 0))
+    return CreateWorkspaceResponse(workspace=to_workspace_summary(workspace, membership.role, 0, 0, 0))
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceDetailResponse)
@@ -123,8 +157,45 @@ def get_workspace(
     require_existing_user(user_id, db)
     workspace, role = get_accessible_workspace(db, user_id, workspace_id)
     document_count = count_documents_for_workspaces(db, [workspace.id]).get(workspace.id, 0)
+    note_count = count_notes_for_workspaces(db, [workspace.id]).get(workspace.id, 0)
     thread_count = count_threads_for_workspaces(db, [workspace.id]).get(workspace.id, 0)
-    return WorkspaceDetailResponse(workspace=to_workspace_summary(workspace, role, document_count, thread_count))
+    return WorkspaceDetailResponse(
+        workspace=to_workspace_summary(workspace, role, document_count, thread_count, note_count)
+    )
+
+
+@router.patch("/{workspace_id}/settings", response_model=WorkspaceSettingsResponse)
+def update_workspace_settings(
+    workspace_id: str,
+    payload: UpdateWorkspaceSettingsRequest,
+    user_id: str = Depends(require_user_id),
+    db: Session = Depends(get_db),
+) -> WorkspaceSettingsResponse:
+    _workspace, role = get_accessible_workspace(db, user_id, workspace_id)
+    if role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only workspace owners can update workspace settings.",
+        )
+
+    workspace = db.get(Workspace, workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
+    workspace.system_prompt = payload.systemPrompt.strip()
+    workspace.retrieval_top_k = payload.retrievalTopK
+    workspace.chunk_size = payload.chunkSize
+    workspace.updated_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(workspace)
+    return WorkspaceSettingsResponse(
+        workspace=to_workspace_summary(
+            workspace,
+            role,
+            count_documents_for_workspaces(db, [workspace.id]).get(workspace.id, 0),
+            count_threads_for_workspaces(db, [workspace.id]).get(workspace.id, 0),
+            count_notes_for_workspaces(db, [workspace.id]).get(workspace.id, 0),
+        )
+    )
 
 
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)

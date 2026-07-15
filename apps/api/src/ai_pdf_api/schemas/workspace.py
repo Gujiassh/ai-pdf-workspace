@@ -5,6 +5,15 @@ class WorkspaceSummary(BaseModel):
     id: str
     name: str
     description: str | None
+    systemPrompt: str
+    retrievalTopK: int
+    chunkSize: int
+    embeddingProvider: str
+    embeddingModel: str
+    embeddingDimensions: int
+    embeddingVersion: str
+    generationProvider: str
+    generationModel: str
     role: str
     documentCount: int
     noteCount: int
@@ -28,4 +37,14 @@ class CreateWorkspaceRequest(BaseModel):
 
 
 class CreateWorkspaceResponse(BaseModel):
+    workspace: WorkspaceSummary
+
+
+class UpdateWorkspaceSettingsRequest(BaseModel):
+    systemPrompt: str = Field(min_length=1, max_length=12000)
+    retrievalTopK: int = Field(ge=1, le=20)
+    chunkSize: int = Field(ge=200, le=4000)
+
+
+class WorkspaceSettingsResponse(BaseModel):
     workspace: WorkspaceSummary

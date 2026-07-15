@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 import { getApiBaseUrl } from "@/lib/api-base-url";
 
 const FORWARDED_HEADERS = [
@@ -26,7 +26,7 @@ export async function GET(
     {
       cache: "no-store",
       headers: {
-        "x-user-id": session.userId,
+        ...buildApiHeaders(session.userId),
       },
     },
   );

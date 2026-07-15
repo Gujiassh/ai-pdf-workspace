@@ -53,6 +53,7 @@ export function ChatBubble({
 
   return (
     <div
+      data-chat-message={msg.role}
       className={`flex flex-col ${isUser ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out`}
     >
       {isUser ? (

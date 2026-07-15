@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from ai_pdf_api.models import ChatMessage, ChatThread, MessageCitation
+from ai_pdf_api.models import ChatMessage, ChatThread, MessageCitation, Workspace
 from ai_pdf_api.services.providers import (
     EmbeddingProvider,
     GenerationProvider,
@@ -61,6 +61,10 @@ def prepare_chat(
     if not question_text:
         raise ChatError("question_required", "Question must not be empty.", 422)
 
+    workspace = db.get(Workspace, workspace_id)
+    if workspace is None:
+        raise ChatError("workspace_not_found", "Workspace not found.", 404)
+
     embedding = embedding_provider or get_embedding_provider()
     generation = generation_provider or get_generation_provider()
     parent_id = thread.active_message_id if parent_message_id is None and use_thread_active_parent else parent_message_id
@@ -82,7 +86,7 @@ def prepare_chat(
             workspace_id,
             query_embedding,
             embedding_provider=embedding,
-            limit=6,
+            limit=workspace.retrieval_top_k,
         )
         if not retrieved:
             raise ChatError(
@@ -97,12 +101,7 @@ def prepare_chat(
         generation_messages = [
             {
                 "role": "system",
-                "content": (
-                    "You answer questions using only the supplied PDF context. "
-                    "If the context does not support an answer, say that clearly. "
-                    "Cite supporting sources inline as [1], [2], and do not invent source numbers. "
-                    "Be concise and preserve important caveats."
-                ),
+                "content": workspace.system_prompt.strip(),
             },
             *({"role": message.role, "content": message.content} for message in prior_messages),
             {"role": "user", "content": user_prompt},

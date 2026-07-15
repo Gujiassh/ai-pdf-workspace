@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import secrets
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, status
+
+from ai_pdf_api.core.settings import settings
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
@@ -10,9 +13,21 @@ from ai_pdf_api.db.session import get_db
 from ai_pdf_api.models import User, Workspace, WorkspaceMembership
 
 UserIdHeader = Annotated[str | None, Header(alias="x-user-id")]
+InternalTokenHeader = Annotated[str | None, Header(alias="x-ai-pdf-internal-token")]
 
 
-def require_user_id(x_user_id: UserIdHeader = None) -> str:
+def require_internal_api_token(x_internal_token: InternalTokenHeader = None) -> None:
+    if not x_internal_token or not secrets.compare_digest(x_internal_token, settings.api_internal_token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Internal API authentication required.",
+        )
+
+
+def require_user_id(
+    x_user_id: UserIdHeader = None,
+    _internal_token: None = Depends(require_internal_api_token),
+) -> str:
     if not x_user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

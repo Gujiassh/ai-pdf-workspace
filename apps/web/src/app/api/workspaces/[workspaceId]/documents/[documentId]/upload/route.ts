@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 import { getApiBaseUrl } from "@/lib/api-base-url";
 
 export async function PUT(
@@ -18,18 +18,19 @@ export async function PUT(
     return NextResponse.json({ error: { code: "object_key_required", message: "objectKey is required." } }, { status: 400 });
   }
 
-  const body = await request.arrayBuffer();
+  const requestInit: RequestInit & { duplex?: "half" } = {
+    method: "PUT",
+    cache: "no-store",
+    headers: {
+      ...buildApiHeaders(session.userId),
+      "content-type": request.headers.get("content-type") ?? "application/pdf",
+    },
+    body: request.body,
+    duplex: "half",
+  };
   const response = await fetch(
     `${getApiBaseUrl()}/v1/workspaces/${workspaceId}/documents/${documentId}/upload?objectKey=${encodeURIComponent(objectKey)}`,
-    {
-      method: "PUT",
-      cache: "no-store",
-      headers: {
-        "x-user-id": session.userId,
-        "content-type": request.headers.get("content-type") ?? "application/pdf",
-      },
-      body: Buffer.from(body),
-    },
+    requestInit,
   );
 
   if (!response.ok) {

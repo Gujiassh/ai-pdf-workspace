@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 
 export async function DELETE(
   _request: Request,
@@ -16,7 +16,7 @@ export async function DELETE(
   const response = await fetch(`${getApiBaseUrl()}/v1/workspaces/${workspaceId}/threads/${threadId}`, {
     method: "DELETE",
     cache: "no-store",
-    headers: { "x-user-id": session.userId },
+    headers: buildApiHeaders(session.userId),
   });
 
   if (!response.ok) {

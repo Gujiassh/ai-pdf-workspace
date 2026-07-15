@@ -477,3 +477,11 @@ job_type=delete_cleanup: queued -> running -> succeeded
 - 多 worker 竞争同一文档的并发控制细节
 
 这些可以在后续扩展时单独加层，不应该现在压进主线。
+
+
+## 2026-07-15 可靠性补充
+
+- Worker 主循环只对进程级基础设施异常做有限指数退避；连续 5 次失败后以非零状态退出，由外部进程管理器重启。
+- PDF/OCR/embedding 业务失败仍由 `process_ingestion_job` 写入 `failed`，Worker 不会自动把已失败业务任务复活。
+- 任务领取后的 `running` lease 仍由 API 的 15 分钟回收逻辑兜底；进程在同步 OCR/embedding 中被终止时，不承诺立即更新状态。
+- `config_snapshot.chunkSize` 是本次 ingest 的切块配置快照；旧任务没有该字段时按历史默认 1200 处理。

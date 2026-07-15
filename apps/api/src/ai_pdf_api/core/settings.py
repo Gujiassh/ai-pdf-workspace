@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     minio_bucket: str = "ai-pdf-workspace"
     minio_secure: bool = False
     max_upload_bytes: int = Field(default=1024 * 1024 * 100)
+    api_internal_token: str = Field(
+        default="local-development-internal-token",
+        validation_alias=AliasChoices("AI_PDF_API_INTERNAL_TOKEN"),
+        min_length=16,
+    )
 
     embedding_provider: str = Field(default="openai", pattern="^(openai|ollama)$")
     embedding_model: str = "text-embedding-3-small"

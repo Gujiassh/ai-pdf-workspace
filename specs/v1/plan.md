@@ -23,7 +23,7 @@ V1 的目标是交付一个可演示、可使用、可扩展的 AI PDF Workspace
 
 ### 2.2 Out of Scope
 
-- OCR fallback
+- 多模态视觉理解（当前支持 Worker RapidOCR fallback 和 OCR 可选层）
 - rerank
 - hybrid search
 - 多人协作
@@ -228,3 +228,8 @@ V1 完成后，优先进入 V2：
 - rerank
 - structured output 抽取模板
 - embedding provider 抽象，接入开源本地模型
+
+
+## 当前实现偏差记录（2026-07-15）
+
+V1 已从原型计划进入真实数据链：前端 mock/localStorage 只保留无需持久化的 UI 状态，Workspace、Documents、Ingestion、Embedding、Chat、Notes、Tags 和 settings 均走真实 API/BFF/数据库。模型 provider 选择由服务端运行配置控制，设置页只读展示 provider/model，不提供无效的浏览器切换。

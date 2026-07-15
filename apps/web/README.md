@@ -4,7 +4,7 @@
 
 ## 1. 当前实施状态 (Current Implementation State)
 
-目前核心数据链路已接通：`workspace`、`documents`、Chat thread/message/citation、notes、tags 及其 BFF/API 均已接入真实数据；旧 mock 数据流不再作为兼容目标继续维护。
+目前核心数据链路已接通：`workspace`、`documents`、Chat thread/message/citation、notes、tags、Workspace settings 及其 BFF/API 均已接入真实数据；旧 mock 数据流不再作为兼容目标继续维护。
 
 * **已落地功能 (Implemented)**：
   * **工作区大盘门户 (`/`)**：100% 宽度极简 SaaS 表格行布局，支持开发模式下的显式注册、显式登录与工作区隔离删除。
@@ -16,6 +16,8 @@
     * `ChatBubble`：AI 对话气泡与内嵌随手记编辑器。
     * `CreateWorkspaceDialog`：工作区创建 Modal 对话框。
   * **真实知识沉淀**：Notes 使用真实 CRUD、来源快照和 workspace 隔离；Tags 使用真实 CRUD，并支持 document/note 多对多绑定与筛选。
+  * **真实 Workspace 设置**：系统提示词、检索 top-k、入库 chunk size 通过 BFF/API 持久化；provider/model/dimensions 只读展示服务端运行配置。
+  * **BFF 内部边界**：服务端请求使用 `AI_PDF_API_INTERNAL_TOKEN` 注入 `x-ai-pdf-internal-token`，浏览器不会接触该 token。
   * **多语言与暗黑模式**：内嵌统一的 `i18n-context` 与 `theme-context`。
   * **响应式定位抽屉**：手机/平板等宽幅下自动绝对化浮动（`absolute z-40`）并带有遮罩蒙层。
 * **规划目标态 (Target to Implement)**：
@@ -51,3 +53,15 @@ pnpm build
 ```
 
 `predev` 和 `prebuild` 会从已安装的 `pdfjs-dist` 自动复制浏览器端 PDF.js 主文件、worker 和 annotation 图标到 `public/pdfjs/`；这些生成文件不作为源码维护。
+
+## 测试与浏览器 smoke
+
+```bash
+pnpm test
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm exec playwright install chromium
+PLAYWRIGHT_START_WEB=1 pnpm e2e
+```
+
+默认 Playwright smoke 会验证未登录入口；设置 `PLAYWRIGHT_E2E_EMAIL`、`PLAYWRIGHT_E2E_PASSWORD` 后会额外验证登录、创建 Workspace 和 settings 持久化。再设置 `PLAYWRIGHT_E2E_PDF_PATH`，并准备可用的 API、数据库、MinIO、Worker 和模型 provider，才会执行 PDF canvas、OCR 选区、流式问答和编辑分支回归。

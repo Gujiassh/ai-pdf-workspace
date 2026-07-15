@@ -256,6 +256,9 @@ V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
 - `id uuid pk`
 - `name`
 - `description`
+- `system_prompt`，当前 Workspace 生效的系统提示词
+- `retrieval_top_k`，当前聊天检索召回数量，范围 `1..20`
+- `chunk_size`，新 ingest 任务的单 chunk 最大字符数，范围 `200..4000`
 - `created_by_user_id`
 - `archived_at nullable`
 - `created_at`
@@ -1160,3 +1163,8 @@ erDiagram
 - 多 embedding profile 并行在线索引
 
 如果后续要做这些，不应该在当前表上硬塞字段，而应该增加一层独立的页面理解与多模态索引设计。
+
+
+## 2026-07-15 实现补充
+
+当前代码使用 `workspaces.system_prompt / retrieval_top_k / chunk_size` 作为 Workspace 的正式配置，不使用前端 localStorage 作为数据源。迁移 `f7b8c9d0e1f2` 将旧 Workspace 回填为默认值；后续如果需要 Prompt 历史版本，再单独引入 `workspace_prompt_versions`，不能把当前字段悄悄改成只读缓存。

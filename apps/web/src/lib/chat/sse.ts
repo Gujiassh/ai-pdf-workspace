@@ -143,6 +143,14 @@ export async function consumeChatStream(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let sawDone = false;
+  let sawError = false;
+
+  const dispatch = (event: ParsedSseEvent) => {
+    sawDone ||= event.name === "done";
+    sawError ||= event.name === "error";
+    dispatchEvent(event, handlers);
+  };
 
   while (true) {
     const { done, value } = await reader.read();
@@ -155,7 +163,7 @@ export async function consumeChatStream(
     const parsed = parseSseEvents(buffer);
     buffer = parsed.remainder;
     for (const event of parsed.events) {
-      dispatchEvent(event, handlers);
+      dispatch(event);
     }
 
     if (done) {
@@ -166,7 +174,11 @@ export async function consumeChatStream(
   if (buffer.trim()) {
     const final = parseSseEvents(`${buffer}\n\n`);
     for (const event of final.events) {
-      dispatchEvent(event, handlers);
+      dispatch(event);
     }
+  }
+
+  if (!sawDone && !sawError) {
+    throw new Error("Chat stream ended before completion.");
   }
 }

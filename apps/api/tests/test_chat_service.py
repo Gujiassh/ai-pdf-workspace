@@ -37,7 +37,11 @@ class FakeGenerationProvider:
     provider = "fake"
     model = "fake-generation"
 
+    def __init__(self) -> None:
+        self.messages: list[dict[str, str]] = []
+
     def generate(self, messages: list[dict[str, str]]) -> str:
+        self.messages = messages
         assert any("PDF context" in message["content"] for message in messages)
         return "The answer is supported by [1]."
 
@@ -241,3 +245,39 @@ def test_active_message_path_rejects_a_missing_active_leaf() -> None:
             active_message_path(session, thread)
     finally:
         session.close()
+
+
+def test_chat_uses_persisted_workspace_prompt_and_top_k(monkeypatch: pytest.MonkeyPatch) -> None:
+    import ai_pdf_api.services.chat as chat_service
+
+    session, workspace_id, thread = build_session()
+    workspace = session.get(Workspace, workspace_id)
+    assert workspace is not None
+    workspace.system_prompt = "Use the workspace review policy."
+    workspace.retrieval_top_k = 3
+    session.commit()
+
+    captured: dict[str, int] = {}
+    original_retrieve = chat_service.retrieve_chunks
+
+    def capture_limit(*args, **kwargs):
+        captured["limit"] = kwargs["limit"]
+        return original_retrieve(*args, **kwargs)
+
+    monkeypatch.setattr(chat_service, "retrieve_chunks", capture_limit)
+    generation = FakeGenerationProvider()
+    complete_chat(
+        session,
+        workspace_id=workspace_id,
+        user_id="owner",
+        thread=thread,
+        question="What is the evidence?",
+        embedding_provider=FakeEmbeddingProvider(),
+        generation_provider=generation,
+    )
+
+    assert captured["limit"] == 3
+    assert generation.messages[0] == {
+        "role": "system",
+        "content": "Use the workspace review policy.",
+    }

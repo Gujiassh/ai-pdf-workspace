@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import SpooledTemporaryFile
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -26,7 +27,7 @@ from ai_pdf_api.schemas.document import (
     UploadDescriptor,
 )
 from ai_pdf_api.schemas.job import JobStatus
-from ai_pdf_api.services.storage import delete_object_if_exists, object_exists, stream_bytes, upload_bytes
+from ai_pdf_api.services.storage import delete_object_if_exists, object_exists, stream_bytes, upload_stream
 
 router = APIRouter(prefix="/v1/workspaces/{workspace_id}/documents", tags=["documents"])
 
@@ -215,14 +216,39 @@ async def upload_document_binary(
             detail="Object key mismatch.",
         )
 
-    payload = await request.body()
-    if len(payload) == 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty upload body.")
-    if len(payload) > settings.max_upload_bytes:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Upload exceeds max size.")
+    declared_length = request.headers.get("content-length")
+    if declared_length:
+        try:
+            if int(declared_length) > settings.max_upload_bytes:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail="Upload exceeds max size.",
+                )
+        except ValueError as error:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid content length.") from error
 
     content_type = request.headers.get("content-type", document.mime_type)
-    upload_bytes(document.object_key, payload, content_type)
+    with SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b") as payload:
+        total_size = 0
+        async for chunk in request.stream():
+            total_size += len(chunk)
+            if total_size > settings.max_upload_bytes:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail="Upload exceeds max size.",
+                )
+            payload.write(chunk)
+
+        if total_size == 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty upload body.")
+        if total_size != document.byte_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Upload size does not match the upload session.",
+            )
+        payload.seek(0)
+        upload_stream(document.object_key, payload, total_size, content_type)
+
     document.updated_at = datetime.now(UTC)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -236,7 +262,7 @@ def finalize_upload(
     user: User = Depends(require_existing_user),
     db: Session = Depends(get_db),
 ) -> FinalizeUploadResponse:
-    get_accessible_workspace(db, user.id, workspace_id)
+    workspace, _role = get_accessible_workspace(db, user.id, workspace_id)
     document = get_workspace_document(db, workspace_id, document_id)
     if document.status != "pending_upload":
         raise HTTPException(
@@ -267,6 +293,7 @@ def finalize_upload(
             "embeddingModel": settings.embedding_model,
             "embeddingDimensions": settings.embedding_dimensions,
             "embeddingVersion": settings.embedding_version,
+            "chunkSize": workspace.chunk_size,
         },
         requested_by_user_id=user.id,
         queued_at=now,
@@ -294,7 +321,7 @@ def reindex_document(
     user: User = Depends(require_existing_user),
     db: Session = Depends(get_db),
 ) -> FinalizeUploadResponse:
-    get_accessible_workspace(db, user.id, workspace_id)
+    workspace, _role = get_accessible_workspace(db, user.id, workspace_id)
     document = get_workspace_document(db, workspace_id, document_id)
     db.refresh(document, with_for_update=True)
     if document.status in {"pending_upload", "uploaded", "parsing", "chunking", "deleting", "deleted"}:
@@ -326,6 +353,7 @@ def reindex_document(
             "embeddingModel": settings.embedding_model,
             "embeddingDimensions": settings.embedding_dimensions,
             "embeddingVersion": settings.embedding_version,
+            "chunkSize": workspace.chunk_size,
         },
         requested_by_user_id=user.id,
         queued_at=now,

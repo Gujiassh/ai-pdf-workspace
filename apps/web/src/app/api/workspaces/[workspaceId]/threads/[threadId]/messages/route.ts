@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
-import { readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
+import { buildApiHeaders, readRequiredServerSession, unauthorizedResponse } from "@/lib/auth/server-route";
 
 export async function GET(
   _request: Request,
@@ -17,7 +17,7 @@ export async function GET(
     `${getApiBaseUrl()}/v1/workspaces/${workspaceId}/threads/${threadId}/messages`,
     {
       cache: "no-store",
-      headers: { "x-user-id": session.userId },
+      headers: buildApiHeaders(session.userId),
     },
   );
   const data = await response.json();

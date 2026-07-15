@@ -20,6 +20,7 @@ from ai_pdf_api.services.ingestion import (
     estimate_token_count,
     process_ingestion_job,
     process_embedding_job,
+    split_page_text,
 )
 
 
@@ -51,7 +52,7 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Generator[Te
     def override_get_db() -> Generator[Session, None, None]:
         yield db_session
 
-    monkeypatch.setattr("ai_pdf_api.routers.documents.upload_bytes", lambda *args, **kwargs: None)
+    monkeypatch.setattr("ai_pdf_api.routers.documents.upload_stream", lambda *args, **kwargs: None)
     monkeypatch.setattr("ai_pdf_api.routers.documents.object_exists", lambda object_key: True)
     monkeypatch.setattr("ai_pdf_api.routers.documents.delete_object_if_exists", lambda object_key: None)
 
@@ -137,7 +138,7 @@ def test_list_documents_requires_membership(client: TestClient, db_session: Sess
     workspace = create_workspace_with_membership(db_session, user=owner, name="Private")
     create_document(db_session, workspace=workspace, user=owner)
 
-    response = client.get(f"/v1/workspaces/{workspace.id}/documents", headers={"x-user-id": stranger.id})
+    response = client.get(f"/v1/workspaces/{workspace.id}/documents", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": stranger.id})
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Workspace not found."
@@ -159,7 +160,7 @@ def test_get_document_file_streams_original_pdf_for_members(client: TestClient, 
     for user_id in (owner.id, member.id):
         response = client.get(
             f"/v1/workspaces/{workspace.id}/documents/{document.id}/file",
-            headers={"x-user-id": user_id},
+            headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": user_id},
         )
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/pdf"
@@ -168,7 +169,7 @@ def test_get_document_file_streams_original_pdf_for_members(client: TestClient, 
 
     forbidden_response = client.get(
         f"/v1/workspaces/{workspace.id}/documents/{document.id}/file",
-        headers={"x-user-id": stranger.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": stranger.id},
     )
     assert forbidden_response.status_code == 404
     assert forbidden_response.json()["detail"] == "Workspace not found."
@@ -180,11 +181,11 @@ def test_create_upload_session_persists_pending_document(client: TestClient, db_
 
     response = client.post(
         f"/v1/workspaces/{workspace.id}/documents/upload-session",
-        headers={"x-user-id": owner.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
         json={
             "sourceFilename": "attention.pdf",
             "mimeType": "application/pdf",
-            "byteSize": 4567,
+            "byteSize": len(b"%PDF-1.7 fake pdf bytes"),
             "title": "Attention Is All You Need",
         },
     )
@@ -209,7 +210,7 @@ def test_create_upload_session_rejects_non_pdf(client: TestClient, db_session: S
 
     response = client.post(
         f"/v1/workspaces/{workspace.id}/documents/upload-session",
-        headers={"x-user-id": owner.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
         json={
             "sourceFilename": "notes.txt",
             "mimeType": "text/plain",
@@ -226,11 +227,11 @@ def test_binary_upload_and_finalize_creates_queued_ingestion_job(client: TestCli
     workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
     upload_session = client.post(
         f"/v1/workspaces/{workspace.id}/documents/upload-session",
-        headers={"x-user-id": owner.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
         json={
             "sourceFilename": "attention.pdf",
             "mimeType": "application/pdf",
-            "byteSize": 4567,
+            "byteSize": len(b"%PDF-1.7 fake pdf bytes"),
             "title": "Attention Is All You Need",
         },
     ).json()
@@ -240,7 +241,7 @@ def test_binary_upload_and_finalize_creates_queued_ingestion_job(client: TestCli
 
     upload_response = client.put(
         f"/v1/workspaces/{workspace.id}/documents/{document_id}/upload",
-        headers={"x-user-id": owner.id, "content-type": "application/pdf"},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id, "content-type": "application/pdf"},
         params={"objectKey": object_key},
         content=b"%PDF-1.7 fake pdf bytes",
     )
@@ -248,7 +249,7 @@ def test_binary_upload_and_finalize_creates_queued_ingestion_job(client: TestCli
 
     finalize_response = client.post(
         f"/v1/workspaces/{workspace.id}/documents/{document_id}/finalize-upload",
-        headers={"x-user-id": owner.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
         json={"objectKey": object_key},
     )
 
@@ -267,6 +268,26 @@ def test_binary_upload_and_finalize_creates_queued_ingestion_job(client: TestCli
     assert job is not None
     assert job.document_id == document_id
     assert job.job_type == "ingest"
+
+
+def test_binary_upload_rejects_size_mismatch(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="size-owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    upload_session = client.post(
+        f"/v1/workspaces/{workspace.id}/documents/upload-session",
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
+        json={"sourceFilename": "attention.pdf", "mimeType": "application/pdf", "byteSize": 99},
+    ).json()
+
+    response = client.put(
+        f"/v1/workspaces/{workspace.id}/documents/{upload_session['document']['id']}/upload",
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id, "content-type": "application/pdf"},
+        params={"objectKey": upload_session["upload"]["objectKey"]},
+        content=b"short",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Upload size does not match the upload session."
 
 
 def test_get_job_returns_persisted_job(client: TestClient, db_session: Session) -> None:
@@ -288,7 +309,7 @@ def test_get_job_returns_persisted_job(client: TestClient, db_session: Session) 
     db_session.commit()
     db_session.refresh(job)
 
-    response = client.get(f"/v1/workspaces/{workspace.id}/jobs/{job.id}", headers={"x-user-id": owner.id})
+    response = client.get(f"/v1/workspaces/{workspace.id}/jobs/{job.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
 
     assert response.status_code == 200
     payload = response.json()
@@ -591,7 +612,7 @@ def test_reindex_queues_embed_job_with_embedding_config_snapshot(
 
     response = client.post(
         f"/v1/workspaces/{workspace.id}/documents/{document.id}/reindex",
-        headers={"x-user-id": owner.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
     )
 
     assert response.status_code == 200
@@ -605,6 +626,7 @@ def test_reindex_queues_embed_job_with_embedding_config_snapshot(
         "embeddingModel": "fake-embedding",
         "embeddingDimensions": 3,
         "embeddingVersion": "fake-v1",
+        "chunkSize": 1200,
     }
 
 
@@ -753,7 +775,7 @@ def test_document_detail_returns_persisted_page_text(client: TestClient, db_sess
     response = client.get(
         f"/v1/workspaces/{workspace.id}/documents/{document.id}",
         params={"pageNumber": 1},
-        headers={"x-user-id": owner.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
     )
 
     assert response.status_code == 200
@@ -766,7 +788,7 @@ def test_document_detail_returns_persisted_page_text(client: TestClient, db_sess
     missing_page = client.get(
         f"/v1/workspaces/{workspace.id}/documents/{document.id}",
         params={"pageNumber": 2},
-        headers={"x-user-id": owner.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
     )
     assert missing_page.status_code == 404
     assert missing_page.json()["detail"] == "Document page not found."
@@ -791,7 +813,7 @@ def test_document_detail_returns_persisted_ocr_blocks(client: TestClient, db_ses
     response = client.get(
         f"/v1/workspaces/{workspace.id}/documents/{document.id}",
         params={"pageNumber": 1},
-        headers={"x-user-id": owner.id},
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
     )
 
     assert response.status_code == 200
@@ -831,10 +853,10 @@ def test_delete_document_requires_owner_and_soft_deletes(client: TestClient, db_
     )
     db_session.commit()
 
-    forbidden = client.delete(f"/v1/workspaces/{workspace.id}/documents/{document.id}", headers={"x-user-id": member.id})
+    forbidden = client.delete(f"/v1/workspaces/{workspace.id}/documents/{document.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": member.id})
     assert forbidden.status_code == 403
 
-    deleted = client.delete(f"/v1/workspaces/{workspace.id}/documents/{document.id}", headers={"x-user-id": owner.id})
+    deleted = client.delete(f"/v1/workspaces/{workspace.id}/documents/{document.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
     assert deleted.status_code == 204
 
     refreshed = db_session.get(Document, document.id)
@@ -844,6 +866,13 @@ def test_delete_document_requires_owner_and_soft_deletes(client: TestClient, db_
     assert db_session.scalars(select(DocumentPage).where(DocumentPage.document_id == document.id)).all() == []
     assert db_session.scalars(select(DocumentChunk).where(DocumentChunk.document_id == document.id)).all() == []
 
-    list_response = client.get(f"/v1/workspaces/{workspace.id}/documents", headers={"x-user-id": owner.id})
+    list_response = client.get(f"/v1/workspaces/{workspace.id}/documents", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
     assert list_response.status_code == 200
     assert list_response.json()["items"] == []
+
+
+def test_split_page_text_honors_workspace_chunk_size() -> None:
+    chunks = split_page_text("word " * 300, chunk_size=200)
+
+    assert len(chunks) > 1
+    assert all(len(chunk_text) <= 200 for _start, _end, chunk_text in chunks)
