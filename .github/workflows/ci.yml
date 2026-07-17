@@ -35,6 +35,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: apps/api/uv.lock
       - run: uv sync --project apps/api --extra dev
+      - run: >-
+          uv export --project apps/api --frozen --no-dev --no-emit-project
+          --format requirements-txt --output-file apps/api/requirements.deploy.txt
+      - run: git diff --exit-code -- apps/api/requirements.deploy.txt
       - run: uv run --project apps/api pytest apps/api/tests
       - run: uv run --project apps/api alembic upgrade head
       - run: uv run --project apps/api alembic check
@@ -48,6 +52,11 @@ jobs:
           enable-cache: true
           cache-dependency-glob: apps/worker/uv.lock
       - run: uv sync --project apps/worker --dev
+      - run: >-
+          uv export --project apps/worker --frozen --no-dev --no-emit-project
+          --no-emit-package ai-pdf-api --format requirements-txt
+          --output-file apps/worker/requirements.deploy.txt
+      - run: git diff --exit-code -- apps/worker/requirements.deploy.txt
       - run: uv run --project apps/worker pytest apps/worker/tests
       - run: uv run --project apps/worker python -m compileall -q apps/worker/src apps/worker/tests
 

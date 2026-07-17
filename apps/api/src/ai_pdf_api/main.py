@@ -1,9 +1,22 @@
 from __future__ import annotations
 
 import httpx
+import logging
+import time
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from fastapi import FastAPI, Response, status
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 
+from ai_pdf_api.core.logging import configure_application_logging
+from ai_pdf_api.core.metrics import (
+    HTTP_REQUEST_DURATION,
+    HTTP_REQUESTS,
+    INGESTION_METRICS_REFRESH_FAILURES,
+    refresh_ingestion_job_metrics,
+)
 from ai_pdf_api.core.settings import settings
 from ai_pdf_api.db.session import SessionLocal
 from ai_pdf_api.routers.auth import router as auth_router
@@ -14,6 +27,51 @@ from ai_pdf_api.routers.notes import router as notes_router
 from ai_pdf_api.routers.workspaces import router as workspaces_router
 from ai_pdf_api.services.storage import build_storage_client
 
+configure_application_logging()
+logger = logging.getLogger(__name__)
+
+HTTP_METHODS = {"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"}
+
+
+class HttpMetricsMiddleware:
+    def __init__(self, app: Callable[..., Awaitable[None]]) -> None:
+        self.app = app
+
+    async def __call__(
+        self,
+        scope: dict[str, Any],
+        receive: Callable[..., Awaitable[dict[str, Any]]],
+        send: Callable[[dict[str, Any]], Awaitable[None]],
+    ) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        started = time.perf_counter()
+        response_status = 500
+        completed = False
+
+        async def observe_send(message: dict[str, Any]) -> None:
+            nonlocal response_status, completed
+            if message["type"] == "http.response.start":
+                response_status = message["status"]
+            await send(message)
+            if message["type"] == "http.response.body" and not message.get("more_body", False):
+                completed = True
+
+        try:
+            await self.app(scope, receive, observe_send)
+        finally:
+            route = scope.get("route")
+            route_template = getattr(route, "path", "unmatched")
+            raw_method = str(scope.get("method", "other")).upper()
+            method = raw_method if raw_method in HTTP_METHODS else "other"
+            status_label = str(response_status if completed else 499 if response_status < 500 else 500)
+            HTTP_REQUESTS.labels(method=method, route=route_template, status=status_label).inc()
+            HTTP_REQUEST_DURATION.labels(method=method, route=route_template).observe(
+                time.perf_counter() - started
+            )
+
+
 app = FastAPI(title="AI PDF Workspace API")
 app.include_router(auth_router)
 app.include_router(workspaces_router)
@@ -21,6 +79,9 @@ app.include_router(documents_router)
 app.include_router(chat_router)
 app.include_router(jobs_router)
 app.include_router(notes_router)
+
+
+app.add_middleware(HttpMetricsMiddleware)
 
 
 def _check_database() -> str:
@@ -93,3 +154,14 @@ def readiness(response: Response) -> dict[str, object]:
     if not ready:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {"status": "ok" if ready else "not_ready", "service": "api", "checks": checks}
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    try:
+        with SessionLocal() as db:
+            refresh_ingestion_job_metrics(db)
+    except Exception as error:
+        INGESTION_METRICS_REFRESH_FAILURES.inc()
+        logger.error("metrics_refresh_failed metric=ingestion_jobs error_type=%s", type(error).__name__)
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

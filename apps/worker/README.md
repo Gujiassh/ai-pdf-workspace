@@ -23,7 +23,10 @@ cd /home/cc/code/ai-pdf-workspace
 AI_PDF_EMBEDDING_PROVIDER=ollama AI_PDF_EMBEDDING_MODEL=qwen3-embedding:0.6b uv run --python 3.12 --project apps/worker python -m ai_pdf_worker.main
 ```
 
+本地 metrics 默认只监听 `127.0.0.1:9101`。完整部署由 Compose 显式设置 `AI_PDF_WORKER_METRICS_HOST=0.0.0.0`，但端口只在 Compose 私网 expose，不发布到宿主机。
+
 Worker 使用 RapidOCR + ONNX Runtime 在 CPU 上识别扫描 PDF 页面。OCR 模型随依赖安装，不会写入仓库；首次处理扫描件时会占用更多 CPU 和内存。
+`rapidocr-onnxruntime` 自身提供并锁定 OpenCV 依赖，Worker 不再重复安装另一套 `opencv-python-headless`，避免两个发行包覆盖同一 `cv2` 文件。
 
 
 Worker 不会自动切换 embedding provider。`AI_PDF_EMBEDDING_PROVIDER`、`AI_PDF_EMBEDDING_MODEL` 必须和 API 使用同一套索引配置；切换 provider 或版本后，需要重新执行文档 reindex。

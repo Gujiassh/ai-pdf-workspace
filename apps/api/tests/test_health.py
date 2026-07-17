@@ -1,6 +1,32 @@
+import logging
+import asyncio
+from contextlib import contextmanager
+
 from fastapi.testclient import TestClient
 
 import ai_pdf_api.main as main_module
+from ai_pdf_api.core.logging import APPLICATION_HANDLER_NAME
+from ai_pdf_api.core.metrics import HTTP_REQUEST_DURATION, HTTP_REQUESTS
+
+
+def test_application_logs_use_flat_info_formatter() -> None:
+    application_logger = logging.getLogger("ai_pdf_api")
+    handler = next(
+        item for item in application_logger.handlers if item.get_name() == APPLICATION_HANDLER_NAME
+    )
+    record = logging.LogRecord(
+        name="ai_pdf_api.services.retrieval",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="retrieval_complete strategy=hybrid workspace_id=workspace-1 total_ms=1.250",
+        args=(),
+        exc_info=None,
+    )
+
+    assert application_logger.level == logging.INFO
+    assert handler.level == logging.INFO
+    assert handler.format(record) == "retrieval_complete strategy=hybrid workspace_id=workspace-1 total_ms=1.250"
 
 
 def test_liveness_does_not_require_dependencies() -> None:
@@ -38,3 +64,61 @@ def test_readiness_returns_dependency_status_and_503_when_unavailable(monkeypatc
             "generationProvider": "ok",
         },
     }
+
+
+def test_metrics_exposes_route_template_and_ingestion_job_counts(monkeypatch) -> None:
+    class Result:
+        def all(self):
+            return [("queued", 3), ("failed", 1)]
+
+    class FakeSession:
+        def execute(self, _statement):
+            return Result()
+
+    @contextmanager
+    def fake_session_local():
+        yield FakeSession()
+
+    monkeypatch.setattr(main_module, "SessionLocal", fake_session_local)
+    client = TestClient(main_module.app)
+
+    assert client.get("/health/live").status_code == 200
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
+    assert 'ai_pdf_http_requests_total{method="GET",route="/health/live",status="200"}' in response.text
+    assert 'ai_pdf_ingestion_jobs{status="queued"} 3.0' in response.text
+    assert 'ai_pdf_ingestion_jobs{status="running"} 0.0' in response.text
+    assert 'ai_pdf_ingestion_jobs{status="failed"} 1.0' in response.text
+
+
+def test_http_metrics_cover_full_stream_and_bound_custom_methods(monkeypatch) -> None:
+    async def streaming_app(_scope, _receive, send) -> None:
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"first", "more_body": True})
+        await asyncio.sleep(0.02)
+        await send({"type": "http.response.body", "body": b"second", "more_body": False})
+
+    middleware = main_module.HttpMetricsMiddleware(streaming_app)
+    counter = HTTP_REQUESTS.labels(method="other", route="unmatched", status="200")
+    duration = HTTP_REQUEST_DURATION.labels(method="other", route="unmatched")
+    before_counter = counter._value.get()
+    before_sum = duration._sum.get()
+
+    async def receive():
+        return {"type": "http.request"}
+
+    async def send(_message):
+        return None
+
+    asyncio.run(
+        middleware(
+            {"type": "http", "method": "X-CUSTOM-METRICS", "path": "/stream"},
+            receive,
+            send,
+        )
+    )
+
+    assert counter._value.get() == before_counter + 1
+    assert duration._sum.get() - before_sum >= 0.02

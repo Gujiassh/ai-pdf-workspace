@@ -1,11 +1,13 @@
 import logging
 import signal
+import urllib.request
 from collections.abc import Callable
 from threading import Event
 
 import pytest
 
 import ai_pdf_worker.main as worker
+from ai_pdf_worker.metrics import WORKER_JOBS
 
 
 class SessionContext:
@@ -38,15 +40,23 @@ def test_process_one_job_claims_and_handles_one_job(
         ocr_extract_page_texts: object,
         embedding_provider: object,
     ) -> None:
+        assert worker.WORKER_ACTIVE_JOBS._value.get() == 1
         calls.append((received_db, job_id, embedding_provider))
 
     monkeypatch.setattr(worker, "process_ingestion_job", fake_process)
 
+    claimed = WORKER_JOBS.labels(outcome="claimed")
+    handled = WORKER_JOBS.labels(outcome="handled")
+    before_claimed = claimed._value.get()
+    before_handled = handled._value.get()
     with caplog.at_level(logging.INFO, logger=worker.logger.name):
         assert worker.process_one_job() is True
     assert calls == [(db, "job-1", provider)]
     assert "worker_job_claimed job_id=job-1" in caplog.text
     assert "worker_job_handled job_id=job-1" in caplog.text
+    assert claimed._value.get() == before_claimed + 1
+    assert handled._value.get() == before_handled + 1
+    assert worker.WORKER_ACTIVE_JOBS._value.get() == 0
 
 
 def test_process_one_job_returns_false_without_claiming_job(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -173,6 +183,12 @@ def test_main_logs_fatal_process_error_and_reraises(
 
     monkeypatch.setattr(worker, "_install_signal_handlers", fake_install)
     monkeypatch.setattr(worker, "run_worker", fail_worker)
+    metrics_calls: list[tuple[str, int]] = []
+    monkeypatch.setattr(
+        worker,
+        "start_metrics_server",
+        lambda host, port: metrics_calls.append((host, port)),
+    )
 
     with (
         caplog.at_level(logging.ERROR, logger=worker.logger.name),
@@ -181,6 +197,7 @@ def test_main_logs_fatal_process_error_and_reraises(
         worker.main()
 
     assert "worker_fatal error_type=RuntimeError" in caplog.text
+    assert metrics_calls == [(worker.settings.worker_metrics_host, worker.settings.worker_metrics_port)]
 
 
 def test_process_one_job_propagates_handler_exception(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -195,8 +212,28 @@ def test_process_one_job_propagates_handler_exception(monkeypatch: pytest.Monkey
 
     monkeypatch.setattr(worker, "process_ingestion_job", fail_process)
 
+    errors = WORKER_JOBS.labels(outcome="error")
+    before_errors = errors._value.get()
     with pytest.raises(RuntimeError, match="handler failure"):
         worker.process_one_job()
+    assert errors._value.get() == before_errors + 1
+    assert worker.WORKER_ACTIVE_JOBS._value.get() == 0
+
+
+def test_worker_metrics_server_exposes_prometheus_text() -> None:
+    server, thread = worker.start_metrics_server("127.0.0.1", 0)
+    try:
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{server.server_port}/metrics", timeout=2
+        ) as response:
+            body = response.read().decode()
+        assert response.status == 200
+        assert "ai_pdf_worker_jobs_total" in body
+        assert "ai_pdf_worker_active_jobs" in body
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
 
 
 def test_retry_delay_is_exponential_and_bounded() -> None:

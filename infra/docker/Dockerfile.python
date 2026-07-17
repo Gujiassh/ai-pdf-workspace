@@ -1,0 +1,46 @@
+# syntax=docker/dockerfile:1
+
+FROM python:3.12-slim@sha256:c3d81d25b3154142b0b42eb1e61300024426268edeb5b5a26dd7ddf64d9daf28 AS python-base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+RUN groupadd --system --gid 10001 app \
+    && useradd --system --uid 10001 --gid app --home-dir /app app
+
+WORKDIR /app
+
+FROM python-base AS api
+
+COPY apps/api/requirements.deploy.txt /app/apps/api/requirements.deploy.txt
+RUN pip install --no-cache-dir --require-hashes -r /app/apps/api/requirements.deploy.txt
+
+COPY apps/api /app/apps/api
+RUN chown -R app:app /app
+
+USER app
+WORKDIR /app/apps/api
+ENV PYTHONPATH=/app/apps/api/src
+
+EXPOSE 8000
+CMD ["uvicorn", "ai_pdf_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+FROM python-base AS worker
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends libgl1 libglib2.0-0 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY apps/api/pyproject.toml /app/apps/api/pyproject.toml
+COPY apps/api/src /app/apps/api/src
+COPY apps/worker/requirements.deploy.txt /app/apps/worker/requirements.deploy.txt
+RUN pip install --no-cache-dir --require-hashes -r /app/apps/worker/requirements.deploy.txt
+
+COPY apps/worker /app/apps/worker
+RUN chown -R app:app /app
+
+USER app
+WORKDIR /app/apps/worker
+ENV PYTHONPATH=/app/apps/api/src:/app/apps/worker/src
+
+CMD ["python", "-m", "ai_pdf_worker.main"]

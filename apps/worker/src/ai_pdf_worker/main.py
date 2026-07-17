@@ -6,10 +6,12 @@ from collections.abc import Callable
 from threading import Event
 
 from ai_pdf_api.db.session import SessionLocal
+from ai_pdf_api.core.settings import settings
 from ai_pdf_api.services.ingestion import claim_next_ingestion_job, process_ingestion_job
 from ai_pdf_api.services.providers import get_embedding_provider
 
 from ai_pdf_worker.ocr import extract_page_texts_with_ocr
+from ai_pdf_worker.metrics import WORKER_ACTIVE_JOBS, WORKER_JOBS, start_metrics_server
 
 POLL_INTERVAL_SECONDS = 1.0
 RETRY_INITIAL_DELAY_SECONDS = 1.0
@@ -29,12 +31,21 @@ def process_one_job() -> bool:
             return False
 
         logger.info("worker_job_claimed job_id=%s", job_id)
-        process_ingestion_job(
-            db,
-            job_id,
-            ocr_extract_page_texts=extract_page_texts_with_ocr,
-            embedding_provider=get_embedding_provider(),
-        )
+        WORKER_JOBS.labels(outcome="claimed").inc()
+        WORKER_ACTIVE_JOBS.inc()
+        try:
+            process_ingestion_job(
+                db,
+                job_id,
+                ocr_extract_page_texts=extract_page_texts_with_ocr,
+                embedding_provider=get_embedding_provider(),
+            )
+        except Exception:
+            WORKER_JOBS.labels(outcome="error").inc()
+            raise
+        finally:
+            WORKER_ACTIVE_JOBS.dec()
+        WORKER_JOBS.labels(outcome="handled").inc()
         logger.info("worker_job_handled job_id=%s", job_id)
         return True
 
@@ -151,6 +162,7 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     stop_event = Event()
+    start_metrics_server(settings.worker_metrics_host, settings.worker_metrics_port)
     _install_signal_handlers(stop_event)
     logger.info(
         "worker_start poll_interval_seconds=%.3f max_consecutive_errors=%s "

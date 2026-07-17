@@ -16,6 +16,7 @@ dependencies = [
   "minio>=7.2.20",
   "pypdf>=5.8.0",
   "pgvector>=0.4.1",
+  "prometheus-client>=0.22.1",
 ]
 
 [project.optional-dependencies]
