@@ -66,7 +66,7 @@ V1、V2-A 与阶段 9 已完成。后续按以下顺序推进：
 
 ## 6. 当前正在做什么
 
-当前：`阶段 9 已完成；第一用户复杂 PDF 任务验证协议、Evidence 合同 Draft RFC 和设计阶段 spec/plan/tasks 已建立。下一步需要真实参与者/问题和 PDF fixture；在合同获批前不实施迁移。`
+当前：`阶段 9 已完成；第一用户复杂 PDF 任务验证协议、严格 CSV 分析工具、Evidence 合同 Draft RFC 和设计阶段 spec/plan/tasks 已建立。下一步需要真实参与者、问题和 PDF；在合同获批前不实施迁移。`
 
 收口结果：
 
@@ -107,6 +107,7 @@ V1、V2-A 与阶段 9 已完成。后续按以下顺序推进：
 - 2026-07-16 战略调整：保留 Chat-first 主画布和按需 PDF 证据层；第一用户收敛为基于论文、技术规范和评测报告做判断的 AI/软件工程师与技术研究者。下一阶段只设计并验证多模态 PDF Evidence；Asset/Representation/ContentUnit/EvidenceLocator 是目标域，不是已实施合同。Omnilabel 作为独立产品赌注，不作为普通格式扩展。
 - 2026-07-16 Evidence 设计启动：建立第一用户任务验证协议，按事实、比较、方法、表格、图表和无答案任务记录支持结论完成率、核验后耗时和区域定位缺口；建立 `pdf_page/pdf_region` Draft RFC，明确当前 Citation/NoteSource 冻结合同、CropBox/旋转/多区域坐标提案、持久化选项和 6 项待批准决策。当前没有数据库、API、SSE 或保存语义变更。
 - 2026-07-16 Evidence 设计夹具：新增不含机密数据的 8 页合成 PDF，覆盖 0/90/180/270 度旋转、CropBox、表格单元格、图表同页多区域和无文本层扫描页；生成器和 manifest 反向验证通过。当前 Citation/NoteSource fixture 严格通过现行 Pydantic schema，候选 `.draft.json` 只用于 payload 对照且明确未获批准。
+- 2026-07-17 用户验证工具：新增严格 18 列 CSV 校验和确定性 JSON 分析 CLI，按 manual/AI 工作流计算支持结论完成率、中位耗时、Citation 页码准确率与打开率、转笔记率、正确拒答率、无答案编造和区域缺口，并区分自动门禁的 `pass/fail/not_evaluable`。真实 PDF 数量、继续使用意愿和七日复用仍保留为人工证据。
 
 ## 7. 下一步
 

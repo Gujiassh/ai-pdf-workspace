@@ -104,6 +104,28 @@ observer_notes:
 
 批量记录可使用 `docs/research/user-task-results-template.csv`。问题、答案和观察文本若包含逗号、引号或换行，必须按标准 CSV 规则引用，不能用简单字符串拼接生成。
 
+CSV 枚举值统一使用以下机器可读口径：
+
+- `task_type`：`exact_fact | cross_document_compare | method_constraints | table | chart | no_answer`
+- `workflow`：`manual | ai_pdf_workspace`
+- `saved_note`：`yes | no`
+- `supported_conclusion`：`pass | fail`
+- `citation_page_accuracy`：`pass | fail | not_applicable`
+- `region_gap`：`none | table | chart | image | scan | other`
+
+`started_at` 和 `completed_at` 必须使用带 UTC offset 的 ISO 8601 时间。`opened_citations` 记录实际打开的 citation 标识，未打开时留空。对于 `no_answer` 任务，`supported_conclusion=pass` 且 `unsupported_claims` 为空表示正确拒答；任何 `unsupported_claims` 内容都计为无答案任务中的事实编造。
+
+使用分析工具校验 CSV 并生成 JSON 报告：
+
+```bash
+cd apps/api
+uv run python scripts/analyze_user_task_results.py \
+  --dataset ../../docs/research/user-task-results.csv \
+  --output ../../docs/research/user-task-results-report.json
+```
+
+报告包含分工作流的支持结论完成率、中位耗时、Citation 页码准确率/打开率、转笔记率、正确拒答率、无答案编造数和区域定位缺口，以及整体和参与者内耗时降幅。自动门禁只判断 CSV 能直接证明的指标；真实 PDF 数量、继续使用意愿和七日复用仍需人工证据，不能因自动检查通过而宣称产品验证完成。
+
 ## 8. 失败样本写回
 
 每个失败任务必须归入一个主要原因：
