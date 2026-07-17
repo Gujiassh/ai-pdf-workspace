@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "coordinateStatus": "draft-fixture-not-approved-contract",
+  "coordinateBasis": "unrotated MediaBox or CropBox as named per page",
+  "pages": [
+    {
+      "label": "rotation-0",
+      "pageNumber": 1,
+      "rotationDegrees": 0,
+      "regionsInUnrotatedMediaBox": [
+        {
+          "x": 0.117647,
+          "y": 0.166667,
+          "width": 0.411765,
+          "height": 0.090909
+        }
+      ]
+    },
+    {
+      "label": "rotation-90",
+      "pageNumber": 2,
+      "rotationDegrees": 90,
+      "regionsInUnrotatedMediaBox": [
+        {
+          "x": 0.117647,
+          "y": 0.166667,
+          "width": 0.411765,
+          "height": 0.090909
+        }
+      ]
+    },
+    {
+      "label": "rotation-180",
+      "pageNumber": 3,
+      "rotationDegrees": 180,
+      "regionsInUnrotatedMediaBox": [
+        {
+          "x": 0.117647,
+          "y": 0.166667,
+          "width": 0.411765,
+          "height": 0.090909
+        }
+      ]
+    },
+    {
+      "label": "rotation-270",
+      "pageNumber": 4,
+      "rotationDegrees": 270,
+      "regionsInUnrotatedMediaBox": [
+        {
+          "x": 0.117647,
+          "y": 0.166667,
+          "width": 0.411765,
+          "height": 0.090909
+        }
+      ]
+    },
+    {
+      "label": "crop-box",
+      "pageNumber": 5,
+      "rotationDegrees": 0,
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        54.0,
+        576.0,
+        738.0
+      ],
+      "regionsInUnrotatedCropBox": [
+        {
+          "x": 0.1,
+          "y": 0.140351,
+          "width": 0.444444,
+          "height": 0.105263
+        }
+      ]
+    },
+    {
+      "label": "table-cell",
+      "pageNumber": 6,
+      "rotationDegrees": 0,
+      "regionsInUnrotatedCropBox": [
+        {
+          "x": 0.359477,
+          "y": 0.391414,
+          "width": 0.24183,
+          "height": 0.050505
+        }
+      ]
+    },
+    {
+      "label": "chart-multi-region",
+      "pageNumber": 7,
+      "rotationDegrees": 0,
+      "regionsInUnrotatedCropBox": [
+        {
+          "x": 0.130719,
+          "y": 0.290404,
+          "width": 0.637255,
+          "height": 0.265152
+        },
+        {
+          "x": 0.124183,
+          "y": 0.613636,
+          "width": 0.480392,
+          "height": 0.042929
+        }
+      ]
+    },
+    {
+      "label": "raster-scan",
+      "pageNumber": 8,
+      "rotationDegrees": 0,
+      "regionsInUnrotatedCropBox": [
+        {
+          "x": 0.107843,
+          "y": 0.121212,
+          "width": 0.529412,
+          "height": 0.078283
+        }
+      ]
+    }
+  ]
+}

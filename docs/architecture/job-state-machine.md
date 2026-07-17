@@ -170,6 +170,7 @@
 
 - 文档正在被删除清理
 - 用户侧不应继续操作
+- 删除清理失败时仍保留该状态，并通过最近一次 `delete_cleanup` 任务的错误信息展示重试入口
 
 ### `deleted`
 
@@ -306,6 +307,8 @@ failed
 2. 失败历史必须保留
 3. 文档是否恢复可用，仍以 `documents.status=ready` 为准
 
+当前实现：`POST /documents/{documentId}/retry` 会新建 `job_type=ingest` 任务，保留原失败任务记录，按同一文档历史最大 `attempt_count + 1` 写入新任务，并清除文档上的最近错误信息。
+
 ## 8. 重建索引状态机
 
 这是最容易设计错的一块。
@@ -371,17 +374,19 @@ Previous vectors remain unchanged
 ## 9.2 主流程
 
 ```text
-documents.status: ready|failed -> deleting -> deleted
+documents.status: ready|chunked|failed -> deleting -> deleted
 job_type=delete_cleanup: queued -> running -> succeeded
+                              -> failed -> queued (owner retry)
 ```
 
 ## 9.3 关键规则
 
 1. 一旦进入 `deleting`，前端应把该文档视为不可操作
-2. 清理过程中失败时，删除任务进入 `failed`
-3. 文档主记录是否立即隐藏，由前端列表策略决定，但业务上不应继续让它参与检索
+2. 清理过程中失败时，删除任务进入 `failed`，文档保持 `deleting` 并保存错误
+3. 只有 workspace owner 可以发起删除或重试失败的清理任务
+4. 文档主记录是否立即隐藏，由前端列表策略决定，但业务上不应继续让它参与检索
 
-当前实现会在文档软删除事务中同步清理 `document_pages` 和 `document_chunks`；对象存储删除仍由删除接口执行。后续引入 `delete_cleanup` Worker 时，再把对象存储和大规模产物清理拆成可重试任务。
+当前实现：删除接口返回 `202 Accepted`，只把文档置为 `deleting` 并创建 `delete_cleanup` job；Worker 负责幂等删除对象存储、`document_pages`、`document_chunks`，全部成功后才写入 `deleted_at` 和 `deleted`。清理失败时 `POST /documents/{documentId}/delete-retry` 会保留失败历史并重新排队。
 
 ## 10. 前端如何消费这些状态
 

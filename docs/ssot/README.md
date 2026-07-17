@@ -11,5 +11,13 @@
 1. `product-design.md`
 2. `system-architecture.md`
 3. `project-collaboration.md`
-4. `../specs/v1/plan.md`
-5. `../specs/v1/tasks.md`
+4. `../architecture/implementation-progress.md`
+5. `../architecture/implementation-roadmap.md`
+6. `../../specs/v2/deployment-baseline/spec.md`
+7. `../../specs/v2/deployment-baseline/tasks.md`
+8. `../research/user-task-validation-2026-07.md`
+9. `../architecture/evidence-contract-rfc.md`
+10. `../architecture/evidence-migration-impact.md`
+11. `../../specs/v3/evidence-contract/spec.md`
+
+`specs/v1/`、`specs/v2/retrieval-quality/` 和 `specs/v2/deployment-baseline/` 均作为完成基线保留。`specs/v3/evidence-contract/` 只管理当前用户验证和合同设计；合同批准后再创建多模态 PDF 实施 spec。

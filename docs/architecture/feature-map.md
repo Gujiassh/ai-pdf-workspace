@@ -1,200 +1,78 @@
 # 功能地图
 
-## 1. 这份文档是什么
-
-这份文档把 AI PDF Workspace 的功能按业务链路和模块边界整理成一张地图。
-
-它的作用是：
-
-- 指导后续拆页面
-- 指导后续拆 API
-- 指导后续拆数据库表
-- 指导后续拆任务流
-- 让实现顺序和产品目标保持一致
-
-## 2. 总体功能地图
+## 1. 当前产品能力
 
 ```text
 AI PDF Workspace
 ├─ 账号与 Workspace
-│  ├─ 登录 / 会话
+│  ├─ 登录 / 会话 / 隔离
 │  ├─ Workspace 创建 / 切换 / 归档
-│  ├─ Workspace 概览
-│  └─ Workspace Prompt 配置
-├─ 文档中心
-│  ├─ PDF 上传
-│  ├─ 上传进度 / 失败重试
-│  ├─ 文档列表 / 筛选
-│  └─ PDF 浏览器 / 页码跳转
-├─ 知识处理管线
-│  ├─ PDF 解析
-│  ├─ chunk 切分
-│  ├─ embedding 生成
-│  ├─ pgvector 索引
-│  └─ 任务状态机
-├─ 检索与问答
-│  ├─ Workspace 内检索
-│  ├─ Chat 流式回答
-│  ├─ citations 引用
-│  └─ 引用跳回原文
-├─ 知识沉淀
-│  ├─ 笔记
-│  ├─ 标签
-│  └─ citation -> note
-└─ 系统能力
-   ├─ 鉴权
-   ├─ 缓存 / 队列
-   ├─ 对象存储
-   ├─ 模型 Provider
-   └─ 部署 / 观测
+│  └─ Prompt 与检索配置
+├─ PDF 资产接入
+│  ├─ 上传 / 失败重试 / 异步删除
+│  ├─ PDF.js 原文阅读 / 页码 / 目录
+│  └─ 文本层 / 扫描页 OCR 选择层
+├─ 知识处理
+│  ├─ 文本解析 / OCR fallback
+│  ├─ page / chunk / embedding
+│  ├─ PostgreSQL lexical + pgvector Dense + RRF
+│  └─ 任务状态机 / 版本边界
+├─ 证据问答
+│  ├─ Chat-first 多文档问答
+│  ├─ 流式回答 / 消息分支
+│  ├─ 页码 citation / 原文跳转
+│  └─ citation -> note / 标签
+└─ 运行基线
+   ├─ 锁定镜像 / Alembic migration gate
+   ├─ Prometheus / grep-friendly 日志
+   ├─ PostgreSQL + MinIO 同批备份恢复
+   └─ Caddy HTTPS 安全入口
 ```
 
-### 2.1 当前范围说明
+以上是当前已实现事实。正式数据模型仍是 `Document -> Page -> Chunk -> Citation`，PDF 是唯一正式 Asset 类型。
 
-当前功能地图只覆盖 `文本 PDF 工作流`：
+## 2. 下一阶段：多模态 PDF
 
-- 可直接提取文本的 PDF
-- 无文本层扫描 PDF 的 OCR fallback（结果复用普通页面文本）
-- 文本 chunk
-- 文本检索与问答
+下一阶段只扩 PDF 内部证据表达，不同时接入所有媒体格式：
 
-暂不纳入：
+- 页面布局和段落区域
+- OCR bbox 质量与坐标合同
+- 表格结构、表头/行列关系和表格问题
+- 图片/图表区域、描述和必要时的视觉检索
+- `pdf_page / pdf_region` 类型化 locator
+- citation 点击后的精确区域高亮
+- 文本、扫描页、表格、图表、图片和无答案问题的分层评测
 
-- 图表 / 表格 / 图片区域理解
-- 多模态 chunk
-- 页内区域级 citation
+实现前必须先批准 Evidence 数据合同与迁移设计。目标模型可以讨论 `Asset / Representation / ContentUnit / Embedding / EvidenceLocator`，但不能在当前表中先放任意 JSON locator 或顺手改 Citation API。
 
-## 3. 模块说明
+## 3. 目标领域边界
 
-### 3.1 账号与 Workspace
+- `Asset`：Workspace 下源资产身份、权限、生命周期和原始对象引用
+- `Representation`：原文件、OCR、布局、表格、caption 等可版本化派生表示
+- `ContentUnit`：段落、区域、表格、图像等可寻址检索/分析单元
+- `Embedding`：ContentUnit 的可重建索引投影，不是业务真相
+- `EvidenceLocator`：连接证据快照与源资产的类型化定位值
+- `Citation`：回答生成时冻结 locator、展示摘要和索引映射的不可变证据快照
 
-这部分解决“用户是谁”和“用户现在在哪个知识空间里工作”。
+聚合、数量和分布问题走 SQL/分析路径；LLM 不得根据少量召回样本猜总量。模态入库适配器只产 Representation、ContentUnit 和 Locator，不把具体模态业务规则堆进 Chat 或共享容器。
 
-功能包括：
+## 4. 远期与独立赌注
 
-- 登录和会话维持
-- 创建 Workspace
-- 切换 Workspace
-- 归档 Workspace
-- 配置 Workspace 专属 Prompt
-- 查看 Workspace 概览
+| 方向 | 定位 | 进入条件 |
+| --- | --- | --- |
+| 独立图片 | 同一技术研究 JTBD 下的区域检索和以图找图 | 多模态 PDF 已证明复用价值 |
+| Audio | ASR、说话人、时间段证据 | 单独用户任务与黄金集 |
+| Video | 镜头、关键帧、字幕、时间段证据 | 单独成本和延迟门禁 |
+| Omnilabel | 标签、预测、数据集质量和结构化分析 | 独立用户研究、权限与 SQL/分析架构 |
 
-这一组功能是整套系统的入口，也是所有业务隔离的起点。
+Omnilabel 不是“再支持一种文件”，而是另一个业务域；它不默认进入当前产品下一版本。
 
-### 3.2 文档中心
+## 5. 变更门禁
 
-这部分解决“用户把资料放进系统”。
+新增能力必须：
 
-功能包括：
-
-- 上传 PDF
-- 查看上传进度
-- 失败后重试
-- 文档列表与筛选
-- 浏览 PDF
-- 页码跳转
-
-这部分不负责真正的知识处理，只负责把文件接进来，并让用户能看见文档本身。
-
-### 3.3 知识处理管线
-
-这部分解决“PDF 怎么变成可检索知识”。
-
-功能包括：
-
-- PDF 解析
-- 切 chunk
-- 生成 embedding
-- 写入 pgvector
-- 维护任务状态机
-
-这部分必须是异步的，因为它是长任务链，不适合卡在用户请求里。
-
-### 3.4 检索与问答
-
-这部分解决“用户怎么在当前 Workspace 里找答案”。
-
-功能包括：
-
-- Workspace 内检索
-- Chat 流式回答
-- citations 引用
-- 引用跳回原文
-
-这里的关键原则是：
-
-- 回答不能脱离来源
-- 引用必须回得到原文页码
-- 检索边界只能在当前 Workspace 内
-
-### 3.5 知识沉淀
-
-这部分解决“用户怎么把有价值的结果留下来”。
-
-功能包括：
-
-- 笔记
-- 标签
-- citation 转 note
-
-这部分让系统不只是“问答工具”，而是“可持续积累的知识工作台”。
-
-### 3.6 系统能力
-
-这部分是所有上层功能的基础。
-
-功能包括：
-
-- 鉴权
-- 缓存 / 队列
-- 对象存储
-- 模型 Provider
-- 部署 / 观测
-
-这一组不是用户直接点的功能，但没有它们，整个系统跑不稳。
-
-## 4. V1 必做清单
-
-V1 必须完成的功能链路是：
-
-1. 登录和 Workspace 创建
-2. 上传 PDF
-3. 解析与建索引
-4. 浏览 PDF
-5. Workspace 内检索
-6. 带 citations 的问答
-7. citation 转 note
-8. 标签管理
-9. Workspace Prompt 配置
-
-## 5. V2 再加的内容
-
-V2 再补：
-
-- rerank
-- hybrid search
-- embedding provider 切换 UI
-- Prompt 版本管理
-- 索引重建面板
-
-## 6. 后续可选方向
-
-如果未来确认要做多模态，再单独新增：
-
-- 图表 / 表格 / 图片区域检测
-- visual chunk
-- region-level citation
-
-这部分当前不进入系统主线。
-
-## 7. 这份地图怎么用
-
-后续拆文档时按这个顺序走：
-
-- 先拆前端页面
-- 再拆后端 API
-- 再拆数据库表
-- 再拆任务状态机
-- 最后补部署和运维
-
-如果新的功能不能挂到这张地图上，说明它还没想清楚，或者不该进 V1。
+1. 明确第一用户任务和可验证结果。
+2. 写 feature spec、plan、tasks 和合同影响。
+3. 涉及持久化/API/save 语义时先取得明确批准。
+4. 用真实 fixture、指标、运行证据和旧/新 payload 比较验收。
+5. 同步代码、测试、SSoT、运行手册和进度文档。

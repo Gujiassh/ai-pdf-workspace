@@ -61,7 +61,7 @@
 
 ## 6. 当前项目范围提醒
 
-当前项目仍按 `文本 PDF 主链` 推进。
+当前实现基线仍是 `文本 PDF + 扫描 PDF OCR`，当前开发阶段是用户任务验证与 Evidence 合同设计。
 
 当前主线包括：
 
@@ -70,15 +70,20 @@
 - 文本解析
 - chunk
 - embedding
-- pgvector 检索
+- PostgreSQL lexical + pgvector Dense + RRF Hybrid 检索
 - Chat + citation
 - 笔记与标签
 - 部署与观测
 - 扫描 PDF 的 Worker 内部 OCR fallback
 
-图表、表格结构化理解和多模态文档理解仍作为扩展方向记录，不进入当前主线实现。
+多模态 PDF 的布局、表格、图表和区域证据属于下一目标，但在 Evidence 合同获得明确批准前只做用户验证、评测与设计，不改持久化、Citation API 或保存语义。独立图片、音频、视频和 Omnilabel 不进入当前主线。
 
-## 7. Mock 处理原则
+## 7. Git 提交约定
+
+- 本仓库的 commit message 统一使用英文。
+- 未经用户在当前对话中明确授权，不执行 commit 或 push。
+
+## 8. Mock 处理原则
 
 在本项目里，现有 mock 只作为 UI 壳和交互参考保留：
 

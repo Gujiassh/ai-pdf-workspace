@@ -1,0 +1,10 @@
+{
+  "id": "cit_fixture_current",
+  "messageId": "msg_fixture",
+  "citationIndex": 0,
+  "documentId": "doc_fixture",
+  "documentTitle": "Synthetic Evidence Fixture",
+  "pageNumber": 7,
+  "chunkId": "chunk_fixture",
+  "excerpt": "Trend rises after the third point."
+}

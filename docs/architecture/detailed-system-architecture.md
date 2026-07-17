@@ -735,7 +735,7 @@ V1 任务粒度建议：
 - Worker 只执行重任务和更新状态
 - 任何任务最终状态都写回 Postgres
 
-当前实现已落 `ingest/embed_chunks` 消费：Worker 轮询 Postgres 中 queued job，以行锁领取任务，优先提取 PDF 文本层；没有文本时用 RapidOCR + ONNX Runtime 渲染页面并识别，再写入 `document_pages`（含 OCR blocks）、`document_chunks`，批量调用 Ollama/OpenAI embedding provider 写入 pgvector，并把文档推进到 `ready`。Web Viewer 另从原始 PDF 文件流读取源文件，使用 PDF.js canvas/text/annotation layers 阅读，扫描页额外叠加透明 OCR 可选层，不把 OCR 文本重新排版成假 PDF。检索服务按 workspace 和 embedding version 做 cosine top-k，Chat API 已持久化 thread/message/citation，按父节点链支持编辑分支，并通过真实 Responses API delta SSE 返回；Notes/Tags API 已持久化 `notes`、`note_sources`、`tags`、`document_tags`、`note_tags`，citation -> note 使用 `message_citations` 快照校验与落库。
+当前实现已落 `ingest/embed_chunks/delete_cleanup` 消费：Worker 轮询 Postgres 中 queued job，以行锁领取任务，优先提取 PDF 文本层；没有文本时用 RapidOCR + ONNX Runtime 渲染页面并识别，再写入 `document_pages`（含 OCR blocks）、`document_chunks`，批量调用 Ollama/OpenAI embedding provider 写入 pgvector，并把文档推进到 `ready`。Web Viewer 从原始 PDF 文件流读取源文件，使用 PDF.js canvas/text/annotation layers 阅读，扫描页额外叠加透明 OCR 可选层。检索服务在 workspace 和当前索引版本边界内执行 Dense、PostgreSQL FTS/pg_trgm lexical 与页级 RRF，生产验收通过后默认使用 Hybrid；Chat API 已持久化 thread/message/citation，按父节点链支持编辑分支，并通过真实 Responses API delta SSE 返回；Notes/Tags API 已持久化知识沉淀关系，citation -> note 使用 `message_citations` 快照校验与落库。
 
 ## 8. 数据库架构
 
@@ -967,13 +967,7 @@ V1 明确采用：
 - pgvector top-k recall
 - 直接进入回答编排
 
-不做：
-
-- hybrid search
-- rerank
-- graph retrieval
-
-原因不是做不到，而是 V1 需要先把主链路跑顺。
+当前检索事实：PostgreSQL lexical、pgvector Dense 和页级 RRF 已通过 40 条生产评测、warm-up 与并发门禁，默认使用 Hybrid；Dense 保留为显式回归策略。Rerank 和 graph retrieval 仍不进入主线，除非黄金集证明现有融合存在明确缺口。
 
 ## 13. 部署架构
 
@@ -990,6 +984,7 @@ V1 明确采用：
 - redis
 - minio
 - ollama
+- caddy
 
 ### 13.2 为什么本地需要 Ollama
 
@@ -1007,8 +1002,8 @@ V1 明确采用：
 
 ### 13.4 网络边界
 
-- 公网仅暴露 Web
-- API / Worker / DB / Redis / MinIO 在私网
+- 公网仅暴露 Caddy；生产域名由 Caddy 自动 HTTPS
+- Web / API / Worker / DB / Redis / MinIO 在私网
 - API 允许访问 OpenAI
 - Worker 允许访问对象存储、数据库、缓存、模型服务
 
@@ -1030,15 +1025,28 @@ V1 明确采用：
 
 ### 14.2 指标
 
-至少要有：
+当前已落地：
 
-- ingestion success rate
-- parse duration
-- embedding duration
-- retrieval latency
-- chat first-token latency
-- chat total duration
-- citation missing rate
+- HTTP route-template count 和完整 response lifetime
+- provider count/duration/outcome
+- retrieval count/duration/outcome/result count
+- storage operation count/duration/outcome
+- ingestion job status gauge
+- Worker job/active 指标和单行任务日志
+
+产品层的 citation 核验率、回答支持率、答案转笔记率与首 token 仍需在下一阶段补充。
+
+## 14.3 备份恢复与入口
+
+- Web/API/Worker/Caddy 在 PostgreSQL custom dump 和 MinIO mirror 的同一停写窗口停止接收写入
+- manifest 绑定 Compose project、数据库和 bucket，checksum 必须与文件闭集完全一致
+- 恢复只允许进入空部署，停写前验证 custom archive，并使用单事务 `pg_restore`
+- MinIO 恢复后回读并逐文件对比；恢复完成后重复执行 Alembic migration
+- Caddy 在生产域名自动 HTTPS，并返回 HSTS、nosniff、frame deny 和 referrer policy
+
+## 14.4 下一目标架构边界
+
+后续多模态 PDF 不直接把现有 `Document/Page/Chunk/Citation` 改名。先单独设计 `Asset / Representation / ContentUnit / Embedding / EvidenceLocator`，其中 `pdf_region` 必须冻结 page、bbox 坐标单位、原点、旋转、CropBox 和多区域语义。正式实施属于持久化与 Citation API 合同变化，必须经单独规格和批准。
 
 ## 15. 这份架构文档能指导什么
 

@@ -1,0 +1,25 @@
+{
+  "contractStatus": "draft-not-approved",
+  "id": "ns_fixture_proposed",
+  "messageCitationId": "cit_fixture_proposed",
+  "documentId": "doc_fixture",
+  "documentTitle": "Synthetic Evidence Fixture",
+  "excerpt": "Trend rises after the third point.",
+  "locator": {
+    "kind": "pdf_region",
+    "version": 1,
+    "pageNumber": 7,
+    "coordinateSpace": "pdf_crop_box_normalized_top_left_v1",
+    "pageGeometry": {
+      "cropBoxPoints": [0, 0, 612, 792],
+      "rotationDegrees": 0,
+      "displayWidthPoints": 612,
+      "displayHeightPoints": 792
+    },
+    "regions": [
+      { "x": 0.130719, "y": 0.290404, "width": 0.637255, "height": 0.265152 },
+      { "x": 0.124183, "y": 0.613636, "width": 0.480392, "height": 0.042929 }
+    ]
+  },
+  "createdAt": "2026-07-16T00:00:00Z"
+}
