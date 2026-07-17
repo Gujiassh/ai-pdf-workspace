@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getWorkspaceViewStateForWorkspace, getWorkspaceViewableDocs } from "./workspace-view-state";
+import {
+  clampEvidencePanelWidth,
+  getWorkspaceViewStateForWorkspace,
+  getWorkspaceViewableDocs,
+} from "./workspace-view-state";
 import type { Document } from "./workspace-context";
 
 const documents: Document[] = [
@@ -40,12 +44,14 @@ const documents: Document[] = [
   },
 ];
 
-test("view-state selects only the first viewable document for a workspace", () => {
+test("view-state preselects the first document without opening the evidence panel", () => {
   assert.deepEqual(getWorkspaceViewableDocs("ws-1", documents).map((document) => document.id), ["doc-ready"]);
   assert.deepEqual(getWorkspaceViewStateForWorkspace("ws-1", documents), {
     openDocumentIds: ["doc-ready"],
     activeDocumentId: "doc-ready",
     activePdfPage: 1,
+    evidencePanelOpen: false,
+    evidencePanelExpanded: false,
   });
 });
 
@@ -54,5 +60,14 @@ test("view-state clears document selection when a workspace has no viewable docu
     openDocumentIds: [],
     activeDocumentId: null,
     activePdfPage: 1,
+    evidencePanelOpen: false,
+    evidencePanelExpanded: false,
   });
+});
+
+test("evidence panel resizing preserves both evidence and chat minimum widths", () => {
+  assert.equal(clampEvidencePanelWidth(200, 1152), 400);
+  assert.equal(clampEvidencePanelWidth(640, 1152), 640);
+  assert.equal(clampEvidencePanelWidth(900, 1152), 712);
+  assert.equal(clampEvidencePanelWidth(1200, 1800), 920);
 });

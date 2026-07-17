@@ -43,14 +43,17 @@ function SettingsForm({ currentWorkspace, onSaveSettings, t }: SettingsFormProps
 
   return (
     <div className="flex h-full flex-col bg-white transition-colors duration-200 dark:bg-zinc-950">
-      <div className="border-b border-zinc-200 px-4 py-3 transition dark:border-zinc-800">
-        <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t("settings.header")}</h3>
-        <span className="mt-0.5 block text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">
-          {t("settings.subtitle")}
-        </span>
+      <div className="border-b border-zinc-200 px-4 py-3 transition dark:border-zinc-800 sm:px-8">
+        <div className="mx-auto w-full max-w-3xl">
+          <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t("settings.header")}</h3>
+          <span className="mt-0.5 block text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">
+            {t("settings.subtitle")}
+          </span>
+        </div>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+        <div className="mx-auto w-full max-w-3xl space-y-6">
         <form onSubmit={handleSave} className="space-y-3">
           <div>
             <div className="flex items-center justify-between">
@@ -162,6 +165,7 @@ function SettingsForm({ currentWorkspace, onSaveSettings, t }: SettingsFormProps
               />
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

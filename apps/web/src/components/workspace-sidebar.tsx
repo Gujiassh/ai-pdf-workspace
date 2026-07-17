@@ -10,7 +10,7 @@ import { useTranslation } from "@/lib/i18n-context";
 import { 
   Plus, Trash2, MessageSquare, 
   Tag as TagIcon, ChevronDown, UploadCloud, X, ChevronLeft, ChevronRight,
-  Sun, Moon, Globe, LogOut, Home
+  Sun, Moon, Globe, LogOut, Home, RotateCcw
 } from "lucide-react";
 import { CreateWorkspaceDialog } from "./create-workspace-dialog";
 export function WorkspaceSidebar() {
@@ -28,6 +28,8 @@ export function WorkspaceSidebar() {
     createWorkspace,
     uploadDocument,
     deleteDocument,
+    retryDocument,
+    retryDeleteDocument,
     openDocument,
     createThread,
     switchThread,
@@ -35,6 +37,7 @@ export function WorkspaceSidebar() {
     addTag,
     deleteTag,
     toggleDocumentTag,
+    setActiveTab,
     setLeftSidebarOpen,
     setSelectedTagIds,
   } = useWorkspace();
@@ -70,6 +73,16 @@ export function WorkspaceSidebar() {
 
   const triggerUpload = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleCreateThread = () => {
+    setActiveTab("chat");
+    void createThread();
+  };
+
+  const handleSwitchThread = (threadId: string) => {
+    setActiveTab("chat");
+    switchThread(threadId);
   };
 
 
@@ -133,7 +146,7 @@ export function WorkspaceSidebar() {
           {/* Current Workspace Icon Indicator */}
           <button
             onClick={() => setLeftSidebarOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white font-extrabold text-sm shadow-md hover:bg-indigo-500 transition active:scale-95"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white font-extrabold text-sm shadow-md hover:bg-emerald-500 transition active:scale-95"
             title={currentWorkspace?.name}
           >
             {currentWorkspace?.name.slice(0, 1)}
@@ -160,7 +173,7 @@ export function WorkspaceSidebar() {
 
           {/* Quick Thread Icon */}
           <button
-            onClick={createThread}
+            onClick={handleCreateThread}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-card text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition active:scale-95 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
             title={t("sidebar.newThread")}
           >
@@ -210,7 +223,7 @@ export function WorkspaceSidebar() {
           className="flex flex-1 items-center justify-between rounded-xl border border-border bg-card px-3 py-2 text-left shadow-sm transition hover:border-zinc-300 hover:bg-zinc-100 active:scale-[0.98] dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white font-extrabold text-sm shadow-md">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white font-extrabold text-sm shadow-md">
               {currentWorkspace?.name.slice(0, 1)}
             </div>
             <div className="min-w-0">
@@ -253,7 +266,7 @@ export function WorkspaceSidebar() {
                       <div className="truncate text-[10px] text-zinc-500">{ws.description || t("sidebar.noDesc")}</div>
                     </div>
                     {ws.id === currentWorkspace?.id && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                     )}
                   </button>
                 ))}
@@ -359,17 +372,45 @@ export function WorkspaceSidebar() {
                       </div>
                     </div>
                     
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void deleteDocument(doc.id).catch((error) => {
-                          alert(error instanceof Error ? error.message : "Delete failed.");
-                        });
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 transition shrink-0"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <div className={`flex shrink-0 items-center gap-1 transition ${
+                      (doc.status === "failed" || (doc.status === "deleting" && doc.errorMsg))
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    }`}>
+                      {(doc.status === "failed" || (doc.status === "deleting" && doc.errorMsg)) && (
+                        <button
+                          type="button"
+                          title={t(doc.status === "failed" ? "sidebar.retryDocument" : "sidebar.retryDeleteDocument")}
+                          aria-label={t(doc.status === "failed" ? "sidebar.retryDocument" : "sidebar.retryDeleteDocument")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            const retry = doc.status === "failed" ? retryDocument : retryDeleteDocument;
+                            void retry(doc.id).catch((error) => {
+                              alert(error instanceof Error ? error.message : "Retry failed.");
+                            });
+                          }}
+                          className="p-1 text-zinc-400 transition hover:text-sky-500"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                        </button>
+                      )}
+                      {doc.status !== "deleting" && (
+                        <button
+                          type="button"
+                          title={t("dashboard.deleteTooltip")}
+                          aria-label={t("dashboard.deleteTooltip")}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void deleteDocument(doc.id).catch((error) => {
+                              alert(error instanceof Error ? error.message : "Delete failed.");
+                            });
+                          }}
+                          className="p-1 text-zinc-400 transition hover:text-rose-500"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
 
                     {/* Simulating progress bar overlay */}
                     {doc.status !== "ready" && doc.status !== "chunked" && doc.status !== "failed" && (
@@ -449,7 +490,7 @@ export function WorkspaceSidebar() {
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("sidebar.threadsHeader")}</span>
             <button
-              onClick={createThread}
+              onClick={handleCreateThread}
               className="flex items-center gap-0.5 rounded-lg border border-border bg-card px-1.5 py-0.5 text-[10px] font-bold text-zinc-800 transition hover:bg-zinc-100 active:scale-95 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
             >
               <Plus className="h-3 w-3" />
@@ -463,7 +504,7 @@ export function WorkspaceSidebar() {
               wsThreads.map((th) => (
                 <div
                   key={th.id}
-                  onClick={() => switchThread(th.id)}
+                  onClick={() => handleSwitchThread(th.id)}
                   className={`group flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs transition ${
                     activeThread?.id === th.id
                       ? "bg-zinc-100 font-semibold text-zinc-900 dark:bg-zinc-900 dark:text-white"

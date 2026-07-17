@@ -1,5 +1,13 @@
 # V1 计划书
 
+## 状态
+
+- 阶段：已完成
+- 完成日期：2026-07-16
+- 当前后续：V2-A 检索质量生产验收，见 [`../v2/retrieval-quality/spec.md`](../v2/retrieval-quality/spec.md)
+
+本文件保留 V1 当时的范围与技术决策。Hybrid/RRF、部署收口和后续 Workspace 增强不回填为 V1 必做项。
+
 ## 1. V1 目标
 
 V1 的目标是交付一个可演示、可使用、可扩展的 AI PDF Workspace 最小可用版本，完成以下闭环：
@@ -233,3 +241,12 @@ V1 完成后，优先进入 V2：
 ## 当前实现偏差记录（2026-07-15）
 
 V1 已从原型计划进入真实数据链：前端 mock/localStorage 只保留无需持久化的 UI 状态，Workspace、Documents、Ingestion、Embedding、Chat、Notes、Tags 和 settings 均走真实 API/BFF/数据库。模型 provider 选择由服务端运行配置控制，设置页只读展示 provider/model，不提供无效的浏览器切换。
+
+## 完成补充（2026-07-16）
+
+- 工作区已调整为 Chat-first 主画布，PDF 作为按需原文核验与精读面板。
+- 扫描 PDF 已支持 Worker RapidOCR fallback 与坐标化 OCR 可选层。
+- Chat 已支持真实 delta 流、Markdown/GFM、citation 内联跳转和消息分支编辑。
+- 文档失败支持重试，删除使用异步 cleanup 并支持失败重试。
+- 笔记与标签已接真实 API，笔记编辑在原卡片内完成。
+- V1 验收以 Dense 检索为稳定基线；Hybrid/RRF 属于 V2-A，不因实验代码存在而视为已上线。

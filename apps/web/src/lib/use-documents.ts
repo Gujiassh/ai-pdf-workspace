@@ -211,6 +211,9 @@ export function useDocuments({
         if (!cancelled) {
           const nextDocuments = replaceDocumentsForWorkspace(workspaceId, workspaceDocuments, documentsRef.current);
           setDocuments(nextDocuments);
+          updateWorkspace(workspaceId, (workspace) => workspace.documentCount === workspaceDocuments.length
+            ? workspace
+            : { ...workspace, documentCount: workspaceDocuments.length });
           syncDocumentViewState(workspaceId, nextDocuments);
         }
       } catch (error) {
@@ -225,7 +228,7 @@ export function useDocuments({
     return () => {
       cancelled = true;
     };
-  }, [currentWorkspaceId, isAuthHydrating, locale, setDocuments, syncDocumentViewState, tagRelationsRef, user, documentsRef]);
+  }, [currentWorkspaceId, isAuthHydrating, locale, setDocuments, syncDocumentViewState, tagRelationsRef, updateWorkspace, user, documentsRef]);
 
   useEffect(() => {
     if (isAuthHydrating || !user || !currentWorkspaceId) {
@@ -252,6 +255,9 @@ export function useDocuments({
         );
         const nextDocuments = replaceDocumentsForWorkspace(currentWorkspaceId, workspaceDocuments, documentsRef.current);
         setDocuments(nextDocuments);
+        updateWorkspace(currentWorkspaceId, (workspace) => workspace.documentCount === workspaceDocuments.length
+          ? workspace
+          : { ...workspace, documentCount: workspaceDocuments.length });
       } catch (error) {
         console.error(error);
       }
@@ -264,7 +270,7 @@ export function useDocuments({
     return () => {
       window.clearInterval(timer);
     };
-  }, [currentWorkspaceId, documents, documentsRef, isAuthHydrating, setDocuments, tagRelationsRef, user]);
+  }, [currentWorkspaceId, documents, documentsRef, isAuthHydrating, setDocuments, tagRelationsRef, updateWorkspace, user]);
 
   const uploadDocument = useCallback(
     async (file: File) => {
@@ -353,8 +359,8 @@ export function useDocuments({
       const response = await fetch(`/api/workspaces/${workspaceId}/documents/${id}`, {
         method: "DELETE",
       });
-      if (!response.ok) {
-        const payload = await readResponseJsonSafely<DocumentErrorPayload>(response);
+      const payload = await readResponseJsonSafely<FinalizeUploadResponseDto & DocumentErrorPayload>(response);
+      if (!response.ok || !payload?.document) {
         throw new Error(
           getWorkspaceErrorMessage(
             payload,
@@ -363,14 +369,78 @@ export function useDocuments({
         );
       }
 
-      setDocuments(documentsRef.current.filter((document) => document.id !== id));
+      const previousDocument = documentsRef.current.find((document) => document.id === id);
+      const deletingDocument = toUiDocument(payload.document);
+      setDocuments((previous) => previous.map((document) =>
+        document.id === id
+          ? { ...deletingDocument, tags: previousDocument?.tags ?? document.tags }
+          : document,
+      ));
       closeDocument(id);
-      updateWorkspace(workspaceId, (workspace) => ({
-        ...workspace,
-        documentCount: Math.max(0, workspace.documentCount - 1),
-      }));
     },
-    [closeDocument, currentWorkspaceId, documentsRef, locale, setDocuments, updateWorkspace],
+    [closeDocument, currentWorkspaceId, documentsRef, locale, setDocuments],
+  );
+
+  const retryDocument = useCallback(
+    async (id: string) => {
+      const workspaceId = currentWorkspaceId;
+      if (!workspaceId) {
+        return;
+      }
+
+      const response = await fetch(`/api/workspaces/${workspaceId}/documents/${id}/retry`, {
+        method: "POST",
+      });
+      const payload = await readResponseJsonSafely<FinalizeUploadResponseDto & DocumentErrorPayload>(response);
+      if (!response.ok || !payload?.document) {
+        throw new Error(
+          getWorkspaceErrorMessage(
+            payload,
+            locale === "en" ? "Failed to retry document ingestion." : "重新入库失败。",
+          ),
+        );
+      }
+
+      const previousDocument = documentsRef.current.find((document) => document.id === id);
+      const retriedDocument = toUiDocument(payload.document);
+      setDocuments((previous) => previous.map((document) =>
+        document.id === id
+          ? { ...retriedDocument, tags: previousDocument?.tags ?? document.tags }
+          : document,
+      ));
+    },
+    [currentWorkspaceId, documentsRef, locale, setDocuments],
+  );
+
+  const retryDeleteDocument = useCallback(
+    async (id: string) => {
+      const workspaceId = currentWorkspaceId;
+      if (!workspaceId) {
+        return;
+      }
+
+      const response = await fetch(`/api/workspaces/${workspaceId}/documents/${id}/delete-retry`, {
+        method: "POST",
+      });
+      const payload = await readResponseJsonSafely<FinalizeUploadResponseDto & DocumentErrorPayload>(response);
+      if (!response.ok || !payload?.document) {
+        throw new Error(
+          getWorkspaceErrorMessage(
+            payload,
+            locale === "en" ? "Failed to retry document deletion." : "重试删除失败。",
+          ),
+        );
+      }
+
+      const previousDocument = documentsRef.current.find((document) => document.id === id);
+      const deletingDocument = toUiDocument(payload.document);
+      setDocuments((previous) => previous.map((document) =>
+        document.id === id
+          ? { ...deletingDocument, tags: previousDocument?.tags ?? document.tags }
+          : document,
+      ));
+    },
+    [currentWorkspaceId, documentsRef, locale, setDocuments],
   );
 
   const removeWorkspace = useCallback(
@@ -413,6 +483,8 @@ export function useDocuments({
     documentsRef,
     uploadDocument,
     deleteDocument,
+    retryDocument,
+    retryDeleteDocument,
     removeWorkspace,
     applyTagRelations,
     updateDocumentTags,

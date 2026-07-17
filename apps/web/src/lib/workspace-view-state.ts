@@ -6,6 +6,19 @@ import type { Document } from "./workspace-context";
 
 export type WorkspaceTab = "chat" | "notes" | "settings";
 
+export const DEFAULT_EVIDENCE_PANEL_WIDTH = 500;
+export const MIN_EVIDENCE_PANEL_WIDTH = 400;
+export const MAX_EVIDENCE_PANEL_WIDTH = 920;
+export const MIN_CHAT_CANVAS_WIDTH = 440;
+
+export function clampEvidencePanelWidth(requestedWidth: number, workspaceWidth: number): number {
+  const availableMaximum = Math.max(
+    MIN_EVIDENCE_PANEL_WIDTH,
+    Math.min(MAX_EVIDENCE_PANEL_WIDTH, workspaceWidth - MIN_CHAT_CANVAS_WIDTH),
+  );
+  return Math.min(availableMaximum, Math.max(MIN_EVIDENCE_PANEL_WIDTH, requestedWidth));
+}
+
 export const isDocumentViewable = (status: Document["status"]): boolean =>
   status === "chunked" || status === "ready";
 
@@ -22,6 +35,8 @@ export function getWorkspaceViewStateForWorkspace(
   openDocumentIds: string[];
   activeDocumentId: string | null;
   activePdfPage: number;
+  evidencePanelOpen: boolean;
+  evidencePanelExpanded: boolean;
 } {
   const viewableDocuments = getWorkspaceViewableDocs(workspaceId, documents);
   const firstDocumentId = viewableDocuments[0]?.id ?? null;
@@ -29,6 +44,8 @@ export function getWorkspaceViewStateForWorkspace(
     openDocumentIds: firstDocumentId ? [firstDocumentId] : [],
     activeDocumentId: firstDocumentId,
     activePdfPage: 1,
+    evidencePanelOpen: false,
+    evidencePanelExpanded: false,
   };
 }
 
@@ -40,7 +57,8 @@ export type WorkspaceViewState = {
   activePdfPage: number;
   activeTab: WorkspaceTab;
   leftSidebarOpen: boolean;
-  rightPanelOpen: boolean;
+  evidencePanelOpen: boolean;
+  evidencePanelExpanded: boolean;
   selectionText: string | null;
   selectedTagIds: string[];
 };
@@ -53,7 +71,8 @@ export function useWorkspaceViewState() {
   const [activePdfPage, setActivePdfPage] = useState(1);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("chat");
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [evidencePanelOpen, setEvidencePanelOpen] = useState(false);
+  const [evidencePanelExpanded, setEvidencePanelExpanded] = useState(false);
   const [selectionText, setSelectionText] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
@@ -85,6 +104,8 @@ export function useWorkspaceViewState() {
       setActiveThreadId(null);
       setSelectedTagIds([]);
       setSelectionText(null);
+      setEvidencePanelOpen(nextState.evidencePanelOpen);
+      setEvidencePanelExpanded(nextState.evidencePanelExpanded);
     },
     [setActiveDocumentId, setActiveThreadId],
   );
@@ -106,6 +127,8 @@ export function useWorkspaceViewState() {
     setActiveThreadId(null);
     setSelectedTagIds([]);
     setSelectionText(null);
+    setEvidencePanelOpen(false);
+    setEvidencePanelExpanded(false);
   }, [setActiveDocumentId, setActiveThreadId]);
 
   const openDocument = useCallback(
@@ -114,6 +137,8 @@ export function useWorkspaceViewState() {
       setActiveDocumentId(id);
       setActivePdfPage(1);
       setSelectionText(null);
+      setEvidencePanelOpen(true);
+      setEvidencePanelExpanded(false);
     },
     [setActiveDocumentId],
   );
@@ -133,6 +158,11 @@ export function useWorkspaceViewState() {
     [setActiveDocumentId],
   );
 
+  const closeEvidencePanel = useCallback(() => {
+    setEvidencePanelExpanded(false);
+    setEvidencePanelOpen(false);
+  }, []);
+
   return {
     currentWorkspaceId,
     activeThreadId,
@@ -141,7 +171,8 @@ export function useWorkspaceViewState() {
     activePdfPage,
     activeTab,
     leftSidebarOpen,
-    rightPanelOpen,
+    evidencePanelOpen,
+    evidencePanelExpanded,
     selectionText,
     selectedTagIds,
     currentWorkspaceIdRef,
@@ -152,7 +183,9 @@ export function useWorkspaceViewState() {
     setActivePdfPage,
     setActiveTab,
     setLeftSidebarOpen,
-    setRightPanelOpen,
+    setEvidencePanelOpen,
+    setEvidencePanelExpanded,
+    closeEvidencePanel,
     setSelectionText,
     setSelectedTagIds,
     syncWorkspaceViewState,

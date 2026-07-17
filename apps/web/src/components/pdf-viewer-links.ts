@@ -18,6 +18,14 @@ export type PdfLinkService = {
   executeSetOCGState: (_action: unknown) => Promise<void>;
 };
 
+export function resolvePdfPageInput(value: string, pageCount: number, currentPage: number): number {
+  const requestedPage = Number(value.trim());
+  if (!Number.isInteger(requestedPage) || pageCount < 1) {
+    return currentPage;
+  }
+  return Math.min(pageCount, Math.max(1, requestedPage));
+}
+
 export function createPdfLinkService(pdf: PDFDocumentProxy, onNavigate: (page: number) => void): PdfLinkService {
   let currentPage = 1;
 

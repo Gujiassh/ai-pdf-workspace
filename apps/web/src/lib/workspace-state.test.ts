@@ -34,7 +34,13 @@ test("workspace view state opens the first viewable document only", () => {
       document("ready", "ready"),
       document("chunked", "chunked"),
     ]),
-    { openDocumentIds: ["ready"], activeDocumentId: "ready", activePdfPage: 1 },
+    {
+      openDocumentIds: ["ready"],
+      activeDocumentId: "ready",
+      activePdfPage: 1,
+      evidencePanelOpen: false,
+      evidencePanelExpanded: false,
+    },
   );
 });
 

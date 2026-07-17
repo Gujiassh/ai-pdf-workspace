@@ -54,7 +54,6 @@ def client(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> Generator[Te
 
     monkeypatch.setattr("ai_pdf_api.routers.documents.upload_stream", lambda *args, **kwargs: None)
     monkeypatch.setattr("ai_pdf_api.routers.documents.object_exists", lambda object_key: True)
-    monkeypatch.setattr("ai_pdf_api.routers.documents.delete_object_if_exists", lambda object_key: None)
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
@@ -822,7 +821,7 @@ def test_document_detail_returns_persisted_ocr_blocks(client: TestClient, db_ses
     ]
 
 
-def test_delete_document_requires_owner_and_soft_deletes(client: TestClient, db_session: Session) -> None:
+def test_delete_document_requires_owner_and_queues_cleanup(client: TestClient, db_session: Session) -> None:
     owner = create_user(db_session, email="owner@example.com", name="Owner")
     member = create_user(db_session, email="member@example.com", name="Member")
     workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
@@ -857,18 +856,240 @@ def test_delete_document_requires_owner_and_soft_deletes(client: TestClient, db_
     assert forbidden.status_code == 403
 
     deleted = client.delete(f"/v1/workspaces/{workspace.id}/documents/{document.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
-    assert deleted.status_code == 204
+    assert deleted.status_code == 202
+    payload = deleted.json()
+    assert payload["document"]["status"] == "deleting"
+    assert payload["job"]["jobType"] == "delete_cleanup"
+    assert payload["job"]["status"] == "queued"
 
     refreshed = db_session.get(Document, document.id)
     assert refreshed is not None
-    assert refreshed.deleted_at is not None
-    assert refreshed.status == "deleted"
-    assert db_session.scalars(select(DocumentPage).where(DocumentPage.document_id == document.id)).all() == []
-    assert db_session.scalars(select(DocumentChunk).where(DocumentChunk.document_id == document.id)).all() == []
+    assert refreshed.deleted_at is None
+    assert refreshed.status == "deleting"
+    assert db_session.scalars(select(DocumentPage).where(DocumentPage.document_id == document.id)).all()
+    assert db_session.scalars(select(DocumentChunk).where(DocumentChunk.document_id == document.id)).all()
 
     list_response = client.get(f"/v1/workspaces/{workspace.id}/documents", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
     assert list_response.status_code == 200
-    assert list_response.json()["items"] == []
+    assert list_response.json()["items"][0]["status"] == "deleting"
+
+
+def test_delete_cleanup_worker_removes_document_artifacts(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    owner = create_user(db_session, email="cleanup-owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="deleting")
+    page = DocumentPage(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        page_number=1,
+        extracted_text="Delete me.",
+        char_count=10,
+    )
+    db_session.add(page)
+    db_session.flush()
+    db_session.add(
+        DocumentChunk(
+            workspace_id=workspace.id,
+            document_id=document.id,
+            page_id=page.id,
+            chunk_index=0,
+            chunk_text="Delete me.",
+            token_count=2,
+            char_start=0,
+            char_end=10,
+            index_version=1,
+        )
+    )
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="delete_cleanup",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={"source": "delete_document"},
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+    deleted_objects: list[str] = []
+    monkeypatch.setattr(
+        "ai_pdf_api.services.ingestion.delete_object_if_exists",
+        lambda object_key: deleted_objects.append(object_key),
+    )
+
+    claimed_job_id = claim_next_ingestion_job(db_session)
+    assert claimed_job_id == job.id
+    process_ingestion_job(db_session, claimed_job_id)
+
+    refreshed_document = db_session.get(Document, document.id)
+    refreshed_job = db_session.get(IngestionJob, job.id)
+    assert refreshed_document is not None
+    assert refreshed_document.status == "deleted"
+    assert refreshed_document.deleted_at is not None
+    assert refreshed_job is not None
+    assert refreshed_job.status == "succeeded"
+    assert deleted_objects == [document.object_key]
+    assert db_session.scalars(select(DocumentPage).where(DocumentPage.document_id == document.id)).all() == []
+    assert db_session.scalars(select(DocumentChunk).where(DocumentChunk.document_id == document.id)).all() == []
+
+
+def test_delete_cleanup_does_not_resurrect_deleted_document(db_session: Session) -> None:
+    owner = create_user(db_session, email="cleanup-deleted-owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="deleted")
+    document.deleted_at = datetime.now(UTC)
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="delete_cleanup",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={"source": "delete_document"},
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+
+    claimed_job_id = claim_next_ingestion_job(db_session)
+
+    assert claimed_job_id is None
+    refreshed_document = db_session.get(Document, document.id)
+    refreshed_job = db_session.get(IngestionJob, job.id)
+    assert refreshed_document is not None
+    assert refreshed_document.status == "deleted"
+    assert refreshed_document.deleted_at is not None
+    assert refreshed_job is not None
+    assert refreshed_job.status == "cancelled"
+
+
+def test_failed_delete_cleanup_can_be_retried(client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    owner = create_user(db_session, email="cleanup-retry-owner@example.com", name="Owner")
+    member = create_user(db_session, email="cleanup-retry-member@example.com", name="Member")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    db_session.add(WorkspaceMembership(workspace_id=workspace.id, user_id=member.id, role="member"))
+    db_session.commit()
+    document = create_document(db_session, workspace=workspace, user=owner, status="deleting")
+    job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="delete_cleanup",
+        status="queued",
+        attempt_count=1,
+        config_snapshot={"source": "delete_document"},
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document.latest_ingestion_job_id = job.id
+    db_session.commit()
+    monkeypatch.setattr(
+        "ai_pdf_api.services.ingestion.delete_object_if_exists",
+        lambda _object_key: (_ for _ in ()).throw(RuntimeError("storage unavailable")),
+    )
+
+    claimed_job_id = claim_next_ingestion_job(db_session)
+    assert claimed_job_id == job.id
+    process_ingestion_job(db_session, claimed_job_id)
+    failed_job = db_session.get(IngestionJob, job.id)
+    assert failed_job is not None
+    assert failed_job.status == "failed"
+
+    forbidden = client.post(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}/delete-retry",
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": member.id},
+    )
+    assert forbidden.status_code == 403
+
+    response = client.post(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}/delete-retry",
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["document"]["status"] == "deleting"
+    assert payload["job"]["jobType"] == "delete_cleanup"
+    assert payload["job"]["attemptCount"] == 2
+    retried_job = db_session.get(IngestionJob, payload["job"]["id"])
+    assert retried_job is not None
+    assert retried_job.config_snapshot == {"source": "retry_delete"}
+
+
+def test_retry_failed_document_creates_new_ingestion_job(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="retry-owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="failed")
+    failed_job = IngestionJob(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        job_type="ingest",
+        status="failed",
+        attempt_count=2,
+        config_snapshot={"source": "initial"},
+        error_code="ocr_failed",
+        error_message="OCR provider failed.",
+        requested_by_user_id=owner.id,
+        queued_at=datetime.now(UTC),
+        finished_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
+    db_session.add(failed_job)
+    db_session.flush()
+    document.latest_ingestion_job_id = failed_job.id
+    db_session.commit()
+
+    response = client.post(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}/retry",
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["document"]["status"] == "uploaded"
+    assert payload["job"]["jobType"] == "ingest"
+    assert payload["job"]["status"] == "queued"
+    assert payload["job"]["attemptCount"] == 3
+    retried_job = db_session.get(IngestionJob, payload["job"]["id"])
+    refreshed_document = db_session.get(Document, document.id)
+    assert retried_job is not None
+    assert retried_job.config_snapshot == {
+        "source": "retry",
+        "embeddingProvider": "ollama",
+        "embeddingModel": "qwen3-embedding:0.6b",
+        "embeddingDimensions": 1024,
+        "embeddingVersion": "embedding-v1",
+        "chunkSize": 1200,
+    }
+    assert refreshed_document is not None
+    assert refreshed_document.latest_ingestion_job_id == retried_job.id
+    assert refreshed_document.last_error_code is None
+    assert refreshed_document.last_error_message is None
+
+
+def test_retry_document_rejects_a_document_that_is_not_failed(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, email="retry-ready-owner@example.com", name="Owner")
+    workspace = create_workspace_with_membership(db_session, user=owner, name="Docs")
+    document = create_document(db_session, workspace=workspace, user=owner, status="ready")
+
+    response = client.post(
+        f"/v1/workspaces/{workspace.id}/documents/{document.id}/retry",
+        headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Only failed documents can be retried."
 
 
 def test_split_page_text_honors_workspace_chunk_size() -> None:

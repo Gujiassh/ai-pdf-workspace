@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from ai_pdf_api.core.settings import settings
@@ -27,7 +27,7 @@ from ai_pdf_api.schemas.document import (
     UploadDescriptor,
 )
 from ai_pdf_api.schemas.job import JobStatus
-from ai_pdf_api.services.storage import delete_object_if_exists, object_exists, stream_bytes, upload_stream
+from ai_pdf_api.services.storage import object_exists, stream_bytes, upload_stream
 
 router = APIRouter(prefix="/v1/workspaces/{workspace_id}/documents", tags=["documents"])
 
@@ -66,7 +66,13 @@ def to_job_status(job: IngestionJob) -> JobStatus:
     )
 
 
-def get_workspace_document(db: Session, workspace_id: str, document_id: str) -> Document:
+def get_workspace_document(
+    db: Session,
+    workspace_id: str,
+    document_id: str,
+    *,
+    allow_deleting: bool = False,
+) -> Document:
     document = db.scalar(
         select(Document).where(
             Document.id == document_id,
@@ -79,12 +85,66 @@ def get_workspace_document(db: Session, workspace_id: str, document_id: str) -> 
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found.",
         )
+    if document.status in {"deleting", "deleted"} and not allow_deleting:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document is being deleted.")
     return document
 
 
 def build_object_key(workspace_id: str, document_id: str, source_filename: str) -> str:
     suffix = Path(source_filename).suffix.lower() or ".pdf"
     return f"workspaces/{workspace_id}/documents/{document_id}/original{suffix}"
+
+
+def build_ingest_job(
+    *,
+    workspace_id: str,
+    document_id: str,
+    user_id: str,
+    chunk_size: int,
+    source: str,
+    now: datetime,
+    attempt_count: int = 1,
+) -> IngestionJob:
+    return IngestionJob(
+        workspace_id=workspace_id,
+        document_id=document_id,
+        job_type="ingest",
+        status="queued",
+        attempt_count=attempt_count,
+        config_snapshot={
+            "source": source,
+            "embeddingProvider": settings.embedding_provider,
+            "embeddingModel": settings.embedding_model,
+            "embeddingDimensions": settings.embedding_dimensions,
+            "embeddingVersion": settings.embedding_version,
+            "chunkSize": chunk_size,
+        },
+        requested_by_user_id=user_id,
+        queued_at=now,
+        created_at=now,
+    )
+
+
+def build_delete_cleanup_job(
+    *,
+    workspace_id: str,
+    document_id: str,
+    user_id: str,
+    source: str,
+    now: datetime,
+    attempt_count: int = 1,
+) -> IngestionJob:
+    return IngestionJob(
+        workspace_id=workspace_id,
+        document_id=document_id,
+        job_type="delete_cleanup",
+        status="queued",
+        attempt_count=attempt_count,
+        config_snapshot={"source": source},
+        requested_by_user_id=user_id,
+        queued_at=now,
+        created_at=now,
+    )
 
 
 @router.get("", response_model=DocumentListResponse)
@@ -281,23 +341,13 @@ def finalize_upload(
         )
 
     now = datetime.now(UTC)
-    job = IngestionJob(
+    job = build_ingest_job(
         workspace_id=workspace_id,
         document_id=document.id,
-        job_type="ingest",
-        status="queued",
-        attempt_count=1,
-        config_snapshot={
-            "source": "finalize_upload",
-            "embeddingProvider": settings.embedding_provider,
-            "embeddingModel": settings.embedding_model,
-            "embeddingDimensions": settings.embedding_dimensions,
-            "embeddingVersion": settings.embedding_version,
-            "chunkSize": workspace.chunk_size,
-        },
-        requested_by_user_id=user.id,
-        queued_at=now,
-        created_at=now,
+        user_id=user.id,
+        chunk_size=workspace.chunk_size,
+        source="finalize_upload",
+        now=now,
     )
     db.add(job)
     db.flush()
@@ -311,6 +361,59 @@ def finalize_upload(
     db.refresh(document)
     db.refresh(job)
 
+    return FinalizeUploadResponse(document=to_document_summary(document), job=to_job_status(job))
+
+
+@router.post("/{document_id}/retry", response_model=FinalizeUploadResponse)
+def retry_document(
+    workspace_id: str,
+    document_id: str,
+    user: User = Depends(require_existing_user),
+    db: Session = Depends(get_db),
+) -> FinalizeUploadResponse:
+    workspace, _role = get_accessible_workspace(db, user.id, workspace_id)
+    document = get_workspace_document(db, workspace_id, document_id)
+    db.refresh(document, with_for_update=True)
+    if document.status != "failed":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Only failed documents can be retried.")
+    if not object_exists(document.object_key):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document file is no longer available.")
+    if db.scalar(
+        select(IngestionJob.id).where(
+            IngestionJob.document_id == document.id,
+            IngestionJob.job_type == "ingest",
+            IngestionJob.status.in_(("queued", "running")),
+        )
+    ) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document ingestion is already running.")
+
+    previous_attempt_count = db.scalar(
+        select(func.max(IngestionJob.attempt_count)).where(
+            IngestionJob.document_id == document.id,
+            IngestionJob.job_type == "ingest",
+        )
+    ) or 0
+    now = datetime.now(UTC)
+    job = build_ingest_job(
+        workspace_id=workspace_id,
+        document_id=document.id,
+        user_id=user.id,
+        chunk_size=workspace.chunk_size,
+        source="retry",
+        now=now,
+        attempt_count=previous_attempt_count + 1,
+    )
+    db.add(job)
+    db.flush()
+
+    document.status = "uploaded"
+    document.latest_ingestion_job_id = job.id
+    document.last_error_code = None
+    document.last_error_message = None
+    document.updated_at = now
+    db.commit()
+    db.refresh(document)
+    db.refresh(job)
     return FinalizeUploadResponse(document=to_document_summary(document), job=to_job_status(job))
 
 
@@ -371,13 +474,13 @@ def reindex_document(
     return FinalizeUploadResponse(document=to_document_summary(document), job=to_job_status(job))
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{document_id}", response_model=FinalizeUploadResponse, status_code=status.HTTP_202_ACCEPTED)
 def delete_document(
     workspace_id: str,
     document_id: str,
     user_id: str = Depends(require_user_id),
     db: Session = Depends(get_db),
-) -> Response:
+) -> FinalizeUploadResponse:
     _workspace, role = get_accessible_workspace(db, user_id, workspace_id)
     if role != "owner":
         raise HTTPException(
@@ -386,11 +489,93 @@ def delete_document(
         )
 
     document = get_workspace_document(db, workspace_id, document_id)
-    delete_object_if_exists(document.object_key)
-    db.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
-    db.execute(delete(DocumentPage).where(DocumentPage.document_id == document.id))
-    document.deleted_at = datetime.now(UTC)
-    document.status = "deleted"
-    document.updated_at = datetime.now(UTC)
+    db.refresh(document, with_for_update=True)
+    if db.scalar(
+        select(IngestionJob.id).where(
+            IngestionJob.document_id == document.id,
+            IngestionJob.job_type == "delete_cleanup",
+            IngestionJob.status.in_(("queued", "running")),
+        )
+    ) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document deletion is already running.")
+
+    now = datetime.now(UTC)
+    job = build_delete_cleanup_job(
+        workspace_id=workspace_id,
+        document_id=document.id,
+        user_id=user_id,
+        source="delete_document",
+        now=now,
+    )
+    db.add(job)
+    db.flush()
+    document.status = "deleting"
+    document.latest_ingestion_job_id = job.id
+    document.last_error_code = None
+    document.last_error_message = None
+    document.updated_at = now
     db.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    db.refresh(document)
+    db.refresh(job)
+    return FinalizeUploadResponse(document=to_document_summary(document), job=to_job_status(job))
+
+
+@router.post("/{document_id}/delete-retry", response_model=FinalizeUploadResponse)
+def retry_delete_document(
+    workspace_id: str,
+    document_id: str,
+    user: User = Depends(require_existing_user),
+    db: Session = Depends(get_db),
+) -> FinalizeUploadResponse:
+    _workspace, role = get_accessible_workspace(db, user.id, workspace_id)
+    if role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only workspace owners can delete documents.",
+        )
+    document = get_workspace_document(db, workspace_id, document_id, allow_deleting=True)
+    db.refresh(document, with_for_update=True)
+    if document.status != "deleting":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document does not have a failed deletion.")
+    if db.scalar(
+        select(IngestionJob.id).where(
+            IngestionJob.document_id == document.id,
+            IngestionJob.job_type == "delete_cleanup",
+            IngestionJob.status.in_(("queued", "running")),
+        )
+    ) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document deletion is already running.")
+    if db.scalar(
+        select(IngestionJob.id).where(
+            IngestionJob.id == document.latest_ingestion_job_id,
+            IngestionJob.job_type == "delete_cleanup",
+            IngestionJob.status == "failed",
+        )
+    ) is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document does not have a failed deletion.")
+
+    previous_attempt_count = db.scalar(
+        select(func.max(IngestionJob.attempt_count)).where(
+            IngestionJob.document_id == document.id,
+            IngestionJob.job_type == "delete_cleanup",
+        )
+    ) or 0
+    now = datetime.now(UTC)
+    job = build_delete_cleanup_job(
+        workspace_id=workspace_id,
+        document_id=document.id,
+        user_id=user.id,
+        source="retry_delete",
+        now=now,
+        attempt_count=previous_attempt_count + 1,
+    )
+    db.add(job)
+    db.flush()
+    document.latest_ingestion_job_id = job.id
+    document.last_error_code = None
+    document.last_error_message = None
+    document.updated_at = now
+    db.commit()
+    db.refresh(document)
+    db.refresh(job)
+    return FinalizeUploadResponse(document=to_document_summary(document), job=to_job_status(job))

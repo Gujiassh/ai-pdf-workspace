@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
 
-import { createPdfLinkService } from "./pdf-viewer-links";
+import { createPdfLinkService, resolvePdfPageInput } from "./pdf-viewer-links";
 
 function createPdf(overrides: Partial<PDFDocumentProxy> = {}) {
   return {
@@ -63,4 +63,12 @@ test("PDF link service only permits safe external protocols", () => {
   assert.equal(safeLink.target, "_blank");
   assert.equal(safeLink.rel, "noopener noreferrer");
   assert.equal(unsafeLink.href, undefined);
+});
+
+test("page input resolves exact pages and clamps out-of-range values", () => {
+  assert.equal(resolvePdfPageInput("2", 3, 1), 2);
+  assert.equal(resolvePdfPageInput("0", 3, 2), 1);
+  assert.equal(resolvePdfPageInput("99", 3, 2), 3);
+  assert.equal(resolvePdfPageInput("2.5", 3, 2), 2);
+  assert.equal(resolvePdfPageInput("page 2", 3, 1), 1);
 });

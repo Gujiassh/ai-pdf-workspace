@@ -50,6 +50,13 @@ test("assistant markdown renders common structure and GFM content", () => {
   assert.match(html, /<table[^>]*>/);
 });
 
+test("soft line breaks render as explicit breaks for question options", () => {
+  const html = render("**单选题**：需求分析主要起什么作用？\nA. 替代设计\nB. 起桥梁作用\n答案：B");
+
+  assert.match(html, /作用？<br\/>\s*A\. 替代设计/);
+  assert.match(html, /替代设计<br\/>\s*B\. 起桥梁作用/);
+});
+
 test("only known plain-text references become citation buttons", () => {
   const html = render("Answer [1] and [3], but keep [4] as text. Inline code `[3]` and a link [3](https://example.com).");
 

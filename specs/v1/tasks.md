@@ -1,5 +1,7 @@
 # V1 任务拆分 (前端全闭环已完成)
 
+状态：V1 已完成。本文件只记录历史完成项；当前任务转入 [`../v2/retrieval-quality/tasks.md`](../v2/retrieval-quality/tasks.md)。
+
 ## T1 Workspace 基础
 
 - [x] 定义 Workspace 数据模型
@@ -54,3 +56,12 @@
 - [x] BFF/API 流式上传和 100 MB/字节数校验
 - [x] SSE 截断流与错误事件回归
 - [x] API、Worker、Web 单测、迁移检查、CI 与可选 Playwright smoke
+
+## T8 Chat-first 体验收口
+
+- [x] Chat 成为默认主画布，PDF 改为按需原文面板
+- [x] citation、侧栏文档和笔记来源统一打开 PDF 并定位页码
+- [x] PDF 面板支持拖拽调宽、阅读模式和指定页码跳转
+- [x] Chat Markdown 软换行、流式滚动跟随与引用文案完成修正
+- [x] 笔记编辑改为原卡片内联，并修正明暗主题 hover 对比度
+- [x] 桌面、移动端浏览器 smoke 与 Web 质量门通过

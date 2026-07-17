@@ -3,12 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AlignLeft,
-  ArrowRightLeft,
   ChevronLeft,
   ChevronRight,
   FileText,
   Layers,
-  Layout,
   RefreshCw,
   X,
   ZoomIn,
@@ -22,6 +20,7 @@ import type { OcrTextBlockDto } from "@/lib/documents/types";
 import { OutlineTree } from "./outline-tree";
 import { PdfPageSurface } from "./pdf-renderer";
 import { PdfViewerEmptyState } from "./pdf-viewer-empty-state";
+import { resolvePdfPageInput } from "./pdf-viewer-links";
 import { SelectionPopover } from "./selection-popover";
 import { usePdfDocument } from "./use-pdf-document";
 
@@ -29,19 +28,14 @@ export function PdfViewer() {
   const {
     currentWorkspace,
     documents,
-    notes,
-    threads,
     openDocumentIds,
     activeDocumentId,
     activePdfPage,
-    leftSidebarOpen,
-    rightPanelOpen,
     selectionText,
     openDocument,
     closeDocument,
     setActivePdfPage,
-    setLeftSidebarOpen,
-    setRightPanelOpen,
+    closeEvidencePanel,
     setSelectionText,
     setActiveTab,
     sendMessage,
@@ -50,7 +44,7 @@ export function PdfViewer() {
   const { t } = useTranslation();
 
   const [zoom, setZoom] = useState(100);
-  const [showOutlinePanel, setShowOutlinePanel] = useState(true);
+  const [showOutlinePanel, setShowOutlinePanel] = useState(false);
   const [showSelectionPopup, setShowSelectionPopup] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [viewerWidth, setViewerWidth] = useState(760);
@@ -154,6 +148,14 @@ export function PdfViewer() {
     }
   };
 
+  const commitPageInput = (input: HTMLInputElement) => {
+    const nextPage = resolvePdfPageInput(input.value, pageCount, activePdfPage);
+    input.value = String(nextPage);
+    if (nextPage !== activePdfPage) {
+      setActivePdfPage(nextPage);
+    }
+  };
+
   const handlePageError = (error: unknown) => {
     if (!activePdfDocumentId) {
       return;
@@ -196,7 +198,7 @@ export function PdfViewer() {
     window.getSelection()?.removeAllRanges();
 
     setActiveTab("chat");
-    if (!rightPanelOpen) setRightPanelOpen(true);
+    closeEvidencePanel();
     await sendMessage(t("pdf.explainSelection").replace("{text}", text));
   };
 
@@ -218,27 +220,20 @@ export function PdfViewer() {
       },
     );
     setActiveTab("notes");
-    if (!rightPanelOpen) setRightPanelOpen(true);
+    closeEvidencePanel();
   };
 
   if (!activeDoc || !pdfUrl) {
     return (
       <PdfViewerEmptyState
         workspaceName={currentWorkspace?.name}
-        workspaceDescription={currentWorkspace?.description}
         documentsCount={wsDocs.length}
-        notesCount={notes.filter((note) => note.workspaceId === currentWorkspace?.id).length}
-        threadsCount={threads.filter((thread) => thread.workspaceId === currentWorkspace?.id).length}
-        leftSidebarOpen={leftSidebarOpen}
-        rightPanelOpen={rightPanelOpen}
-        onOpenLeftSidebar={() => setLeftSidebarOpen(true)}
-        onOpenRightPanel={() => setRightPanelOpen(true)}
       />
     );
   }
 
   return (
-    <div className="flex h-full flex-1 flex-col overflow-hidden bg-zinc-100 text-zinc-600 transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-300">
+    <div data-pdf-viewer className="flex h-full flex-1 flex-col overflow-hidden bg-zinc-100 text-zinc-600 transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-300">
       <div className="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white/90 px-2 transition dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mr-2 flex min-w-0 flex-1 items-center overflow-x-auto scrollbar-none">
           {openDocumentIds.map((docId) => {
@@ -280,7 +275,7 @@ export function PdfViewer() {
             onClick={() => setShowOutlinePanel((value) => !value)}
             className={`flex items-center justify-center rounded-lg border p-1.5 transition ${
               showOutlinePanel
-                ? "border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                 : "border-zinc-200 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-white"
             }`}
             title="切换文档大纲面板"
@@ -288,36 +283,11 @@ export function PdfViewer() {
           >
             <AlignLeft className="h-3.5 w-3.5" />
           </button>
-          {!leftSidebarOpen ? (
-            <button
-              type="button"
-              onClick={() => setLeftSidebarOpen(true)}
-              className="flex items-center justify-center rounded-lg border border-zinc-200 p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-white"
-              title="展开侧边栏"
-              aria-label="展开侧边栏"
-            >
-              <Layout className="h-3.5 w-3.5" />
-            </button>
-          ) : null}
-          {!rightPanelOpen ? (
-            <button
-              type="button"
-              onClick={() => setRightPanelOpen(true)}
-              className="flex items-center justify-center rounded-lg border border-zinc-200 p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-white"
-              title="展开问答板"
-              aria-label="展开问答板"
-            >
-              <ArrowRightLeft className="h-3.5 w-3.5" />
-            </button>
-          ) : null}
         </div>
       </div>
 
       <div className="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white/80 px-5 py-2 backdrop-blur-xs transition dark:border-zinc-800 dark:bg-zinc-950/80">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="shrink-0 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-[9px] font-bold text-indigo-500 dark:text-indigo-400">
-            {t("viewer.activeDoc")}
-          </span>
           <span className="truncate text-xs font-semibold text-zinc-800 dark:text-zinc-300">{activeDoc.name}</span>
         </div>
 
@@ -344,7 +314,7 @@ export function PdfViewer() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={handlePrevPage}
@@ -355,9 +325,35 @@ export function PdfViewer() {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
-              {activePdfPage} / {pageCount} {t("viewer.pages")}
-            </span>
+            <label className="flex items-center gap-1 text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
+              <span className="sr-only">{t("viewer.pageInput")}</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                data-pdf-page-input
+                key={`${activePdfDocumentId}:${activePdfPage}`}
+                defaultValue={activePdfPage}
+                onChange={(event) => {
+                  event.currentTarget.value = event.currentTarget.value.replace(/[^0-9]/g, "");
+                }}
+                onFocus={(event) => event.currentTarget.select()}
+                onBlur={(event) => commitPageInput(event.currentTarget)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    commitPageInput(event.currentTarget);
+                    event.currentTarget.blur();
+                  } else if (event.key === "Escape") {
+                    event.currentTarget.value = String(activePdfPage);
+                    event.currentTarget.blur();
+                  }
+                }}
+                aria-label={t("viewer.pageInput")}
+                className="h-7 w-10 rounded-md border border-zinc-200 bg-white px-1 text-center text-[10px] font-bold text-zinc-700 outline-none transition focus:border-amber-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+              />
+              <span>/ {pageCount}</span>
+            </label>
             <button
               type="button"
               onClick={handleNextPage}
@@ -396,7 +392,7 @@ export function PdfViewer() {
                       }`}
                     >
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <FileText className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-indigo-500" : "text-zinc-400"}`} />
+                        <FileText className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-emerald-600" : "text-zinc-400"}`} />
                         <span className="max-w-[140px] truncate">{doc.name}</span>
                       </div>
                       <button

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ai_pdf_api.core.settings import settings
 from ai_pdf_api.models import Document, DocumentChunk, DocumentPage, IngestionJob
 from ai_pdf_api.services.providers import EmbeddingProvider, ModelProviderError
-from ai_pdf_api.services.storage import download_bytes
+from ai_pdf_api.services.storage import delete_object_if_exists, download_bytes
 
 CHUNK_SIZE = 1_200
 CHUNK_OVERLAP = 200
@@ -91,7 +91,7 @@ def recover_stale_ingestion_jobs(db: Session, now: datetime) -> None:
         select(IngestionJob)
         .where(
             IngestionJob.status == "running",
-            IngestionJob.job_type.in_(("ingest", "embed_chunks")),
+            IngestionJob.job_type.in_(("ingest", "embed_chunks", "delete_cleanup")),
             (IngestionJob.started_at.is_(None)) | (IngestionJob.started_at < cutoff),
         )
         .with_for_update(skip_locked=True),
@@ -116,7 +116,12 @@ def recover_stale_ingestion_jobs(db: Session, now: datetime) -> None:
         job.error_code = None
         job.error_message = None
         if document.status not in {"deleted", "deleting"}:
-            document.status = "uploaded" if job.job_type == "ingest" else _available_document_status(db, document.id)
+            if job.job_type == "ingest":
+                document.status = "uploaded"
+            elif job.job_type == "embed_chunks":
+                document.status = _available_document_status(db, document.id)
+            else:
+                document.status = "deleting"
             document.updated_at = now
     db.flush()
 
@@ -126,7 +131,10 @@ def claim_next_ingestion_job(db: Session) -> str | None:
     recover_stale_ingestion_jobs(db, now)
     job = db.scalar(
         select(IngestionJob)
-        .where(IngestionJob.status == "queued", IngestionJob.job_type.in_(("ingest", "embed_chunks")))
+        .where(
+            IngestionJob.status == "queued",
+            IngestionJob.job_type.in_(("ingest", "embed_chunks", "delete_cleanup")),
+        )
         .order_by(IngestionJob.queued_at)
         .with_for_update(skip_locked=True)
         .limit(1),
@@ -144,7 +152,12 @@ def claim_next_ingestion_job(db: Session) -> str | None:
 
     job.status = "running"
     job.started_at = now
-    document.status = "parsing" if job.job_type == "ingest" else "embedding"
+    if job.job_type == "ingest":
+        document.status = "parsing"
+    elif job.job_type == "embed_chunks":
+        document.status = "embedding"
+    else:
+        document.status = "deleting"
     document.last_error_code = None
     document.last_error_message = None
     document.updated_at = now
@@ -182,6 +195,9 @@ def process_ingestion_job(
         return
     if job.job_type == "embed_chunks":
         process_embedding_job(db, job_id, embedding_provider)
+        return
+    if job.job_type == "delete_cleanup":
+        process_delete_cleanup(db, job_id)
         return
 
     document = db.get(Document, job.document_id)
@@ -314,6 +330,41 @@ def process_embedding_job(
         _mark_embedding_job_failed(db, job, document, "embedding_failed", str(error))
 
 
+def process_delete_cleanup(db: Session, job_id: str) -> None:
+    job = db.get(IngestionJob, job_id)
+    if job is None or job.status != "running":
+        return
+    document = db.get(Document, job.document_id)
+    if document is None:
+        job.status = "succeeded"
+        job.finished_at = datetime.now(UTC)
+        db.commit()
+        return
+    if document.deleted_at is not None:
+        job.status = "cancelled"
+        job.finished_at = datetime.now(UTC)
+        db.commit()
+        return
+
+    try:
+        delete_object_if_exists(document.object_key)
+        db.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
+        db.execute(delete(DocumentPage).where(DocumentPage.document_id == document.id))
+        now = datetime.now(UTC)
+        document.deleted_at = now
+        document.status = "deleted"
+        document.last_error_code = None
+        document.last_error_message = None
+        document.updated_at = now
+        job.status = "succeeded"
+        job.error_code = None
+        job.error_message = None
+        job.finished_at = now
+        db.commit()
+    except Exception as error:
+        _mark_delete_job_failed(db, job, document, "delete_cleanup_failed", str(error))
+
+
 def _embed_document_chunks(db: Session, document: Document, embedding_provider: EmbeddingProvider) -> None:
     chunks = db.scalars(
         select(DocumentChunk)
@@ -411,4 +462,24 @@ def _mark_job_failed(
         document.last_error_code = error_code
         document.last_error_message = error_message
         document.updated_at = now
+    db.commit()
+
+
+def _mark_delete_job_failed(
+    db: Session,
+    job: IngestionJob,
+    document: Document,
+    error_code: str,
+    error_message: str,
+) -> None:
+    db.rollback()
+    now = datetime.now(UTC)
+    job.status = "failed"
+    job.error_code = error_code
+    job.error_message = error_message
+    job.finished_at = now
+    document.status = "deleting"
+    document.last_error_code = error_code
+    document.last_error_message = error_message
+    document.updated_at = now
     db.commit()

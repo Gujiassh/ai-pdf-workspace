@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 
 import type { Citation } from "@/lib/chat/types";
@@ -114,20 +115,20 @@ export function ChatMarkdown({ content, citations, onCitationClick }: ChatMarkdo
   const citationPlugin = useMemo(() => () => remarkInlineCitations(citations), [citations]);
 
   return (
-    <div className="chat-markdown min-w-0 break-words text-xs leading-6 text-zinc-700 dark:text-zinc-300">
+    <div className="chat-markdown min-w-0 break-words text-sm leading-7 text-zinc-700 dark:text-zinc-300">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, citationPlugin]}
+        remarkPlugins={[remarkGfm, remarkBreaks, citationPlugin]}
         skipHtml
         urlTransform={safeUrlTransform}
         components={{
-          h1: ({ children }) => <h1 className="mb-2 mt-4 text-base font-bold leading-6 text-zinc-950 first:mt-0 dark:text-zinc-50">{children}</h1>,
-          h2: ({ children }) => <h2 className="mb-2 mt-4 text-sm font-bold leading-6 text-zinc-950 first:mt-0 dark:text-zinc-50">{children}</h2>,
-          h3: ({ children }) => <h3 className="mb-1.5 mt-3 text-xs font-bold leading-5 text-zinc-950 first:mt-0 dark:text-zinc-50">{children}</h3>,
+          h1: ({ children }) => <h1 className="mb-2 mt-5 text-lg font-bold leading-7 text-zinc-950 first:mt-0 dark:text-zinc-50">{children}</h1>,
+          h2: ({ children }) => <h2 className="mb-2 mt-5 text-base font-bold leading-7 text-zinc-950 first:mt-0 dark:text-zinc-50">{children}</h2>,
+          h3: ({ children }) => <h3 className="mb-1.5 mt-4 text-sm font-bold leading-6 text-zinc-950 first:mt-0 dark:text-zinc-50">{children}</h3>,
           p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
           ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
           ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
           li: ({ children }) => <li className="pl-0.5">{children}</li>,
-          blockquote: ({ children }) => <blockquote className="my-3 border-l-2 border-indigo-400/60 pl-3 text-zinc-500 dark:border-indigo-400/50 dark:text-zinc-400">{children}</blockquote>,
+          blockquote: ({ children }) => <blockquote className="my-3 border-l-2 border-emerald-500/60 pl-3 text-zinc-500 dark:border-emerald-400/50 dark:text-zinc-400">{children}</blockquote>,
           strong: ({ children }) => <strong className="font-semibold text-zinc-950 dark:text-zinc-100">{children}</strong>,
           em: ({ children }) => <em className="text-zinc-600 dark:text-zinc-400">{children}</em>,
           del: ({ children }) => <del className="text-zinc-500 dark:text-zinc-500">{children}</del>,
@@ -160,7 +161,7 @@ export function ChatMarkdown({ content, citations, onCitationClick }: ChatMarkdo
                   data-citation-index={citation.citationIndex}
                   onClick={() => onCitationClick(citation)}
                   aria-label={`Open ${citation.documentName}, page ${citation.pageNumber}`}
-                  className="mx-0.5 inline-flex min-w-[1.35rem] items-center justify-center rounded border border-indigo-200 bg-indigo-50 px-1 py-0.5 align-baseline text-[10px] font-bold leading-4 text-indigo-700 transition hover:border-indigo-400 hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-500 dark:border-indigo-900/80 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:border-indigo-500 dark:hover:bg-indigo-950"
+                  className="mx-0.5 inline-flex min-w-[1.5rem] items-center justify-center rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 align-baseline text-[10px] font-bold leading-4 text-amber-800 transition hover:border-amber-400 hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-500 dark:border-amber-900/80 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:border-amber-600 dark:hover:bg-amber-950"
                 >
                   {children}
                 </button>
@@ -177,7 +178,7 @@ export function ChatMarkdown({ content, citations, onCitationClick }: ChatMarkdo
                 href={href}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="font-medium text-indigo-600 underline decoration-indigo-300 underline-offset-2 hover:text-indigo-800 dark:text-indigo-400 dark:decoration-indigo-800 dark:hover:text-indigo-300"
+                className="font-medium text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:text-emerald-900 dark:text-emerald-400 dark:decoration-emerald-900 dark:hover:text-emerald-300"
               >
                 {children}
               </a>

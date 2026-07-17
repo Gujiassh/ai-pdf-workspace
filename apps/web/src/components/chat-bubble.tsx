@@ -59,9 +59,9 @@ export function ChatBubble({
     >
       {isUser ? (
         /* User message bubble */
-        <div className="group flex max-w-[92%] items-start gap-1.5">
+        <div className="group flex max-w-[88%] items-start gap-2 sm:max-w-[78%]">
           {editing ? (
-            <div className="min-w-[240px] rounded-2xl border border-zinc-300 bg-white p-2 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="min-w-[min(72vw,320px)] rounded-xl border border-zinc-300 bg-white p-2 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
               <textarea
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -74,7 +74,7 @@ export function ChatBubble({
                 rows={3}
                 autoFocus
                 disabled={saving}
-                className="w-full resize-none bg-transparent px-2 py-1 text-xs leading-relaxed text-zinc-900 outline-none dark:text-zinc-100"
+                className="w-full resize-none bg-transparent px-2 py-1 text-sm leading-6 text-zinc-900 outline-none dark:text-zinc-100"
               />
               <div className="flex justify-end gap-1 border-t border-zinc-100 pt-2 dark:border-zinc-800">
                 <button
@@ -98,7 +98,7 @@ export function ChatBubble({
             </div>
           ) : (
             <>
-              <div className="max-w-[85%] rounded-2xl bg-zinc-950 px-3.5 py-2.5 text-xs leading-relaxed text-white shadow-sm transition duration-200 hover:scale-[1.005] active:scale-[0.99] dark:bg-zinc-800 dark:text-zinc-100">
+              <div className="max-w-full rounded-xl bg-zinc-950 px-4 py-3 text-sm leading-6 text-white shadow-sm dark:bg-zinc-800 dark:text-zinc-100">
                 {msg.content}
               </div>
               <button
@@ -115,8 +115,8 @@ export function ChatBubble({
         </div>
       ) : (
         /* Assistant message bubble */
-        <div className="w-full max-w-[95%]">
-          <div className="flex items-center gap-1 text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1 select-none">
+        <div className="w-full">
+          <div className="mb-2 flex select-none items-center gap-1.5 text-[10px] font-bold uppercase text-zinc-400 dark:text-zinc-500">
             <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
             <span>{t("chat.aiConsultant")}</span>
           </div>
@@ -128,7 +128,7 @@ export function ChatBubble({
               onCitationClick={onCitationClick}
             />
           ) : (
-            <div className="text-xs leading-6 text-zinc-700 dark:text-zinc-300">
+            <div className="text-sm leading-7 text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center gap-1.5 font-medium italic text-zinc-400 dark:text-zinc-600">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400 dark:text-zinc-500" />
                 {t("chat.retrieving")}
@@ -138,15 +138,15 @@ export function ChatBubble({
 
           {/* Citations list */}
           {msg.citations && msg.citations.length > 0 && (
-            <div className="mt-3.5 space-y-2 border-t border-dashed border-zinc-100 dark:border-zinc-900 pt-3 transition">
-              <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block select-none">{t("chat.sourceTitle")}</span>
+            <div className="mt-5 space-y-2.5 border-t border-zinc-100 pt-4 transition dark:border-zinc-900">
+              <span className="block select-none text-[9px] font-bold uppercase text-zinc-400 dark:text-zinc-500">{t("chat.sourceTitle")}</span>
               
               <div className="flex flex-wrap gap-1.5">
                 {msg.citations.map((cit) => (
                   <div key={cit.id} className="relative inline-flex items-center">
                     <button
                       onClick={() => onCitationClick(cit)}
-                      className="flex items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2.5 py-0.5 text-[9px] font-bold text-zinc-600 dark:text-zinc-400 transition hover:scale-105 active:scale-95 cursor-pointer"
+                      className="flex min-h-7 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-950 transition hover:border-amber-300 hover:bg-amber-100 active:scale-[0.98] dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:border-amber-800 dark:hover:bg-amber-950/60"
                     >
                       <FileText className="h-3 w-3 shrink-0 text-zinc-400" />
                       <span>{cit.documentName.split(".pdf")[0]} p.{cit.pageNumber}</span>
@@ -155,7 +155,7 @@ export function ChatBubble({
                     <button
                       onClick={() => onQuickNoteOpen(cit)}
                       title={t("chat.quickNote")}
-                      className="ml-1 p-0.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition text-zinc-400 dark:text-zinc-600 shrink-0 cursor-pointer hover:scale-110"
+                      className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-emerald-700 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-emerald-400"
                     >
                       <BookmarkPlus className="h-3.5 w-3.5" />
                     </button>
@@ -169,10 +169,10 @@ export function ChatBubble({
           {msg.citations?.map((cit) => showNoteEditorId === cit.id && (
             <div 
               key={`editor-${cit.id}`}
-              className="mt-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 space-y-3 animate-in slide-in-from-top-2 duration-300 text-zinc-700 dark:text-zinc-300 shadow-lg"
+              className="mt-4 space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-zinc-700 shadow-lg animate-in slide-in-from-top-2 duration-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300"
             >
               <div className="flex justify-between items-center pb-1 border-b border-zinc-200 dark:border-zinc-800">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">{t("chat.popoverTitle")}</span>
+                <span className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400">{t("chat.popoverTitle")}</span>
                 <button
                   onClick={() => setShowNoteEditorId(null)}
                   className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition rounded-full p-0.5"
@@ -188,7 +188,7 @@ export function ChatBubble({
                     type="text"
                     value={quickNoteTitle}
                     onChange={(e) => setQuickNoteTitle(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-1.5 text-xs text-zinc-900 dark:text-white focus:outline-hidden focus:border-indigo-500 transition"
+                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-emerald-500 focus:outline-hidden dark:border-zinc-800 dark:bg-zinc-950 dark:text-white"
                   />
                 </div>
                 <div>
@@ -197,7 +197,7 @@ export function ChatBubble({
                     rows={4}
                     value={quickNoteContent}
                     onChange={(e) => setQuickNoteContent(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-1.5 text-xs text-zinc-900 dark:text-white focus:outline-hidden focus:border-indigo-500 transition resize-none font-sans"
+                    className="mt-1 w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 font-sans text-sm text-zinc-900 transition focus:border-emerald-500 focus:outline-hidden dark:border-zinc-800 dark:bg-zinc-950 dark:text-white"
                   />
                 </div>
               </div>
@@ -211,7 +211,7 @@ export function ChatBubble({
                 </button>
                 <button
                   onClick={() => onSaveQuickNote(cit)}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 px-2.5 py-1.5 text-[10px] font-bold text-white transition active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1 rounded-lg bg-zinc-950 px-3 py-2 text-[10px] font-bold text-white transition hover:bg-zinc-800 active:scale-95 dark:bg-emerald-600 dark:hover:bg-emerald-500"
                 >
                   <Check className="h-3 w-3 shrink-0" />
                   {t("chat.saveToNote")}

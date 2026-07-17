@@ -25,6 +25,8 @@ test("document status mapping keeps progress semantics stable", () => {
   assert.equal(normalizeDocumentStatus("unknown"), "failed");
   assert.equal(getDocumentProgress("parsing"), 50);
   assert.equal(getDocumentProgress("embedding"), 90);
+  assert.equal(normalizeDocumentStatus("deleting"), "deleting");
+  assert.equal(getDocumentProgress("deleting"), 100);
   assert.equal(getDocumentProgress("ready"), 100);
   assert.equal(formatDocumentSize(1024), "1 KB");
   assert.equal(formatDocumentSize(1024 * 1024), "1.0 MB");

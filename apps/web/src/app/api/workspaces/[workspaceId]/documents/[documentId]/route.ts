@@ -51,10 +51,6 @@ export async function DELETE(
     },
   });
 
-  if (!response.ok) {
-    const data = (await response.json()) as unknown;
-    return NextResponse.json(data, { status: response.status });
-  }
-
-  return new NextResponse(null, { status: 204 });
+  const data = (await response.json()) as unknown;
+  return NextResponse.json(data, { status: response.status });
 }

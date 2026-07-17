@@ -90,7 +90,8 @@ type WorkspaceContextType = {
   activePdfPage: number;
   activeTab: "chat" | "notes" | "settings";
   leftSidebarOpen: boolean;
-  rightPanelOpen: boolean;
+  evidencePanelOpen: boolean;
+  evidencePanelExpanded: boolean;
   selectionText: string | null;
   selectedTagIds: string[];
   switchWorkspace: (id: string) => void;
@@ -99,6 +100,8 @@ type WorkspaceContextType = {
   updateWorkspaceSettings: (id: string, settings: WorkspaceSettingsInput) => Promise<void>;
   uploadDocument: (file: File) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
+  retryDocument: (id: string) => Promise<void>;
+  retryDeleteDocument: (id: string) => Promise<void>;
   openDocument: (id: string) => void;
   closeDocument: (id: string) => void;
   createThread: () => Promise<void>;
@@ -116,7 +119,9 @@ type WorkspaceContextType = {
   setActivePdfPage: (page: number) => void;
   setActiveTab: (tab: "chat" | "notes" | "settings") => void;
   setLeftSidebarOpen: (open: boolean) => void;
-  setRightPanelOpen: (open: boolean) => void;
+  setEvidencePanelOpen: (open: boolean) => void;
+  setEvidencePanelExpanded: (expanded: boolean) => void;
+  closeEvidencePanel: () => void;
   setSelectionText: (text: string | null) => void;
   setSelectedTagIds: React.Dispatch<React.SetStateAction<string[]>>;
 };
@@ -232,7 +237,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         activePdfPage: viewState.activePdfPage,
         activeTab: viewState.activeTab,
         leftSidebarOpen: viewState.leftSidebarOpen,
-        rightPanelOpen: viewState.rightPanelOpen,
+        evidencePanelOpen: viewState.evidencePanelOpen,
+        evidencePanelExpanded: viewState.evidencePanelExpanded,
         selectionText: viewState.selectionText,
         selectedTagIds: viewState.selectedTagIds,
         switchWorkspace: workspaceState.switchWorkspace,
@@ -241,6 +247,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         updateWorkspaceSettings: workspaceState.updateWorkspaceSettings,
         uploadDocument: documentState.uploadDocument,
         deleteDocument: documentState.deleteDocument,
+        retryDocument: documentState.retryDocument,
+        retryDeleteDocument: documentState.retryDeleteDocument,
         openDocument: viewState.openDocument,
         closeDocument: viewState.closeDocument,
         createThread: chatState.createThread,
@@ -258,7 +266,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setActivePdfPage: viewState.setActivePdfPage,
         setActiveTab: viewState.setActiveTab,
         setLeftSidebarOpen: viewState.setLeftSidebarOpen,
-        setRightPanelOpen: viewState.setRightPanelOpen,
+        setEvidencePanelOpen: viewState.setEvidencePanelOpen,
+        setEvidencePanelExpanded: viewState.setEvidencePanelExpanded,
+        closeEvidencePanel: viewState.closeEvidencePanel,
         setSelectionText: viewState.setSelectionText,
         setSelectedTagIds: viewState.setSelectedTagIds,
       }}
