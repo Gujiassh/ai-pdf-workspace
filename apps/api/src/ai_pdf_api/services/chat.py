@@ -15,7 +15,7 @@ from ai_pdf_api.services.providers import (
     get_embedding_provider,
     get_generation_provider,
 )
-from ai_pdf_api.services.retrieval import RetrievedChunk, retrieve_chunks
+from ai_pdf_api.services.retrieval import RetrievedChunk, retrieve_query_chunks
 
 
 class ChatError(RuntimeError):
@@ -81,9 +81,10 @@ def prepare_chat(
 
     try:
         query_embedding = embedding.embed_query(question_text)
-        retrieved = retrieve_chunks(
+        retrieved = retrieve_query_chunks(
             db,
             workspace_id,
+            question_text,
             query_embedding,
             embedding_provider=embedding,
             limit=workspace.retrieval_top_k,

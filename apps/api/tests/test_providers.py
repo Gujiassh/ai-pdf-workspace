@@ -1,5 +1,8 @@
 import httpx
 import pytest
+from prometheus_client import generate_latest
+
+from ai_pdf_api.core.metrics import PROVIDER_REQUESTS
 
 from ai_pdf_api.services.providers import ModelProviderError, OpenAIEmbeddingProvider, OpenAIGenerationProvider
 
@@ -121,6 +124,43 @@ def test_openai_generation_provider_streams_response_text_deltas() -> None:
     assert '"stream":true' in requests[0].decode()
 
 
+def test_openai_generation_provider_records_cancelled_stream() -> None:
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            content=(
+                'data: {"type":"response.output_text.delta","delta":"first"}\n\n'
+                'data: {"type":"response.output_text.delta","delta":"second"}\n\n'
+                'data: {"type":"response.completed"}\n\n'
+            ).encode(),
+        )
+
+    provider = OpenAIGenerationProvider(
+        model="gpt-5.5",
+        api_key="test-key",
+        api_base="https://cancelled-provider.test/v1",
+        timeout_seconds=2,
+        max_output_tokens=100,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    cancelled = PROVIDER_REQUESTS.labels(
+        provider="openai", kind="generation_stream", outcome="cancelled"
+    )
+    success = PROVIDER_REQUESTS.labels(
+        provider="openai", kind="generation_stream", outcome="success"
+    )
+    before_cancelled = cancelled._value.get()
+    before_success = success._value.get()
+
+    stream = provider.stream([{"role": "user", "content": "question"}])
+    assert next(stream) == "first"
+    stream.close()
+
+    assert cancelled._value.get() == before_cancelled + 1
+    assert success._value.get() == before_success
+
+
 def test_openai_generation_provider_rejects_null_content_items() -> None:
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"output": [{"content": None}]})
@@ -136,3 +176,37 @@ def test_openai_generation_provider_rejects_null_content_items() -> None:
 
     with pytest.raises(ModelProviderError, match="no answer text"):
         provider.generate([{"role": "user", "content": "question"}])
+
+
+def test_provider_metrics_record_business_success_and_error() -> None:
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"output_text": "answer"})
+
+    provider = OpenAIGenerationProvider(
+        model="gpt-5.5",
+        api_key="test-key",
+        api_base="https://metrics-provider.test/v1",
+        timeout_seconds=2,
+        max_output_tokens=100,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    missing_key_provider = OpenAIGenerationProvider(
+        model="gpt-5.5",
+        api_key=None,
+        api_base="https://metrics-provider.test/v1",
+        timeout_seconds=2,
+        max_output_tokens=100,
+    )
+
+    success = PROVIDER_REQUESTS.labels(provider="openai", kind="generation", outcome="success")
+    error = PROVIDER_REQUESTS.labels(provider="openai", kind="generation", outcome="error")
+    before_success = success._value.get()
+    before_error = error._value.get()
+
+    assert provider.generate([{"role": "user", "content": "question"}]) == "answer"
+    with pytest.raises(ModelProviderError):
+        missing_key_provider.generate([{"role": "user", "content": "question"}])
+
+    assert success._value.get() == before_success + 1
+    assert error._value.get() == before_error + 1
+    assert 'ai_pdf_provider_request_duration_seconds_bucket{kind="generation",le="120.0",provider="openai"}' in generate_latest().decode()

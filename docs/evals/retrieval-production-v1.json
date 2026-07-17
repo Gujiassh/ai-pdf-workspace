@@ -1,0 +1,5138 @@
+{
+  "schemaVersion": "production-retrieval-eval-v1",
+  "workspaceId": "57c7ff61-8dc2-472e-bcbe-bc1f40fd1a0d",
+  "topK": 6,
+  "candidateK": 10,
+  "rrfConstant": 60,
+  "queryCount": 40,
+  "warmupRuns": 1,
+  "embedding": {
+    "provider": "ollama",
+    "model": "qwen3-embedding:0.6b",
+    "dimensions": 1024,
+    "version": "embedding-v1",
+    "latencyMs": {
+      "mean": 69.73497090220917,
+      "p50": 67.08591594360769,
+      "p95": 79.99567501246929,
+      "max": 122.15177807956934
+    }
+  },
+  "strategies": {
+    "dense": {
+      "metrics": {
+        "recallAtK": 0.7708333333333333,
+        "mrr": 0.7229166666666667,
+        "ndcgAtK": 0.6935016638721087,
+        "citationHitAtK": 0.85,
+        "retrievalLatencyMs": {
+          "mean": 5.283357732696459,
+          "p50": 4.9704170087352395,
+          "p95": 7.316109025850892,
+          "max": 7.83302600029856
+        },
+        "endToEndLatencyMs": {
+          "mean": 75.01832863490563,
+          "p50": 72.00594898313284,
+          "p95": 85.57262807153165,
+          "max": 127.77080805972219
+        }
+      },
+      "cases": [
+        {
+          "id": "sa-001",
+          "query": "系统分析师考试的考试目标是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 122.15177807956934,
+          "retrievalLatencyMs": 5.619029980152845,
+          "endToEndLatencyMs": 127.77080805972219,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.2951602867532177,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 4,
+              "distance": 0.2998066544532776,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 3,
+              "distance": 0.33417612314224243,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.3771603410626094,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 25,
+              "distance": 0.37747801810764603,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 7,
+              "distance": 0.4017973603425026,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-002",
+          "query": "高级资格包括哪三个考试科目？",
+          "metrics": {
+            "recallAtK": 0.5,
+            "mrr": 1.0,
+            "ndcgAtK": 0.6131471927654584,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 93.31188001669943,
+          "retrievalLatencyMs": 7.451788987964392,
+          "endToEndLatencyMs": 100.76366900466383,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 16,
+              "distance": 0.3503608570900897,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 12,
+              "distance": 0.40980435101425616,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 13,
+              "distance": 0.4327023037944946,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 6,
+              "distance": 0.44319883632640567,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 18,
+              "distance": 0.47072926519752856,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 9,
+              "distance": 0.4845792135205327,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-003",
+          "query": "计算机软件考试包含哪些专业领域和级别？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 0.9197207891481876,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 77.33137905597687,
+          "retrievalLatencyMs": 4.909749026410282,
+          "endToEndLatencyMs": 82.24112808238715,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 5,
+              "distance": 0.20379934265620825,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 7,
+              "distance": 0.276045734528813,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 16,
+              "distance": 0.2776827116637195,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 9,
+              "distance": 0.292030821330723,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 18,
+              "distance": 0.29450392028758354,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 11,
+              "distance": 0.2993348362440008,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-004",
+          "query": "系统分析师需要掌握哪些知识和能力？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 0.8503449055347546,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.27194203995168,
+          "retrievalLatencyMs": 4.513615043833852,
+          "endToEndLatencyMs": 71.78555708378553,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.30885243853575084,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.3509085356104966,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 4,
+              "distance": 0.3564065016246021,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 3,
+              "distance": 0.3721212009949756,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 25,
+              "distance": 0.4102970193400123,
+              "relevant": true
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 74,
+              "distance": 0.4270765272286676,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-005",
+          "query": "计算机系统的层次结构包括什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 62.33684497419745,
+          "retrievalLatencyMs": 5.40940510109067,
+          "endToEndLatencyMs": 67.74625007528812,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 25,
+              "distance": 0.36001636505076784,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 27,
+              "distance": 0.5113852460933825,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 28,
+              "distance": 0.5148582620792008,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 29,
+              "distance": 0.5168601110404456,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 30,
+              "distance": 0.5175339723368191,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 18,
+              "distance": 0.5183379550290563,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-006",
+          "query": "网络需求分析和网络设计包含哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6309297535714575,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.13421798404306,
+          "retrievalLatencyMs": 4.7101660165935755,
+          "endToEndLatencyMs": 67.84438400063664,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.4220353736708725,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 31,
+              "distance": 0.43930390115391493,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 57,
+              "distance": 0.5030501930995921,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.5143499067812515,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 63,
+              "distance": 0.5238081443881346,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.5376074384673466,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-007",
+          "query": "数据库管理系统的三级模式和两级独立性是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 76.03425404522568,
+          "retrievalLatencyMs": 4.5738889602944255,
+          "endToEndLatencyMs": 80.6081430055201,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.3317884201246799,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.4613549685574925,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.4844207917325938,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.538855974690661,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 64,
+              "distance": 0.5561290947468084,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 49,
+              "distance": 0.5760227315432329,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-008",
+          "query": "关系数据库规范化理论涉及哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 65.12599310372025,
+          "retrievalLatencyMs": 5.108541925437748,
+          "endToEndLatencyMs": 70.234535029158,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.4083649851523208,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.44911154801310404,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.49734207845203227,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.5435199400901438,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 35,
+              "distance": 0.5925527347209282,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 64,
+              "distance": 0.5994043348444329,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-009",
+          "query": "数据库安全性包括哪些措施？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 70.6857880577445,
+          "retrievalLatencyMs": 7.83302600029856,
+          "endToEndLatencyMs": 78.51881405804306,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.40660114209634535,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 47,
+              "distance": 0.5312909204537151,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 49,
+              "distance": 0.535201845455039,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.5606964447604785,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 75,
+              "distance": 0.5699016749858734,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.5869150245855812,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-010",
+          "query": "数据库设计有哪些阶段？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 64.20857401099056,
+          "retrievalLatencyMs": 7.316109025850892,
+          "endToEndLatencyMs": 71.52468303684145,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.34238989877982107,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 64,
+              "distance": 0.4719849081119628,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 77,
+              "distance": 0.5121960291043541,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 82,
+              "distance": 0.5172603037748397,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 35,
+              "distance": 0.5334033747366229,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.5393694953659511,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-011",
+          "query": "数据仓库的 ETL 过程和设计方法是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 79.42010997794569,
+          "retrievalLatencyMs": 6.152518093585968,
+          "endToEndLatencyMs": 85.57262807153165,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 35,
+              "distance": 0.33924715111962933,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.39021374029102873,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 39,
+              "distance": 0.5509917322367465,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 83,
+              "distance": 0.5550965531717077,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.5639037664641102,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 63,
+              "distance": 0.5678553952696492,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-012",
+          "query": "非关系数据库有哪些类型？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6934264036172708,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 69.14504896849394,
+          "retrievalLatencyMs": 5.612186039797962,
+          "endToEndLatencyMs": 74.7572350082919,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.4478645364955569,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.462929414366259,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 35,
+              "distance": 0.46735957490425795,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.4955160306441795,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.5350507733134826,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.583063950077042,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-013",
+          "query": "企业信息资源规划的关键步骤以及业务主线和数据主线是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 0.8772153153380493,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 65.63495995942503,
+          "retrievalLatencyMs": 5.153848091140389,
+          "endToEndLatencyMs": 70.78880805056542,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.38459837436676025,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.4433983761188376,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.46594561331977746,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.480878913664471,
+              "relevant": true
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.5096880209074011,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 53,
+              "distance": 0.5188752103522286,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-014",
+          "query": "企业信息化战略规划有哪些方法？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 66.65913492906839,
+          "retrievalLatencyMs": 5.085338954813778,
+          "endToEndLatencyMs": 71.74447388388216,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.20091691028080738,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.3970857792973651,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.4344486022675076,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.4852520192270324,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.5081423545307968,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 39,
+              "distance": 0.5359308028118,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-015",
+          "query": "企业应用集成有哪些传统集成层次？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6309297535714575,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 77.07245403435081,
+          "retrievalLatencyMs": 4.701733007095754,
+          "endToEndLatencyMs": 81.77418704144657,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 83,
+              "distance": 0.2816345691680091,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.41986108781559484,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.4330832610900006,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 84,
+              "distance": 0.4636776663794083,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.5151945289157798,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.5463752122893408,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-016",
+          "query": "软件开发模型和敏捷方法有哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.83408008050174,
+          "retrievalLatencyMs": 4.8791669541969895,
+          "endToEndLatencyMs": 72.71324703469872,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 41,
+              "distance": 0.26785162304063115,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 43,
+              "distance": 0.414133022530894,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 42,
+              "distance": 0.4759261012077294,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.48265328693150555,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 73,
+              "distance": 0.51267605793306,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.5215042803878314,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-017",
+          "query": "软件能力成熟度模型 CMM 包含哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 66.92960602231324,
+          "retrievalLatencyMs": 5.307186977006495,
+          "endToEndLatencyMs": 72.23679299931973,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 42,
+              "distance": 0.3552246399776363,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 45,
+              "distance": 0.514487377978174,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 50,
+              "distance": 0.5384769577181907,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 49,
+              "distance": 0.541281588582133,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 41,
+              "distance": 0.545307622758223,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 43,
+              "distance": 0.5505398240769781,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-018",
+          "query": "项目管理中的范围、进度、质量和风险管理包括什么？",
+          "metrics": {
+            "recallAtK": 0.6666666666666666,
+            "mrr": 1.0,
+            "ndcgAtK": 0.6713860725233041,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 61.529434053227305,
+          "retrievalLatencyMs": 4.54688398167491,
+          "endToEndLatencyMs": 66.07631803490222,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 46,
+              "distance": 0.35997571706626996,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 5,
+              "distance": 0.44291240276057753,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 40,
+              "distance": 0.4775724642194469,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 44,
+              "distance": 0.4804364226427247,
+              "relevant": true
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 130,
+              "distance": 0.5048496581389936,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 61,
+              "distance": 0.5077057499183872,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-019",
+          "query": "信息安全中的防火墙、VPN 和访问控制有哪些知识点？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 70.32056397292763,
+          "retrievalLatencyMs": 4.458146984688938,
+          "endToEndLatencyMs": 74.77871095761657,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 48,
+              "distance": 0.33629145030936913,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 49,
+              "distance": 0.5024259677794095,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 50,
+              "distance": 0.5560612544867354,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.5683993487000892,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 47,
+              "distance": 0.5914681335763583,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.6354107589795992,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-020",
+          "query": "容灾与业务持续规划包括哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 69.79089695960283,
+          "retrievalLatencyMs": 4.804427037015557,
+          "endToEndLatencyMs": 74.59532399661839,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 49,
+              "distance": 0.2772626546308008,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 51,
+              "distance": 0.5450275892052161,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.5850073745851136,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.586553273581456,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.6109875937082034,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 50,
+              "distance": 0.625447511672971,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-021",
+          "query": "系统规划和项目选择要考虑什么？",
+          "metrics": {
+            "recallAtK": 0.5,
+            "mrr": 1.0,
+            "ndcgAtK": 0.6131471927654584,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 64.85185003839433,
+          "retrievalLatencyMs": 4.685148014687002,
+          "endToEndLatencyMs": 69.53699805308133,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 52,
+              "distance": 0.41389936820890105,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 84,
+              "distance": 0.49618560257643096,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.49695807659123026,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.5105182795172087,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.5148508097275745,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 54,
+              "distance": 0.5357806511971097,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-022",
+          "query": "信息系统可行性分析有哪些评价准则和步骤？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6934264036172708,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.96220298483968,
+          "retrievalLatencyMs": 6.31216901820153,
+          "endToEndLatencyMs": 70.27437200304121,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 84,
+              "distance": 0.2812477704143582,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 54,
+              "distance": 0.28843375695756635,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 55,
+              "distance": 0.4213093174284279,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 52,
+              "distance": 0.4816813512607836,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.49734048505730677,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 50,
+              "distance": 0.4990465641021693,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-023",
+          "query": "需求工程包括哪些核心活动？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6309297535714575,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 71.17977098096162,
+          "retrievalLatencyMs": 6.691977963782847,
+          "endToEndLatencyMs": 77.87174894474447,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.35943841467407844,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 56,
+              "distance": 0.4233738871367071,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 57,
+              "distance": 0.4665542006190765,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 59,
+              "distance": 0.4921222338530702,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 131,
+              "distance": 0.5215361727199649,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 112,
+              "distance": 0.5537028898790438,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-024",
+          "query": "需求获取可以使用哪些技术？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 69.89077501930296,
+          "retrievalLatencyMs": 5.3436600137501955,
+          "endToEndLatencyMs": 75.23443503305316,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 57,
+              "distance": 0.42463795616136424,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.473330598276007,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 56,
+              "distance": 0.5190482071465671,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 41,
+              "distance": 0.5632753783359861,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 83,
+              "distance": 0.5835146009921555,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 59,
+              "distance": 0.5842402872179882,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-025",
+          "query": "数据流图、状态转换图和数据字典分别有什么作用？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 73.75858002342284,
+          "retrievalLatencyMs": 5.0426480593159795,
+          "endToEndLatencyMs": 78.80122808273882,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 58,
+              "distance": 0.3273940487269027,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 53,
+              "distance": 0.4983221593519155,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 54,
+              "distance": 0.5121785416815614,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 63,
+              "distance": 0.5247155100446297,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 64,
+              "distance": 0.5460683052458367,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.5500368326792612,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-026",
+          "query": "软件需求规格说明书和需求验证包括哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.04966995958239,
+          "retrievalLatencyMs": 4.873886005952954,
+          "endToEndLatencyMs": 67.92355596553534,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 59,
+              "distance": 0.30341370187124483,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 56,
+              "distance": 0.3876491517183446,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.397307586188394,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.5195346877462901,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 69,
+              "distance": 0.5342717129858645,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 57,
+              "distance": 0.5567150321905499,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-027",
+          "query": "面向服务的软件架构 SOA 有哪些关键技术？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 61.1493019387126,
+          "retrievalLatencyMs": 4.770344006828964,
+          "endToEndLatencyMs": 65.91964594554156,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 61,
+              "distance": 0.3989821672439404,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 83,
+              "distance": 0.5080858776671426,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 84,
+              "distance": 0.5414981048116054,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 48,
+              "distance": 0.5539194322112322,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 60,
+              "distance": 0.5676957505474685,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 11,
+              "distance": 0.5753691522946975,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-028",
+          "query": "系统分析师考试的题型举例有哪些内容？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 61.68471404816955,
+          "retrievalLatencyMs": 4.801845992915332,
+          "endToEndLatencyMs": 66.48656004108489,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.36629526213346986,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 25,
+              "distance": 0.3712247917116185,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 3,
+              "distance": 0.37214191292024246,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 4,
+              "distance": 0.3822662374655873,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 7,
+              "distance": 0.3894360843468746,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.4074045066478291,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-001",
+          "query": "Shape Up 的产品开发方法分为哪三个主要阶段？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 67.09115393459797,
+          "retrievalLatencyMs": 4.928907961584628,
+          "endToEndLatencyMs": 72.0200618961826,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.3431578634914718,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 64,
+              "distance": 0.38480777001149247,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 14,
+              "distance": 0.41046822071071665,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 133,
+              "distance": 0.42083534126487343,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 65,
+              "distance": 0.42446545216644516,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 20,
+              "distance": 0.4370442964407971,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-002",
+          "query": "为什么 Shape Up 使用六周周期？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 62.891748966649175,
+          "retrievalLatencyMs": 5.023241974413395,
+          "endToEndLatencyMs": 67.91499094106257,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 14,
+              "distance": 0.36177723460710964,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.38617129490713786,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 1,
+              "distance": 0.39825844764707763,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 19,
+              "distance": 0.41287565231321577,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 6,
+              "distance": 0.4355493630288513,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 127,
+              "distance": 0.44051602377427235,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-003",
+          "query": "Shape Up 如何用 appetite 代替估算？",
+          "metrics": {
+            "recallAtK": 0.3333333333333333,
+            "mrr": 0.25,
+            "ndcgAtK": 0.20210734650054757,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.08591594360769,
+          "retrievalLatencyMs": 4.920033039525151,
+          "endToEndLatencyMs": 72.00594898313284,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.4646373114205543,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 14,
+              "distance": 0.4888592322561379,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 1,
+              "distance": 0.4980648456850333,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 22,
+              "distance": 0.5150383059920025,
+              "relevant": true
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 19,
+              "distance": 0.5372767052346601,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 125,
+              "distance": 0.5417842566966717,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-004",
+          "query": "固定时间和可变范围是什么意思？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 64.84678806737065,
+          "retrievalLatencyMs": 4.743112018331885,
+          "endToEndLatencyMs": 69.58990008570254,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 22,
+              "distance": 0.4929160165040487,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 93,
+              "distance": 0.5890531907332026,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 112,
+              "distance": 0.5902161178057227,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 131,
+              "distance": 0.5931427357537368,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-005",
+          "query": "breadboarding 和 fat marker sketches 用来解决什么问题？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.3333333333333333,
+            "ndcgAtK": 0.5,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.13236593268812,
+          "retrievalLatencyMs": 4.600642016157508,
+          "endToEndLatencyMs": 67.73300794884562,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 31,
+              "distance": 0.23233156432760693,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 46,
+              "distance": 0.28713593742653953,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 27,
+              "distance": 0.29538496787726765,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 33,
+              "distance": 0.3747561649214719,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 47,
+              "distance": 0.3933207265520574,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 35,
+              "distance": 0.421151358806763,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-006",
+          "query": "Shape Up 如何识别和处理 rabbit holes？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 79.99567501246929,
+          "retrievalLatencyMs": 5.2478049183264375,
+          "endToEndLatencyMs": 85.24347993079573,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 1,
+              "distance": 0.45954908387097315,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 49,
+              "distance": 0.5204830990494101,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 3,
+              "distance": 0.5353870572495065,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 20,
+              "distance": 0.5429993816614596,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 123,
+              "distance": 0.5625804699621616,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 130,
+              "distance": 0.5631685647515419,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-007",
+          "query": "一个 Shape Up pitch 应该包含哪些要素？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 67.71346903406084,
+          "retrievalLatencyMs": 5.5452450178563595,
+          "endToEndLatencyMs": 73.2587140519172,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 1,
+              "distance": 0.4028271668369372,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 53,
+              "distance": 0.4350776231103842,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 117,
+              "distance": 0.4437844224233084,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.44455780581552384,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 20,
+              "distance": 0.44741972967501387,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 14,
+              "distance": 0.46139308580116534,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-008",
+          "query": "Shape Up 为什么不使用 backlog？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.3333333333333333,
+            "ndcgAtK": 0.5,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 74.9590490013361,
+          "retrievalLatencyMs": 4.935172037221491,
+          "endToEndLatencyMs": 79.89422103855759,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.414990276697771,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 1,
+              "distance": 0.4437546864140781,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 55,
+              "distance": 0.4529412118827487,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 6,
+              "distance": 0.4593073725700225,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 19,
+              "distance": 0.4686220959133873,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 125,
+              "distance": 0.4719747686461294,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-009",
+          "query": "betting table 和 circuit breaker 分别有什么作用？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 63.987868023104966,
+          "retrievalLatencyMs": 4.830189980566502,
+          "endToEndLatencyMs": 68.81805800367147,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 130,
+              "distance": 0.4401050757923157,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 53,
+              "distance": 0.46230760890705336,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 127,
+              "distance": 0.4752829797818826,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 54,
+              "distance": 0.49400827538619607,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 4,
+              "distance": 0.49796798788926544,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 60,
+              "distance": 0.5267457552420711,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-010",
+          "query": "为什么要分配项目而不是分配任务？",
+          "metrics": {
+            "recallAtK": 0.5,
+            "mrr": 1.0,
+            "ndcgAtK": 0.6131471927654584,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.006791984662414,
+          "retrievalLatencyMs": 4.9704170087352395,
+          "endToEndLatencyMs": 67.97720899339765,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 71,
+              "distance": 0.3726360435216145,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 70,
+              "distance": 0.3977761742801489,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 85,
+              "distance": 0.41777207427690644,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 94,
+              "distance": 0.41895807755492775,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 87,
+              "distance": 0.4211986833453445,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 4,
+              "distance": 0.42761563391868196,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-011",
+          "query": "Get One Piece Done 的核心做法是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6309297535714575,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.24634091369808,
+          "retrievalLatencyMs": 5.5921850726008415,
+          "endToEndLatencyMs": 72.83852598629892,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 128,
+              "distance": 0.5083400353825064,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 77,
+              "distance": 0.5297916006544233,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 76,
+              "distance": 0.5525210938033649,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 131,
+              "distance": 0.5578414477545683,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 39,
+              "distance": 0.5586025679942651,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 112,
+              "distance": 0.5600824333023358,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-012",
+          "query": "scope map 和 hill chart 如何帮助团队展示进度？",
+          "metrics": {
+            "recallAtK": 0.3333333333333333,
+            "mrr": 1.0,
+            "ndcgAtK": 0.46927872602275644,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 61.985863954760134,
+          "retrievalLatencyMs": 5.328922998160124,
+          "endToEndLatencyMs": 67.31478695292026,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 103,
+              "distance": 0.2627850770949479,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 122,
+              "distance": 0.30460681346689455,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 107,
+              "distance": 0.3080381524903343,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 121,
+              "distance": 0.34147823002542255,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 128,
+              "distance": 0.36094404254342194,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 123,
+              "distance": 0.36789729403831783,
+              "relevant": false
+            }
+          ]
+        }
+      ]
+    },
+    "hybrid": {
+      "metrics": {
+        "recallAtK": 0.8416666666666666,
+        "mrr": 0.7354166666666667,
+        "ndcgAtK": 0.7393549082581969,
+        "citationHitAtK": 0.925,
+        "retrievalLatencyMs": {
+          "mean": 16.34974777989555,
+          "p50": 15.596774988807738,
+          "p95": 21.99314092285931,
+          "max": 42.76709700934589
+        },
+        "endToEndLatencyMs": {
+          "mean": 86.08471868210472,
+          "p50": 82.75025896728039,
+          "p95": 109.85825094394386,
+          "max": 138.42258404474705
+        }
+      },
+      "cases": [
+        {
+          "id": "sa-001",
+          "query": "系统分析师考试的考试目标是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 122.15177807956934,
+          "retrievalLatencyMs": 16.270805965177715,
+          "endToEndLatencyMs": 138.42258404474705,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.2951602867532177,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 4,
+              "distance": 0.2998066544532776,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 3,
+              "distance": 0.33417612314224243,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 7,
+              "distance": 0.4017973603425026,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 21,
+              "distance": 0.45760834217071533,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 25,
+              "distance": 0.37747801810764603,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-002",
+          "query": "高级资格包括哪三个考试科目？",
+          "metrics": {
+            "recallAtK": 0.5,
+            "mrr": 1.0,
+            "ndcgAtK": 0.6131471927654584,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 93.31188001669943,
+          "retrievalLatencyMs": 17.04504096414894,
+          "endToEndLatencyMs": 110.35692098084837,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 16,
+              "distance": 0.3503608570900897,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 18,
+              "distance": 0.47072926519752856,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 6,
+              "distance": 0.44319883632640567,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 12,
+              "distance": 0.40980435101425616,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 5,
+              "distance": 0.4917495392336756,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 13,
+              "distance": 0.4327023037944946,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-003",
+          "query": "计算机软件考试包含哪些专业领域和级别？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 77.33137905597687,
+          "retrievalLatencyMs": 16.901270020753145,
+          "endToEndLatencyMs": 94.23264907673001,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 5,
+              "distance": 0.20379934265620825,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 16,
+              "distance": 0.2776827116637195,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 15,
+              "distance": 0.33192396126135726,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 11,
+              "distance": 0.2993348362440008,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 12,
+              "distance": 0.31773801830553305,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 6,
+              "distance": 0.6315789222717285,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-004",
+          "query": "系统分析师需要掌握哪些知识和能力？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 0.8503449055347546,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.27194203995168,
+          "retrievalLatencyMs": 16.409724950790405,
+          "endToEndLatencyMs": 83.68166699074209,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.30885243853575084,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.3509085356104966,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 18,
+              "distance": 0.5162477166209032,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 7,
+              "distance": 0.4791637863971048,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 25,
+              "distance": 0.4102970193400123,
+              "relevant": true
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 74,
+              "distance": 0.4270765272286676,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-005",
+          "query": "计算机系统的层次结构包括什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 62.33684497419745,
+          "retrievalLatencyMs": 15.45885601080954,
+          "endToEndLatencyMs": 77.79570098500699,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 25,
+              "distance": 0.36001636505076784,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 29,
+              "distance": 0.5168601110404456,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 18,
+              "distance": 0.5183379550290563,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.7333333492279053,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 27,
+              "distance": 0.5113852460933825,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 28,
+              "distance": 0.5148582620792008,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-006",
+          "query": "网络需求分析和网络设计包含哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.13421798404306,
+          "retrievalLatencyMs": 14.914104016497731,
+          "endToEndLatencyMs": 78.0483220005408,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 31,
+              "distance": 0.43930390115391493,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.4220353736708725,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 63,
+              "distance": 0.5238081443881346,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 57,
+              "distance": 0.5030501930995921,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.5376074384673466,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 30,
+              "distance": 0.8888888955116272,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-007",
+          "query": "数据库管理系统的三级模式和两级独立性是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 76.03425404522568,
+          "retrievalLatencyMs": 16.792568028904498,
+          "endToEndLatencyMs": 92.82682207413018,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.3317884201246799,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.4613549685574925,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 75,
+              "distance": 0.6069867259549937,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.6046786329203692,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.4844207917325938,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.538855974690661,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-008",
+          "query": "关系数据库规范化理论涉及哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 65.12599310372025,
+          "retrievalLatencyMs": 17.054838011972606,
+          "endToEndLatencyMs": 82.18083111569285,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.4083649851523208,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.44911154801310404,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 35,
+              "distance": 0.5925527347209282,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.49734207845203227,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 43,
+              "distance": 0.8823529481887817,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.5435199400901438,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-009",
+          "query": "数据库安全性包括哪些措施？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.3333333333333333,
+            "ndcgAtK": 0.5,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 70.6857880577445,
+          "retrievalLatencyMs": 16.033909982070327,
+          "endToEndLatencyMs": 86.71969803981483,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.5869150245855812,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.5606964447604785,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.40660114209634535,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 71,
+              "distance": 0.7692307829856873,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.7692307829856873,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 47,
+              "distance": 0.5312909204537151,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-010",
+          "query": "数据库设计有哪些阶段？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 64.20857401099056,
+          "retrievalLatencyMs": 15.939243021421134,
+          "endToEndLatencyMs": 80.1478170324117,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.34238989877982107,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.5401996963441469,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 64,
+              "distance": 0.4719849081119628,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 71,
+              "distance": 0.7272727489471436,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.7272727489471436,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 77,
+              "distance": 0.5121960291043541,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-011",
+          "query": "数据仓库的 ETL 过程和设计方法是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 79.42010997794569,
+          "retrievalLatencyMs": 12.87728501483798,
+          "endToEndLatencyMs": 92.29739499278367,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 35,
+              "distance": 0.33924715111962933,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 34,
+              "distance": 0.39021374029102873,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 39,
+              "distance": 0.5509917322367465,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 83,
+              "distance": 0.5550965531717077,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.5639037664641102,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 63,
+              "distance": 0.5678553952696492,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-012",
+          "query": "非关系数据库有哪些类型？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6052602440527057,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 69.14504896849394,
+          "retrievalLatencyMs": 16.39538409654051,
+          "endToEndLatencyMs": 85.54043306503445,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 32,
+              "distance": 0.4478645364955569,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 35,
+              "distance": 0.46735957490425795,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 64,
+              "distance": 0.6004974603949457,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.5350507733134826,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 77,
+              "distance": 0.6104493040649832,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.462929414366259,
+              "relevant": true
+            }
+          ]
+        },
+        {
+          "id": "sa-013",
+          "query": "企业信息资源规划的关键步骤以及业务主线和数据主线是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 0.9197207891481876,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 65.63495995942503,
+          "retrievalLatencyMs": 16.309252940118313,
+          "endToEndLatencyMs": 81.94421289954334,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.38459837436676025,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.4433983761188376,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.480878913664471,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.46594561331977746,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.5096880209074011,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 53,
+              "distance": 0.5188752103522286,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-014",
+          "query": "企业信息化战略规划有哪些方法？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 66.65913492906839,
+          "retrievalLatencyMs": 15.596774988807738,
+          "endToEndLatencyMs": 82.25590991787612,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.20091691028080738,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 36,
+              "distance": 0.4344486022675076,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.3970857792973651,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.5081423545307968,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.4852520192270324,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 39,
+              "distance": 0.5359308028118,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-015",
+          "query": "企业应用集成有哪些传统集成层次？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 77.07245403435081,
+          "retrievalLatencyMs": 16.712996060959995,
+          "endToEndLatencyMs": 93.78545009531081,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.41986108781559484,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 83,
+              "distance": 0.2816345691680091,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.5151945289157798,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.4330832610900006,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.5463752122893408,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 84,
+              "distance": 0.4636776663794083,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-016",
+          "query": "软件开发模型和敏捷方法有哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.83408008050174,
+          "retrievalLatencyMs": 15.885647968389094,
+          "endToEndLatencyMs": 83.71972804889083,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 41,
+              "distance": 0.26785162304063115,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 40,
+              "distance": 0.48265328693150555,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 42,
+              "distance": 0.4759261012077294,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 43,
+              "distance": 0.414133022530894,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.5215042803878314,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 44,
+              "distance": 0.5256104377708715,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-017",
+          "query": "软件能力成熟度模型 CMM 包含哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 66.92960602231324,
+          "retrievalLatencyMs": 8.453328046016395,
+          "endToEndLatencyMs": 75.38293406832963,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 42,
+              "distance": 0.3552246399776363,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 45,
+              "distance": 0.514487377978174,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 50,
+              "distance": 0.5384769577181907,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 49,
+              "distance": 0.541281588582133,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 41,
+              "distance": 0.545307622758223,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 43,
+              "distance": 0.5505398240769781,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-018",
+          "query": "项目管理中的范围、进度、质量和风险管理包括什么？",
+          "metrics": {
+            "recallAtK": 0.6666666666666666,
+            "mrr": 1.0,
+            "ndcgAtK": 0.7653606369886217,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 61.529434053227305,
+          "retrievalLatencyMs": 14.735150034539402,
+          "endToEndLatencyMs": 76.2645840877667,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 44,
+              "distance": 0.4804364226427247,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 46,
+              "distance": 0.35997571706626996,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.7599999904632568,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 43,
+              "distance": 0.8333333134651184,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 5,
+              "distance": 0.44291240276057753,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 83,
+              "distance": 0.8928571343421936,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-019",
+          "query": "信息安全中的防火墙、VPN 和访问控制有哪些知识点？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 70.32056397292763,
+          "retrievalLatencyMs": 8.443619008176029,
+          "endToEndLatencyMs": 78.76418298110366,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 48,
+              "distance": 0.33629145030936913,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 49,
+              "distance": 0.5024259677794095,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 50,
+              "distance": 0.5560612544867354,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 81,
+              "distance": 0.5683993487000892,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 47,
+              "distance": 0.5914681335763583,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 33,
+              "distance": 0.6354107589795992,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-020",
+          "query": "容灾与业务持续规划包括哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 69.79089695960283,
+          "retrievalLatencyMs": 13.115118024870753,
+          "endToEndLatencyMs": 82.90601498447359,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 49,
+              "distance": 0.2772626546308008,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.5850073745851136,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 38,
+              "distance": 0.6304872049062714,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 51,
+              "distance": 0.5450275892052161,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 65,
+              "distance": 0.9375,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 44,
+              "distance": 0.9375,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-021",
+          "query": "系统规划和项目选择要考虑什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.3333333333333333,
+            "ndcgAtK": 0.5706417189553201,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 64.85185003839433,
+          "retrievalLatencyMs": 14.369601965881884,
+          "endToEndLatencyMs": 79.22145200427622,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.550019258258428,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 18,
+              "distance": 0.7333333492279053,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 52,
+              "distance": 0.41389936820890105,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 51,
+              "distance": 0.7333333492279053,
+              "relevant": true
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 84,
+              "distance": 0.49618560257643096,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 68,
+              "distance": 0.8666666746139526,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-022",
+          "query": "信息系统可行性分析有哪些评价准则和步骤？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6934264036172708,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.96220298483968,
+          "retrievalLatencyMs": 15.099238022230566,
+          "endToEndLatencyMs": 79.06144100707024,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 84,
+              "distance": 0.2812477704143582,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 54,
+              "distance": 0.28843375695756635,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 55,
+              "distance": 0.4213093174284279,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.5392328915693959,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 71,
+              "distance": 0.800000011920929,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 11,
+              "distance": 0.800000011920929,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-023",
+          "query": "需求工程包括哪些核心活动？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6309297535714575,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 71.17977098096162,
+          "retrievalLatencyMs": 15.305640059523284,
+          "endToEndLatencyMs": 86.4854110404849,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.35943841467407844,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 56,
+              "distance": 0.4233738871367071,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 57,
+              "distance": 0.4665542006190765,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 59,
+              "distance": 0.4921222338530702,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 80,
+              "distance": 0.692307710647583,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 61,
+              "distance": 0.8461538553237915,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-024",
+          "query": "需求获取可以使用哪些技术？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6309297535714575,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 69.89077501930296,
+          "retrievalLatencyMs": 15.206392970867455,
+          "endToEndLatencyMs": 85.09716799017042,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 56,
+              "distance": 0.5190482071465671,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 57,
+              "distance": 0.42463795616136424,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.473330598276007,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 61,
+              "distance": 0.6002345263678144,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 59,
+              "distance": 0.5842402872179882,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 41,
+              "distance": 0.5632753783359861,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-025",
+          "query": "数据流图、状态转换图和数据字典分别有什么作用？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 73.75858002342284,
+          "retrievalLatencyMs": 14.8129170993343,
+          "endToEndLatencyMs": 88.57149712275714,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 58,
+              "distance": 0.3273940487269027,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 53,
+              "distance": 0.4983221593519155,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 54,
+              "distance": 0.5121785416815614,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 63,
+              "distance": 0.5247155100446297,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.5500368326792612,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 37,
+              "distance": 0.8846153616905212,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-026",
+          "query": "软件需求规格说明书和需求验证包括哪些内容？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.04966995958239,
+          "retrievalLatencyMs": 14.461001032032073,
+          "endToEndLatencyMs": 77.51067099161446,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 59,
+              "distance": 0.30341370187124483,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 56,
+              "distance": 0.3876491517183446,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.5195346877462901,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.397307586188394,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 43,
+              "distance": 0.565184366437915,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 42,
+              "distance": 0.9047619104385376,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-027",
+          "query": "面向服务的软件架构 SOA 有哪些关键技术？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 61.1493019387126,
+          "retrievalLatencyMs": 9.522025007754564,
+          "endToEndLatencyMs": 70.67132694646716,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 61,
+              "distance": 0.3989821672439404,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 83,
+              "distance": 0.5080858776671426,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 84,
+              "distance": 0.5414981048116054,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 48,
+              "distance": 0.5539194322112322,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 60,
+              "distance": 0.5676957505474685,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 11,
+              "distance": 0.5753691522946975,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "sa-028",
+          "query": "系统分析师考试的题型举例有哪些内容？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 61.68471404816955,
+          "retrievalLatencyMs": 14.751170994713902,
+          "endToEndLatencyMs": 76.43588504288346,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 7,
+              "distance": 0.3894360843468746,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 3,
+              "distance": 0.37214191292024246,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 24,
+              "distance": 0.4074045066478291,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 4,
+              "distance": 0.3822662374655873,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 25,
+              "distance": 0.3712247917116185,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 18,
+              "distance": 0.5047360065421842,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-001",
+          "query": "Shape Up 的产品开发方法分为哪三个主要阶段？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 67.09115393459797,
+          "retrievalLatencyMs": 42.76709700934589,
+          "endToEndLatencyMs": 109.85825094394386,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.3431578634914718,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 64,
+              "distance": 0.38480777001149247,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 115,
+              "distance": 0.0,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 14,
+              "distance": 0.41046822071071665,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 117,
+              "distance": 0.0,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 6,
+              "distance": 0.0,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-002",
+          "query": "为什么 Shape Up 使用六周周期？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.25,
+            "ndcgAtK": 0.43067655807339306,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 62.891748966649175,
+          "retrievalLatencyMs": 19.858510000631213,
+          "endToEndLatencyMs": 82.75025896728039,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.38617129490713786,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 6,
+              "distance": 0.4355493630288513,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 128,
+              "distance": 0.4559113168584261,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 12,
+              "distance": 0.46523327049809016,
+              "relevant": true
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 14,
+              "distance": 0.36177723460710964,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 115,
+              "distance": 0.0,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-003",
+          "query": "Shape Up 如何用 appetite 代替估算？",
+          "metrics": {
+            "recallAtK": 0.6666666666666666,
+            "mrr": 0.3333333333333333,
+            "ndcgAtK": 0.4367467095119258,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.08591594360769,
+          "retrievalLatencyMs": 22.208819049410522,
+          "endToEndLatencyMs": 89.29473499301821,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.4646373114205543,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 19,
+              "distance": 0.5372767052346601,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 22,
+              "distance": 0.5150383059920025,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 12,
+              "distance": 0.0,
+              "relevant": true
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 14,
+              "distance": 0.4888592322561379,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 1,
+              "distance": 0.4980648456850333,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-004",
+          "query": "固定时间和可变范围是什么意思？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 64.84678806737065,
+          "retrievalLatencyMs": 14.53835901338607,
+          "endToEndLatencyMs": 79.38514708075672,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 22,
+              "distance": 0.4929160165040487,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 113,
+              "distance": 1.0,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 39,
+              "distance": 1.0,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 93,
+              "distance": 0.5890531907332026,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 1,
+              "distance": 1.0,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 112,
+              "distance": 0.5902161178057227,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-005",
+          "query": "breadboarding 和 fat marker sketches 用来解决什么问题？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 0.5,
+            "ndcgAtK": 0.6309297535714575,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.13236593268812,
+          "retrievalLatencyMs": 14.280667994171381,
+          "endToEndLatencyMs": 77.4130339268595,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 31,
+              "distance": 0.23233156432760693,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 27,
+              "distance": 0.29538496787726765,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 46,
+              "distance": 0.28713593742653953,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 3,
+              "distance": 0.4314674741110328,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 47,
+              "distance": 0.3933207265520574,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 33,
+              "distance": 0.3747561649214719,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-006",
+          "query": "Shape Up 如何识别和处理 rabbit holes？",
+          "metrics": {
+            "recallAtK": 0.0,
+            "mrr": 0.0,
+            "ndcgAtK": 0.0,
+            "citationHitAtK": 0.0
+          },
+          "embeddingLatencyMs": 79.99567501246929,
+          "retrievalLatencyMs": 20.165900932624936,
+          "endToEndLatencyMs": 100.16157594509423,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 49,
+              "distance": 0.5204830990494101,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 20,
+              "distance": 0.5429993816614596,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 3,
+              "distance": 0.5353870572495065,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 130,
+              "distance": 0.5631685647515419,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 18,
+              "distance": 0.5871083580657612,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 41,
+              "distance": 0.5789290525443869,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-007",
+          "query": "一个 Shape Up pitch 应该包含哪些要素？",
+          "metrics": {
+            "recallAtK": 0.5,
+            "mrr": 0.3333333333333333,
+            "ndcgAtK": 0.3065735963827292,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.71346903406084,
+          "retrievalLatencyMs": 20.518049015663564,
+          "endToEndLatencyMs": 88.2315180497244,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 117,
+              "distance": 0.4437844224233084,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 20,
+              "distance": 0.44741972967501387,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 43,
+              "distance": 0.4633090728477499,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 1,
+              "distance": 0.4028271668369372,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 53,
+              "distance": 0.4350776231103842,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 128,
+              "distance": 0.0,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-008",
+          "query": "Shape Up 为什么不使用 backlog？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 74.9590490013361,
+          "retrievalLatencyMs": 18.921454902738333,
+          "endToEndLatencyMs": 93.88050390407443,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 55,
+              "distance": 0.4529412118827487,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 116,
+              "distance": 0.414990276697771,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 6,
+              "distance": 0.4593073725700225,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 117,
+              "distance": 0.47718221221181834,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 125,
+              "distance": 0.4719747686461294,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 56,
+              "distance": 0.0,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-009",
+          "query": "betting table 和 circuit breaker 分别有什么作用？",
+          "metrics": {
+            "recallAtK": 0.5,
+            "mrr": 0.3333333333333333,
+            "ndcgAtK": 0.3065735963827292,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.987868023104966,
+          "retrievalLatencyMs": 14.322852017357945,
+          "endToEndLatencyMs": 78.31072004046291,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 130,
+              "distance": 0.4401050757923157,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 4,
+              "distance": 0.49796798788926544,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 62,
+              "distance": 0.5593380892671286,
+              "relevant": true
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 60,
+              "distance": 0.5267457552420711,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 53,
+              "distance": 0.46230760890705336,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 127,
+              "distance": 0.4752829797818826,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-010",
+          "query": "为什么要分配项目而不是分配任务？",
+          "metrics": {
+            "recallAtK": 0.5,
+            "mrr": 0.5,
+            "ndcgAtK": 0.38685280723454163,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 63.006791984662414,
+          "retrievalLatencyMs": 13.776010018773377,
+          "endToEndLatencyMs": 76.78280200343579,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 82,
+              "distance": 0.9130434989929199,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 71,
+              "distance": 0.3726360435216145,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 58,
+              "distance": 0.9375,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 70,
+              "distance": 0.3977761742801489,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "d37e6253-32a8-46c2-9c4e-c84df55d1dfb",
+              "sourceFilename": "01、系统分析师大纲第二版.pdf",
+              "pageNumber": 57,
+              "distance": 0.9375,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 85,
+              "distance": 0.41777207427690644,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-011",
+          "query": "Get One Piece Done 的核心做法是什么？",
+          "metrics": {
+            "recallAtK": 1.0,
+            "mrr": 1.0,
+            "ndcgAtK": 1.0,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 67.24634091369808,
+          "retrievalLatencyMs": 21.99314092285931,
+          "endToEndLatencyMs": 89.23948183655739,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 77,
+              "distance": 0.5297916006544233,
+              "relevant": true
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 128,
+              "distance": 0.5083400353825064,
+              "relevant": false
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 89,
+              "distance": 0.5673668061108176,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 4,
+              "distance": 0.571344869422522,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 76,
+              "distance": 0.5525210938033649,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 131,
+              "distance": 0.5578414477545683,
+              "relevant": false
+            }
+          ]
+        },
+        {
+          "id": "su-012",
+          "query": "scope map 和 hill chart 如何帮助团队展示进度？",
+          "metrics": {
+            "recallAtK": 0.3333333333333333,
+            "mrr": 0.5,
+            "ndcgAtK": 0.2960819109658652,
+            "citationHitAtK": 1.0
+          },
+          "embeddingLatencyMs": 61.985863954760134,
+          "retrievalLatencyMs": 15.76614601071924,
+          "endToEndLatencyMs": 77.75200996547937,
+          "results": [
+            {
+              "rank": 1,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 122,
+              "distance": 0.30460681346689455,
+              "relevant": false
+            },
+            {
+              "rank": 2,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 103,
+              "distance": 0.2627850770949479,
+              "relevant": true
+            },
+            {
+              "rank": 3,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 121,
+              "distance": 0.34147823002542255,
+              "relevant": false
+            },
+            {
+              "rank": 4,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 107,
+              "distance": 0.3080381524903343,
+              "relevant": false
+            },
+            {
+              "rank": 5,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 5,
+              "distance": 0.39054145986205013,
+              "relevant": false
+            },
+            {
+              "rank": 6,
+              "documentId": "f2e16843-d647-4d83-b466-a1201ea4641e",
+              "sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf",
+              "pageNumber": 128,
+              "distance": 0.36094404254342194,
+              "relevant": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "concurrency": {
+    "workers": 4,
+    "repetitions": 1,
+    "strategies": {
+      "dense": {
+        "requestCount": 40,
+        "completedCount": 40,
+        "errorCount": 0,
+        "errorTypes": [],
+        "resultDriftCount": 0,
+        "latencyMs": {
+          "mean": 8.946111306431703,
+          "p50": 7.436112035065889,
+          "p95": 22.96076703350991,
+          "max": 29.442553990520537
+        },
+        "wallMs": 111.80112697184086,
+        "throughputPerSecond": 357.77814663777696
+      },
+      "hybrid": {
+        "requestCount": 40,
+        "completedCount": 40,
+        "errorCount": 0,
+        "errorTypes": [],
+        "resultDriftCount": 0,
+        "latencyMs": {
+          "mean": 26.362377803889103,
+          "p50": 26.781741064041853,
+          "p95": 33.071554033085704,
+          "max": 34.159340895712376
+        },
+        "wallMs": 293.29311300534755,
+        "throughputPerSecond": 136.38233639420878
+      }
+    }
+  },
+  "verdict": {
+    "recallGain": 0.0708333333333333,
+    "citationHitGain": 0.07500000000000007,
+    "hybridEndToEndP95Ratio": 1.2838012974442181,
+    "hybridEndToEndP95AbsoluteIncreaseMs": 24.285622872412205,
+    "qualityPassed": true,
+    "latencyPassed": true,
+    "concurrencyPassed": true,
+    "eligibleForDefaultHybrid": true
+  },
+  "dataset": "/home/cc/code/ai-pdf-workspace/docs/evals/retrieval-v1.jsonl"
+}

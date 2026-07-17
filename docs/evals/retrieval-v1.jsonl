@@ -1,0 +1,40 @@
+{"id": "sa-001", "query": "系统分析师考试的考试目标是什么？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [24]}]}
+{"id": "sa-002", "query": "高级资格包括哪三个考试科目？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [16, 25]}]}
+{"id": "sa-003", "query": "计算机软件考试包含哪些专业领域和级别？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [5, 16]}]}
+{"id": "sa-004", "query": "系统分析师需要掌握哪些知识和能力？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [24, 25]}]}
+{"id": "sa-005", "query": "计算机系统的层次结构包括什么？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [25]}]}
+{"id": "sa-006", "query": "网络需求分析和网络设计包含哪些内容？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [31]}]}
+{"id": "sa-007", "query": "数据库管理系统的三级模式和两级独立性是什么？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [32]}]}
+{"id": "sa-008", "query": "关系数据库规范化理论涉及哪些内容？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [32, 33]}]}
+{"id": "sa-009", "query": "数据库安全性包括哪些措施？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [33]}]}
+{"id": "sa-010", "query": "数据库设计有哪些阶段？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [34]}]}
+{"id": "sa-011", "query": "数据仓库的 ETL 过程和设计方法是什么？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [34, 35]}]}
+{"id": "sa-012", "query": "非关系数据库有哪些类型？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [35, 36]}]}
+{"id": "sa-013", "query": "企业信息资源规划的关键步骤以及业务主线和数据主线是什么？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [36, 37]}]}
+{"id": "sa-014", "query": "企业信息化战略规划有哪些方法？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [37]}]}
+{"id": "sa-015", "query": "企业应用集成有哪些传统集成层次？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [40]}]}
+{"id": "sa-016", "query": "软件开发模型和敏捷方法有哪些内容？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [41]}]}
+{"id": "sa-017", "query": "软件能力成熟度模型 CMM 包含哪些内容？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [42]}]}
+{"id": "sa-018", "query": "项目管理中的范围、进度、质量和风险管理包括什么？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [44, 45, 46]}]}
+{"id": "sa-019", "query": "信息安全中的防火墙、VPN 和访问控制有哪些知识点？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [48, 49]}]}
+{"id": "sa-020", "query": "容灾与业务持续规划包括哪些内容？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [49]}]}
+{"id": "sa-021", "query": "系统规划和项目选择要考虑什么？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [51, 52]}]}
+{"id": "sa-022", "query": "信息系统可行性分析有哪些评价准则和步骤？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [54, 55]}]}
+{"id": "sa-023", "query": "需求工程包括哪些核心活动？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [56]}]}
+{"id": "sa-024", "query": "需求获取可以使用哪些技术？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [57]}]}
+{"id": "sa-025", "query": "数据流图、状态转换图和数据字典分别有什么作用？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [58]}]}
+{"id": "sa-026", "query": "软件需求规格说明书和需求验证包括哪些内容？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [59]}]}
+{"id": "sa-027", "query": "面向服务的软件架构 SOA 有哪些关键技术？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [61]}]}
+{"id": "sa-028", "query": "系统分析师考试的题型举例有哪些内容？", "relevant": [{"sourceFilename": "01、系统分析师大纲第二版.pdf", "pages": [82, 83, 84]}]}
+{"id": "su-001", "query": "Shape Up 的产品开发方法分为哪三个主要阶段？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [13]}]}
+{"id": "su-002", "query": "为什么 Shape Up 使用六周周期？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [12]}]}
+{"id": "su-003", "query": "Shape Up 如何用 appetite 代替估算？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [12, 22, 23]}]}
+{"id": "su-004", "query": "固定时间和可变范围是什么意思？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [22]}]}
+{"id": "su-005", "query": "breadboarding 和 fat marker sketches 用来解决什么问题？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [27]}]}
+{"id": "su-006", "query": "Shape Up 如何识别和处理 rabbit holes？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [36, 37]}]}
+{"id": "su-007", "query": "一个 Shape Up pitch 应该包含哪些要素？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [43, 45]}]}
+{"id": "su-008", "query": "Shape Up 为什么不使用 backlog？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [55]}]}
+{"id": "su-009", "query": "betting table 和 circuit breaker 分别有什么作用？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [61, 62]}]}
+{"id": "su-010", "query": "为什么要分配项目而不是分配任务？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [71, 72]}]}
+{"id": "su-011", "query": "Get One Piece Done 的核心做法是什么？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [77]}]}
+{"id": "su-012", "query": "scope map 和 hill chart 如何帮助团队展示进度？", "relevant": [{"sourceFilename": "Shape Up Stop Running in Circles and... (Z-Library).pdf", "pages": [86, 103, 105]}]}

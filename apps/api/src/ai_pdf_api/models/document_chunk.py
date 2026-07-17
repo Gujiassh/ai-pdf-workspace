@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, text
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,6 +24,17 @@ class DocumentChunk(Base):
             postgresql_using="hnsw",
             postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
+        Index(
+            "ix_document_chunks_chunk_text_trgm_gist",
+            "chunk_text",
+            postgresql_using="gist",
+            postgresql_ops={"chunk_text": "gist_trgm_ops(siglen=64)"},
+        ),
+        Index(
+            "ix_document_chunks_chunk_text_fts",
+            text("to_tsvector('simple', chunk_text)"),
+            postgresql_using="gin",
+        ).ddl_if(dialect="postgresql"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))

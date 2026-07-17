@@ -1,5 +1,10 @@
+from typing import Literal
+
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+RetrievalStrategy = Literal["dense", "hybrid"]
 
 
 class Settings(BaseSettings):
@@ -10,6 +15,8 @@ class Settings(BaseSettings):
     minio_bucket: str = "ai-pdf-workspace"
     minio_secure: bool = False
     max_upload_bytes: int = Field(default=1024 * 1024 * 100)
+    worker_metrics_host: str = "127.0.0.1"
+    worker_metrics_port: int = Field(default=9101, ge=1, le=65535)
     api_internal_token: str = Field(
         default="local-development-internal-token",
         validation_alias=AliasChoices("AI_PDF_API_INTERNAL_TOKEN"),
@@ -25,6 +32,12 @@ class Settings(BaseSettings):
     embedding_query_instruction: str = (
         "Given a user question, retrieve the most relevant PDF chunks that answer the question."
     )
+    retrieval_strategy: RetrievalStrategy = Field(
+        default="hybrid",
+        validation_alias=AliasChoices("AI_PDF_RETRIEVAL_STRATEGY"),
+    )
+    retrieval_candidate_k: int = Field(default=10, ge=6, le=100)
+    retrieval_rrf_constant: int = Field(default=60, ge=1, le=1000)
 
     generation_provider: str = Field(default="openai", pattern="^openai$")
     generation_model: str = "gpt-5.5"

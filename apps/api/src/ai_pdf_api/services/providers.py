@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from ai_pdf_api.core.settings import settings
+from ai_pdf_api.core.metrics import observe_provider_request
 
 logger = logging.getLogger(__name__)
 
@@ -85,31 +86,32 @@ class OpenAIEmbeddingProvider:
         return vectors[0]
 
     def _embed(self, texts: list[str]) -> list[list[float]]:
-        if not self._api_key:
-            raise ModelProviderError("embedding_provider_not_configured", "OpenAI embedding API key is not configured.")
-        payload = {
-            "model": self.model,
-            "input": texts,
-            "dimensions": self.dimensions,
-            "encoding_format": "float",
-        }
-        response = self._post(
-            f"{self._api_base}/embeddings",
-            payload,
-            headers={"Authorization": f"Bearer {self._api_key}"},
-        )
-        data = response.get("data")
-        if not isinstance(data, list) or len(data) != len(texts):
-            raise ModelProviderError("embedding_invalid_response", "Embedding provider returned an invalid vector count.")
-        indexes = [item.get("index") if isinstance(item, dict) else None for item in data]
-        if sorted(index for index in indexes if isinstance(index, int)) != list(range(len(texts))):
-            raise ModelProviderError("embedding_invalid_response", "Embedding provider returned invalid vector indexes.")
-        ordered = sorted(data, key=lambda item: item["index"])
-        vectors = [item.get("embedding") for item in ordered if isinstance(item, dict)]
-        if len(vectors) != len(texts) or any(not isinstance(vector, list) for vector in vectors):
-            raise ModelProviderError("embedding_invalid_response", "Embedding provider returned invalid vectors.")
-        _validate_dimensions(vectors, self.dimensions)
-        return vectors
+        with observe_provider_request(self.provider, "embedding"):
+            if not self._api_key:
+                raise ModelProviderError("embedding_provider_not_configured", "OpenAI embedding API key is not configured.")
+            payload = {
+                "model": self.model,
+                "input": texts,
+                "dimensions": self.dimensions,
+                "encoding_format": "float",
+            }
+            response = self._post(
+                f"{self._api_base}/embeddings",
+                payload,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+            )
+            data = response.get("data")
+            if not isinstance(data, list) or len(data) != len(texts):
+                raise ModelProviderError("embedding_invalid_response", "Embedding provider returned an invalid vector count.")
+            indexes = [item.get("index") if isinstance(item, dict) else None for item in data]
+            if sorted(index for index in indexes if isinstance(index, int)) != list(range(len(texts))):
+                raise ModelProviderError("embedding_invalid_response", "Embedding provider returned invalid vector indexes.")
+            ordered = sorted(data, key=lambda item: item["index"])
+            vectors = [item.get("embedding") for item in ordered if isinstance(item, dict)]
+            if len(vectors) != len(texts) or any(not isinstance(vector, list) for vector in vectors):
+                raise ModelProviderError("embedding_invalid_response", "Embedding provider returned invalid vectors.")
+            _validate_dimensions(vectors, self.dimensions)
+            return vectors
 
     def _post(self, url: str, payload: dict, *, headers: dict[str, str]) -> dict:
         request_headers = {"Content-Type": "application/json", **headers}
@@ -167,15 +169,16 @@ class OllamaEmbeddingProvider:
         return self._embed([query])[0]
 
     def _embed(self, texts: list[str]) -> list[list[float]]:
-        response = self._post(
-            f"{self._base_url}/api/embed",
-            {"model": self.model, "input": texts},
-        )
-        vectors = response.get("embeddings")
-        if not isinstance(vectors, list) or len(vectors) != len(texts) or any(not isinstance(v, list) for v in vectors):
-            raise ModelProviderError("embedding_invalid_response", "Ollama returned invalid embedding vectors.")
-        _validate_dimensions(vectors, self.dimensions)
-        return vectors
+        with observe_provider_request(self.provider, "embedding"):
+            response = self._post(
+                f"{self._base_url}/api/embed",
+                {"model": self.model, "input": texts},
+            )
+            vectors = response.get("embeddings")
+            if not isinstance(vectors, list) or len(vectors) != len(texts) or any(not isinstance(v, list) for v in vectors):
+                raise ModelProviderError("embedding_invalid_response", "Ollama returned invalid embedding vectors.")
+            _validate_dimensions(vectors, self.dimensions)
+            return vectors
 
     def _post(self, url: str, payload: dict) -> dict:
         try:
@@ -218,74 +221,76 @@ class OpenAIGenerationProvider:
         self._client = client
 
     def generate(self, messages: list[dict[str, str]]) -> str:
-        if not self._api_key:
-            raise ModelProviderError("generation_provider_not_configured", "OpenAI generation API key is not configured.")
-        response = self._post(
-            f"{self._api_base}/responses",
-            {
+        with observe_provider_request(self.provider, "generation"):
+            if not self._api_key:
+                raise ModelProviderError("generation_provider_not_configured", "OpenAI generation API key is not configured.")
+            response = self._post(
+                f"{self._api_base}/responses",
+                {
+                    "model": self.model,
+                    "input": messages,
+                    "max_output_tokens": self._max_output_tokens,
+                },
+            )
+            output_text = response.get("output_text")
+            if isinstance(output_text, str) and output_text.strip():
+                return output_text.strip()
+            output = response.get("output")
+            if isinstance(output, list):
+                parts: list[str] = []
+                for item in output:
+                    if not isinstance(item, dict):
+                        continue
+                    content_items = item.get("content")
+                    if not isinstance(content_items, list):
+                        continue
+                    for content in content_items:
+                        if isinstance(content, dict) and content.get("type") in {"output_text", "text"}:
+                            text = content.get("text")
+                            if isinstance(text, str):
+                                parts.append(text)
+                if parts:
+                    return "".join(parts).strip()
+            raise ModelProviderError("generation_invalid_response", "Generation provider returned no answer text.")
+
+    def stream(self, messages: list[dict[str, str]]) -> Iterator[str]:
+        with observe_provider_request(self.provider, "generation_stream"):
+            if not self._api_key:
+                raise ModelProviderError("generation_provider_not_configured", "OpenAI generation API key is not configured.")
+            payload = {
                 "model": self.model,
                 "input": messages,
                 "max_output_tokens": self._max_output_tokens,
-            },
-        )
-        output_text = response.get("output_text")
-        if isinstance(output_text, str) and output_text.strip():
-            return output_text.strip()
-        output = response.get("output")
-        if isinstance(output, list):
-            parts: list[str] = []
-            for item in output:
-                if not isinstance(item, dict):
-                    continue
-                content_items = item.get("content")
-                if not isinstance(content_items, list):
-                    continue
-                for content in content_items:
-                    if isinstance(content, dict) and content.get("type") in {"output_text", "text"}:
-                        text = content.get("text")
-                        if isinstance(text, str):
-                            parts.append(text)
-            if parts:
-                return "".join(parts).strip()
-        raise ModelProviderError("generation_invalid_response", "Generation provider returned no answer text.")
-
-    def stream(self, messages: list[dict[str, str]]) -> Iterator[str]:
-        if not self._api_key:
-            raise ModelProviderError("generation_provider_not_configured", "OpenAI generation API key is not configured.")
-        payload = {
-            "model": self.model,
-            "input": messages,
-            "max_output_tokens": self._max_output_tokens,
-            "stream": True,
-        }
-        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self._api_key}"}
-        try:
-            if self._client is not None:
-                response_context = self._client.stream(
-                    "POST",
-                    f"{self._api_base}/responses",
-                    json=payload,
-                    headers=headers,
-                    timeout=self._timeout_seconds,
-                )
-            else:
-                response_context = httpx.stream(
-                    "POST",
-                    f"{self._api_base}/responses",
-                    json=payload,
-                    headers=headers,
-                    timeout=self._timeout_seconds,
-                )
-            with response_context as response:
-                if response.is_error:
-                    raise ModelProviderError(
-                        "generation_provider_error",
-                        f"Generation provider returned HTTP {response.status_code}.",
+                "stream": True,
+            }
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self._api_key}"}
+            try:
+                if self._client is not None:
+                    response_context = self._client.stream(
+                        "POST",
+                        f"{self._api_base}/responses",
+                        json=payload,
+                        headers=headers,
+                        timeout=self._timeout_seconds,
                     )
-                yield from _read_response_stream(response)
-        except httpx.RequestError as error:
-            logger.error("model_provider_request_failed provider=openai kind=generation_stream error_type=%s", type(error).__name__)
-            raise ModelProviderError("generation_provider_unreachable", "Generation provider is unreachable.") from error
+                else:
+                    response_context = httpx.stream(
+                        "POST",
+                        f"{self._api_base}/responses",
+                        json=payload,
+                        headers=headers,
+                        timeout=self._timeout_seconds,
+                    )
+                with response_context as response:
+                    if response.is_error:
+                        raise ModelProviderError(
+                            "generation_provider_error",
+                            f"Generation provider returned HTTP {response.status_code}.",
+                        )
+                    yield from _read_response_stream(response)
+            except httpx.RequestError as error:
+                logger.error("model_provider_request_failed provider=openai kind=generation_stream error_type=%s", type(error).__name__)
+                raise ModelProviderError("generation_provider_unreachable", "Generation provider is unreachable.") from error
 
     def _post(self, url: str, payload: dict) -> dict:
         if not self._api_key:
