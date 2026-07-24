@@ -1,0 +1,28 @@
+{
+  "id": "ns_image_fixture",
+  "messageCitationId": "cit_image_fixture",
+  "assetId": "asset_image_fixture",
+  "assetKind": "image",
+  "assetTitle": "Synthetic Image Evidence Fixture",
+  "sourceAvailable": true,
+  "excerpt": "Release 4 begins the sustained latency drop.",
+  "locator": {
+    "kind": "image_region",
+    "version": 1,
+    "coordinateSpace": "image_normalized_top_left_v1",
+    "widthPixels": 1200,
+    "heightPixels": 800,
+    "orientationApplied": true,
+    "regions": [
+      { "x": 0.066667, "y": 0.2375, "width": 0.566667, "height": 0.525 },
+      { "x": 0.683333, "y": 0.275, "width": 0.25, "height": 0.375 }
+    ]
+  },
+  "sourceVersions": {
+    "parserVersion": "image-caption-v1",
+    "processingGeneration": 1,
+    "representationId": "rep_image_caption_fixture_v1",
+    "indexVersion": 1
+  },
+  "createdAt": "2026-07-18T00:00:00+00:00"
+}

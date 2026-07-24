@@ -37,10 +37,14 @@ validate_project_name() {
 }
 
 compose() {
+  local compose_files=(-f "$COMPOSE_FILE")
+  if [[ -n "${COMPOSE_OVERRIDE_FILE:-}" ]]; then
+    compose_files+=(-f "$COMPOSE_OVERRIDE_FILE")
+  fi
   docker-compose \
     --project-name "$COMPOSE_PROJECT" \
     --env-file "$ENV_FILE" \
-    -f "$COMPOSE_FILE" \
+    "${compose_files[@]}" \
     "$@"
 }
 
@@ -77,6 +81,27 @@ wait_for_service_health() {
     sleep 1
   done
   printf 'service_health_timeout project=%s service=%s\n' "$COMPOSE_PROJECT" "$service" >&2
+  exit 1
+}
+
+wait_for_postgres_sql() {
+  local attempts=${1:-60}
+  local user database
+  user=$(strict_key_value "$ENV_FILE" POSTGRES_USER)
+  database=$(strict_key_value "$ENV_FILE" POSTGRES_DB)
+  for ((attempt = 1; attempt <= attempts; attempt += 1)); do
+    if compose exec -T postgres psql \
+      --username "$user" \
+      --dbname "$database" \
+      --no-psqlrc \
+      --tuples-only \
+      --no-align \
+      -c 'SELECT 1' 2>/dev/null | tr -d '[:space:]' | grep -qx '1'; then
+      return 0
+    fi
+    sleep 1
+  done
+  printf 'postgres_sql_timeout project=%s\n' "$COMPOSE_PROJECT" >&2
   exit 1
 }
 

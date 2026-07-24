@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useWorkspace, Note } from "@/lib/workspace-context";
 import { useTranslation } from "@/lib/i18n-context";
+import { getLocatorSummary } from "@/lib/evidence/types";
 import { 
   Plus, Trash2, FileText, ExternalLink, Tag as TagIcon, BookOpen, Pencil
 } from "lucide-react";
@@ -25,8 +26,7 @@ export function NotesPanel() {
     updateNote,
     deleteNote,
     toggleNoteTag,
-    openDocument,
-    setActivePdfPage,
+    openEvidence,
   } = useWorkspace();
 
   const { t } = useTranslation();
@@ -105,9 +105,8 @@ export function NotesPanel() {
   };
 
   const handleSourceClick = (note: Note) => {
-    if (note.source) {
-      openDocument(note.source.documentId);
-      setActivePdfPage(note.source.pageNumber);
+    if (note.source?.sourceAvailable) {
+      openEvidence(note.source);
     }
   };
 
@@ -292,15 +291,19 @@ export function NotesPanel() {
                 <button
                   type="button"
                   onClick={() => handleSourceClick(note)}
+                  disabled={!note.source.sourceAvailable}
                   className="flex w-full items-center justify-between border-l-2 border-amber-300 bg-amber-50/60 px-3 py-2 text-left transition hover:bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20 dark:hover:bg-amber-950/35"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase text-amber-800 dark:text-amber-300">
                       <FileText className="h-2.5 w-2.5 shrink-0" />
-                      <span>{t("notes.source")}：{note.source.documentName.split(".pdf")[0]} p.{note.source.pageNumber}</span>
+                      <span>
+                        {t("notes.source")}：{note.source.assetTitle} · {getLocatorSummary(note.source.locator)}
+                        {!note.source.sourceAvailable ? ` · ${t("viewer.sourceUnavailable")}` : ""}
+                      </span>
                     </div>
                     <p className="mt-0.5 truncate text-[10px] text-zinc-400 dark:text-zinc-500 italic">
-                      &quot;{note.source.snippet}&quot;
+                      &quot;{note.source.excerpt}&quot;
                     </p>
                   </div>
                   <ExternalLink className="h-3 w-3 text-zinc-400 dark:text-zinc-600 shrink-0 ml-2" />

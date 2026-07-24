@@ -4,18 +4,21 @@ import test from "node:test";
 import {
   clampEvidencePanelWidth,
   getWorkspaceViewStateForWorkspace,
-  getWorkspaceViewableDocs,
+  getWorkspaceViewableAssets,
 } from "./workspace-view-state";
-import type { Document } from "./workspace-context";
+import type { Asset } from "./workspace-context";
 
-const documents: Document[] = [
+const assets: Asset[] = [
   {
     id: "doc-processing",
     workspaceId: "ws-1",
-    name: "processing.pdf",
+    kind: "pdf",
+    title: "processing",
+    sourceFilename: "processing.pdf",
+    mimeType: "application/pdf",
     size: "1 KB",
-    pagesCount: 0,
     status: "parsing",
+    currentProcessingGeneration: 1,
     progress: 50,
     tags: [],
     createdAt: "2026-07-15T00:00:00Z",
@@ -23,10 +26,13 @@ const documents: Document[] = [
   {
     id: "doc-ready",
     workspaceId: "ws-1",
-    name: "ready.pdf",
+    kind: "pdf",
+    title: "ready",
+    sourceFilename: "ready.pdf",
+    mimeType: "application/pdf",
     size: "2 KB",
-    pagesCount: 2,
     status: "ready",
+    currentProcessingGeneration: 1,
     progress: 100,
     tags: [],
     createdAt: "2026-07-15T00:01:00Z",
@@ -34,31 +40,34 @@ const documents: Document[] = [
   {
     id: "doc-other-workspace",
     workspaceId: "ws-2",
-    name: "other.pdf",
+    kind: "pdf",
+    title: "other",
+    sourceFilename: "other.pdf",
+    mimeType: "application/pdf",
     size: "2 KB",
-    pagesCount: 2,
     status: "ready",
+    currentProcessingGeneration: 1,
     progress: 100,
     tags: [],
     createdAt: "2026-07-15T00:02:00Z",
   },
 ];
 
-test("view-state preselects the first document without opening the evidence panel", () => {
-  assert.deepEqual(getWorkspaceViewableDocs("ws-1", documents).map((document) => document.id), ["doc-ready"]);
-  assert.deepEqual(getWorkspaceViewStateForWorkspace("ws-1", documents), {
-    openDocumentIds: ["doc-ready"],
-    activeDocumentId: "doc-ready",
+test("view-state preselects the first asset without opening the evidence panel", () => {
+  assert.deepEqual(getWorkspaceViewableAssets("ws-1", assets).map((asset) => asset.id), ["doc-ready"]);
+  assert.deepEqual(getWorkspaceViewStateForWorkspace("ws-1", assets), {
+    openAssetIds: ["doc-ready"],
+    activeAssetId: "doc-ready",
     activePdfPage: 1,
     evidencePanelOpen: false,
     evidencePanelExpanded: false,
   });
 });
 
-test("view-state clears document selection when a workspace has no viewable documents", () => {
-  assert.deepEqual(getWorkspaceViewStateForWorkspace("missing", documents), {
-    openDocumentIds: [],
-    activeDocumentId: null,
+test("view-state clears asset selection when a workspace has no viewable assets", () => {
+  assert.deepEqual(getWorkspaceViewStateForWorkspace("missing", assets), {
+    openAssetIds: [],
+    activeAssetId: null,
     activePdfPage: 1,
     evidencePanelOpen: false,
     evidencePanelExpanded: false,

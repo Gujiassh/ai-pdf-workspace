@@ -1,0 +1,510 @@
+{
+  "schemaVersion": "m402-playwright-evidence-v1",
+  "runId": "2102749caedc",
+  "goldenSchemaVersion": "multimodal-golden-v1",
+  "testFile": "apps/web/e2e/multimodal-fullstack.spec.ts",
+  "testFileSha256": "9ce2ffb7433724269ccf2e554ef4a39f79d02313a1bae5ed9369bd07fcace892",
+  "viewport": {
+    "name": "desktop",
+    "width": 1440,
+    "height": 1000
+  },
+  "routeInterceptions": 0,
+  "realBffResponseCount": 28,
+  "cases": [
+    {
+      "caseId": "evidence-pdf-cropbox",
+      "targets": [
+        {
+          "citationId": "54ad0152-251e-4845-a3a0-45fe9e25a75d",
+          "fixtureId": "pdf-coordinate",
+          "modality": "pdf",
+          "locatorKind": "pdf_page",
+          "pageNumber": 8,
+          "expectedRegions": [],
+          "renderedRegions": [],
+          "minimumApprovedCoverageRatio": null,
+          "pixelMeasurement": {
+            "width": 403,
+            "height": 326,
+            "uniqueColors": 28,
+            "nonWhiteSamples": 53
+          },
+          "screenshotPath": "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-cropbox-pdf-coordinate.png",
+          "responseStatuses": [
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c?pageNumber=8",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c?pageNumber=8",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c/file",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c/file",
+              "status": 200
+            }
+          ],
+          "layout": {
+            "panelWithinViewport": true,
+            "primarySeparatedFromPanel": true,
+            "viewerBelowPanelHeader": true,
+            "renderedSurfaceWithinPanel": true
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "caseId": "evidence-pdf-table-cell",
+      "targets": [
+        {
+          "citationId": "fcf67a15-c25c-49b5-a3e7-af8ead8357ae",
+          "fixtureId": "pdf-coordinate",
+          "modality": "pdf",
+          "locatorKind": "pdf_region",
+          "pageNumber": 9,
+          "expectedRegions": [
+            {
+              "x": 0.359477,
+              "y": 0.391414,
+              "width": 0.24183,
+              "height": 0.050505
+            }
+          ],
+          "renderedRegions": [
+            {
+              "x": 0.1176333746898263,
+              "y": 0.3409009117082534,
+              "width": 0.7254575062034739,
+              "height": 0.15151151631477927
+            }
+          ],
+          "minimumApprovedCoverageRatio": 1,
+          "pixelMeasurement": {
+            "width": 403,
+            "height": 521,
+            "uniqueColors": 26,
+            "nonWhiteSamples": 41
+          },
+          "screenshotPath": "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-table-cell-pdf-coordinate.png",
+          "responseStatuses": [
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c?pageNumber=9",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c?pageNumber=9",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c/file",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c/file",
+              "status": 200
+            }
+          ],
+          "layout": {
+            "panelWithinViewport": true,
+            "primarySeparatedFromPanel": true,
+            "viewerBelowPanelHeader": true,
+            "renderedSurfaceWithinPanel": true
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "caseId": "evidence-pdf-multi-region",
+      "targets": [
+        {
+          "citationId": "f2f2e7ba-eddc-4bf9-832c-fd2aa3aa0575",
+          "fixtureId": "pdf-coordinate",
+          "modality": "pdf",
+          "locatorKind": "pdf_region",
+          "pageNumber": 10,
+          "expectedRegions": [
+            {
+              "x": 0.130719,
+              "y": 0.290404,
+              "width": 0.637255,
+              "height": 0.265152
+            },
+            {
+              "x": 0.124183,
+              "y": 0.613636,
+              "width": 0.480392,
+              "height": 0.042929
+            }
+          ],
+          "renderedRegions": [
+            {
+              "x": 0.14050868486352358,
+              "y": 0.3105806142034549,
+              "width": 0.6012717121588089,
+              "height": 0.2373440499040307
+            },
+            {
+              "x": 0.1306994416873449,
+              "y": 0.5784848848368522,
+              "width": 0.3256436104218362,
+              "height": 0.019073896353166985
+            },
+            {
+              "x": 0.1306994416873449,
+              "y": 0.6289887236084453,
+              "width": 0.31870347394540943,
+              "height": 0.019073896353166985
+            }
+          ],
+          "minimumApprovedCoverageRatio": 0.2947675537667463,
+          "pixelMeasurement": {
+            "width": 403,
+            "height": 521,
+            "uniqueColors": 39,
+            "nonWhiteSamples": 43
+          },
+          "screenshotPath": "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-multi-region-pdf-coordinate.png",
+          "responseStatuses": [
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c?pageNumber=10",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c?pageNumber=10",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c/file",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/c632af95-b8c9-4f83-9383-a8d9739d599c/file",
+              "status": 200
+            }
+          ],
+          "layout": {
+            "panelWithinViewport": true,
+            "primarySeparatedFromPanel": true,
+            "viewerBelowPanelHeader": true,
+            "renderedSurfaceWithinPanel": true
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "caseId": "evidence-pdf-raster-rotation",
+      "targets": [
+        {
+          "citationId": "d604f9e9-7a9e-46d1-b962-63674e1b178a",
+          "fixtureId": "pdf-artifact-matrix",
+          "modality": "pdf",
+          "locatorKind": "pdf_region",
+          "pageNumber": 8,
+          "expectedRegions": [
+            {
+              "x": 0.345345,
+              "y": 0.166667,
+              "width": 0.27027,
+              "height": 0.666667
+            },
+            {
+              "x": 0.645908,
+              "y": 0.51633,
+              "width": 0.022694,
+              "height": 0.317004
+            }
+          ],
+          "renderedRegions": [
+            {
+              "x": 0.34533964019851116,
+              "y": 0.16665069018404907,
+              "width": 0.2702388337468983,
+              "height": 0.6666506901840491
+            },
+            {
+              "x": 0.645897952853598,
+              "y": 0.5162960122699386,
+              "width": 0.022681451612903226,
+              "height": 0.31695743865030673
+            }
+          ],
+          "minimumApprovedCoverageRatio": 0.9987504970333743,
+          "pixelMeasurement": {
+            "width": 403,
+            "height": 326,
+            "uniqueColors": 32,
+            "nonWhiteSamples": 435
+          },
+          "screenshotPath": "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-raster-rotation-pdf-artifact-matrix.png",
+          "responseStatuses": [
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/d9ef22f0-ef5c-43bb-9d2b-d7bb61ccd8bb?pageNumber=8",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/d9ef22f0-ef5c-43bb-9d2b-d7bb61ccd8bb?pageNumber=8",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/d9ef22f0-ef5c-43bb-9d2b-d7bb61ccd8bb/file",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/d9ef22f0-ef5c-43bb-9d2b-d7bb61ccd8bb/file",
+              "status": 200
+            }
+          ],
+          "layout": {
+            "panelWithinViewport": true,
+            "primarySeparatedFromPanel": true,
+            "viewerBelowPanelHeader": true,
+            "renderedSurfaceWithinPanel": true
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "caseId": "evidence-image-chart",
+      "targets": [
+        {
+          "citationId": "8ca6318f-76ca-4968-8b73-a87716f0fb20",
+          "fixtureId": "image-coordinate",
+          "modality": "image",
+          "locatorKind": "image_region",
+          "pageNumber": null,
+          "expectedRegions": [
+            {
+              "x": 0.066667,
+              "y": 0.2375,
+              "width": 0.566667,
+              "height": 0.525
+            }
+          ],
+          "renderedRegions": [
+            {
+              "x": 0.06665742793791574,
+              "y": 0.23748961794019935,
+              "width": 0.5666574279379157,
+              "height": 0.524968853820598
+            }
+          ],
+          "minimumApprovedCoverageRatio": 0.9998871175356755,
+          "pixelMeasurement": {
+            "width": 1200,
+            "height": 800,
+            "uniqueColors": 34,
+            "nonWhiteSamples": 290
+          },
+          "screenshotPath": "docs/evals/artifacts/m402-v1/desktop-evidence-image-chart-image-coordinate.png",
+          "responseStatuses": [
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/def91b72-57e1-49be-8691-98c57f0cd004/representations/image-oriented/file?processingGeneration=1&evidenceRepresentationId=00e58d4f-0c74-44e2-8f91-14c7161a6c1f",
+              "status": 200
+            }
+          ],
+          "layout": {
+            "panelWithinViewport": true,
+            "primarySeparatedFromPanel": true,
+            "viewerBelowPanelHeader": true,
+            "renderedSurfaceWithinPanel": true
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "caseId": "evidence-image-caption",
+      "targets": [
+        {
+          "citationId": "157bae83-71bc-48b3-8971-827bdeb1fc10",
+          "fixtureId": "image-coordinate",
+          "modality": "image",
+          "locatorKind": "image_region",
+          "pageNumber": null,
+          "expectedRegions": [
+            {
+              "x": 0.683333,
+              "y": 0.275,
+              "width": 0.25,
+              "height": 0.375
+            }
+          ],
+          "renderedRegions": [
+            {
+              "x": 0.6833079268292683,
+              "y": 0.274968853820598,
+              "width": 0.25,
+              "height": 0.375
+            }
+          ],
+          "minimumApprovedCoverageRatio": 0.999816659168625,
+          "pixelMeasurement": {
+            "width": 1200,
+            "height": 800,
+            "uniqueColors": 34,
+            "nonWhiteSamples": 290
+          },
+          "screenshotPath": "docs/evals/artifacts/m402-v1/desktop-evidence-image-caption-image-coordinate.png",
+          "responseStatuses": [],
+          "layout": {
+            "panelWithinViewport": true,
+            "primarySeparatedFromPanel": true,
+            "viewerBelowPanelHeader": true,
+            "renderedSurfaceWithinPanel": true
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "caseId": "evidence-mixed",
+      "targets": [
+        {
+          "citationId": "2a8a6605-2a38-41ef-b4e8-ee020b90c445",
+          "fixtureId": "pdf-artifact-matrix",
+          "modality": "pdf",
+          "locatorKind": "pdf_region",
+          "pageNumber": 10,
+          "expectedRegions": [
+            {
+              "x": 0.406907,
+              "y": 0.168519,
+              "width": 0.234234,
+              "height": 0.674074
+            },
+            {
+              "x": 0.355422,
+              "y": 0.17037,
+              "width": 0.022694,
+              "height": 0.293252
+            }
+          ],
+          "renderedRegions": [
+            {
+              "x": 0.4068703473945409,
+              "y": 0.16847200920245398,
+              "width": 0.23421991315136476,
+              "height": 0.6740318251533742
+            },
+            {
+              "x": 0.35542028535980147,
+              "y": 0.17034125766871167,
+              "width": 0.022681451612903226,
+              "height": 0.2932323619631902
+            }
+          ],
+          "minimumApprovedCoverageRatio": 0.9992066315556888,
+          "pixelMeasurement": {
+            "width": 403,
+            "height": 326,
+            "uniqueColors": 25,
+            "nonWhiteSamples": 34
+          },
+          "screenshotPath": "docs/evals/artifacts/m402-v1/desktop-evidence-mixed-pdf-artifact-matrix.png",
+          "responseStatuses": [
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/d9ef22f0-ef5c-43bb-9d2b-d7bb61ccd8bb?pageNumber=10",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/d9ef22f0-ef5c-43bb-9d2b-d7bb61ccd8bb?pageNumber=10",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/d9ef22f0-ef5c-43bb-9d2b-d7bb61ccd8bb/file",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/workspaces/24f45a71-af57-46ee-805f-62b69b0c1e63/assets/d9ef22f0-ef5c-43bb-9d2b-d7bb61ccd8bb/file",
+              "status": 200
+            }
+          ],
+          "layout": {
+            "panelWithinViewport": true,
+            "primarySeparatedFromPanel": true,
+            "viewerBelowPanelHeader": true,
+            "renderedSurfaceWithinPanel": true
+          },
+          "passed": true
+        },
+        {
+          "citationId": "102bb583-6462-4c4a-9e3d-225262908e2e",
+          "fixtureId": "image-coordinate",
+          "modality": "image",
+          "locatorKind": "image_region",
+          "pageNumber": null,
+          "expectedRegions": [
+            {
+              "x": 0.066667,
+              "y": 0.2375,
+              "width": 0.566667,
+              "height": 0.525
+            }
+          ],
+          "renderedRegions": [
+            {
+              "x": 0.06665742793791574,
+              "y": 0.23748961794019935,
+              "width": 0.5666574279379157,
+              "height": 0.524968853820598
+            }
+          ],
+          "minimumApprovedCoverageRatio": 0.9998871175356755,
+          "pixelMeasurement": {
+            "width": 1200,
+            "height": 800,
+            "uniqueColors": 34,
+            "nonWhiteSamples": 290
+          },
+          "screenshotPath": "docs/evals/artifacts/m402-v1/desktop-evidence-mixed-image-coordinate.png",
+          "responseStatuses": [],
+          "layout": {
+            "panelWithinViewport": true,
+            "primarySeparatedFromPanel": true,
+            "viewerBelowPanelHeader": true,
+            "renderedSurfaceWithinPanel": true
+          },
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "passed": true
+}

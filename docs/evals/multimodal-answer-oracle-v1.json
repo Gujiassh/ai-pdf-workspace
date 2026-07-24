@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "multimodal-answer-oracle-v1",
+  "goldenSchemaVersion": "multimodal-golden-v1",
+  "systemPromptSha256": "1df77a8d4df3dd6ef3990b06ffe9a57a534a86ea61d6e07594b8a0897a99b06a",
+  "cases": [
+    {
+      "caseId": "answer-pdf-table",
+      "expectedDisposition": "answer",
+      "answerPoints": ["Atlas has a score of 91.4."],
+      "acceptedCompleteOutputs": [
+        "Atlas has a score of 91.4.",
+        "The PDF table reports a score of 91.4 for Atlas.",
+        "Atlas's score is 91.4."
+      ],
+      "requiredPromptConcepts": [["atlas"], ["91.4"]],
+      "forbiddenPromptPatterns": []
+    },
+    {
+      "caseId": "answer-pdf-chart",
+      "expectedDisposition": "answer",
+      "answerPoints": ["The trend rises after the third point."],
+      "acceptedCompleteOutputs": [
+        "The trend rises after the third point.",
+        "After the third point, the trend rises.",
+        "The PDF fixture says: \"Trend rises after the third point.\""
+      ],
+      "requiredPromptConcepts": [
+        ["trend"],
+        ["rise", "rises", "rising", "increase", "increases", "increasing"],
+        ["third point", "point three", "point 3", "third data point"]
+      ],
+      "forbiddenPromptPatterns": []
+    },
+    {
+      "caseId": "answer-image-trend",
+      "expectedDisposition": "answer",
+      "answerPoints": ["Release 4 begins the sustained drop."],
+      "acceptedCompleteOutputs": [
+        "Release 4 begins the sustained drop.",
+        "The sustained drop begins at Release 4.",
+        "The image says the sustained latency drop begins at Release 4."
+      ],
+      "requiredPromptConcepts": [
+        ["release 4", "release four"],
+        ["sustained drop", "sustained decrease", "sustained decline"]
+      ],
+      "forbiddenPromptPatterns": []
+    },
+    {
+      "caseId": "answer-image-constraint",
+      "expectedDisposition": "answer",
+      "answerPoints": ["Verify the chart and caption together."],
+      "acceptedCompleteOutputs": [
+        "Verify the chart and caption together.",
+        "The image instructs the reader to verify the chart and caption together.",
+        "The image instructs the reader to verify the chart and caption together as evidence that Release 4 begins the sustained drop."
+      ],
+      "requiredPromptConcepts": [["verify", "verified"], ["chart"], ["caption"], ["together"]],
+      "forbiddenPromptPatterns": []
+    },
+    {
+      "caseId": "answer-mixed-compare",
+      "expectedDisposition": "answer",
+      "answerPoints": [
+        "The PDF trend rises after the third point.",
+        "The image says Release 4 begins a sustained drop."
+      ],
+      "acceptedCompleteOutputs": [
+        "The PDF trend rises after the third point. The image says Release 4 begins a sustained drop.",
+        "The PDF trend rises after the third point, while the image says Release 4 begins a sustained drop.",
+        "The selected assets describe opposite changes. The PDF evidence says: \"Figure 1. Trend rises after the third point.\" The image observation says latency \"falls after the third release\" and that \"Release 4 begins the sustained drop.\" So, the PDF chart describes a rise after the third point, while the image observation describes a sustained drop beginning after the third release."
+      ],
+      "requiredPromptConcepts": [
+        ["trend"],
+        ["third point", "point three", "point 3", "third data point"],
+        ["release 4", "release four"],
+        ["sustained drop", "sustained decrease", "sustained decline"]
+      ],
+      "forbiddenPromptPatterns": []
+    },
+    {
+      "caseId": "answer-refuse-pdf",
+      "expectedDisposition": "refuse",
+      "answerPoints": [],
+      "acceptedCompleteOutputs": [
+        "The selected assets do not contain supporting evidence for that claim.",
+        "The PDF does not report energy consumption for Atlas.",
+        "The energy consumption for Atlas is not provided in the PDF.",
+        "The selected assets do not contain supporting evidence for Atlas energy consumption. They only report Atlas with a Score of 91.4."
+      ],
+      "requiredPromptConcepts": [],
+      "forbiddenPromptPatterns": ["\\b(?:energy consumption|kwh|mwh|joules?)\\b"]
+    },
+    {
+      "caseId": "answer-refuse-mixed",
+      "expectedDisposition": "refuse",
+      "answerPoints": [],
+      "acceptedCompleteOutputs": [
+        "The selected assets do not contain supporting evidence for that claim.",
+        "The fixtures do not identify a production customer that approved the release.",
+        "No production customer approval is provided in the fixtures.",
+        "The selected assets do not contain supporting evidence identifying which production customer approved the release."
+      ],
+      "requiredPromptConcepts": [],
+      "forbiddenPromptPatterns": ["\\bproduction customer\\b", "\\bapproved by\\b"]
+    }
+  ]
+}

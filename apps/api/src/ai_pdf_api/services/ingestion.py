@@ -1,88 +1,41 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
+import logging
 from datetime import UTC, datetime, timedelta
-from io import BytesIO
+from hashlib import sha256
 
-from pypdf import PdfReader
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from ai_pdf_api.core.settings import settings
-from ai_pdf_api.models import Document, DocumentChunk, DocumentPage, IngestionJob
+from ai_pdf_api.modalities.ingestion import (
+    GeneratedObject,
+    IngestionAdapterRegistry,
+    IngestionError,
+    IngestionResult,
+)
+from ai_pdf_api.models import (
+    Asset,
+    AssetRepresentation,
+    ContentUnit,
+    ContentUnitEmbedding,
+    EvidenceLocator,
+    IngestionJob,
+)
 from ai_pdf_api.services.providers import EmbeddingProvider, ModelProviderError
-from ai_pdf_api.services.storage import delete_object_if_exists, download_bytes
+from ai_pdf_api.services.storage import (
+    delete_object_if_exists,
+    delete_objects_with_prefix,
+    download_bytes,
+    upload_bytes,
+)
 
-CHUNK_SIZE = 1_200
-CHUNK_OVERLAP = 200
 INGESTION_LEASE_TIMEOUT = timedelta(minutes=15)
+logger = logging.getLogger("ai_pdf_api.ingestion")
 
 
-@dataclass(frozen=True)
-class PageTextResult:
-    page_number: int
-    text: str
-    ocr_blocks: list[dict[str, object]] = field(default_factory=list)
-
-
-PageTextExtractor = Callable[[bytes], list[PageTextResult | tuple[int, str]]]
-
-
-class IngestionError(Exception):
-    def __init__(self, code: str, message: str) -> None:
-        super().__init__(message)
-        self.code = code
-
-
-def split_page_text(text: str, chunk_size: int = CHUNK_SIZE) -> list[tuple[int, int, str]]:
-    chunks: list[tuple[int, int, str]] = []
-    start = 0
-    text_length = len(text)
-    overlap = min(CHUNK_OVERLAP, max(1, chunk_size // 2))
-    while start < text_length:
-        end = min(start + chunk_size, text_length)
-        if end < text_length:
-            boundary = text.rfind("\n", start + chunk_size // 2, end)
-            if boundary <= start:
-                boundary = text.rfind(" ", start + chunk_size // 2, end)
-            if boundary > start:
-                end = boundary
-        chunk_text = text[start:end].strip()
-        if chunk_text:
-            chunks.append((start, end, chunk_text))
-        if end == text_length:
-            break
-        start = max(end - overlap, start + 1)
-    return chunks
-
-
-def _get_job_chunk_size(snapshot: dict) -> int:
-    value = snapshot.get("chunkSize", CHUNK_SIZE)
-    if not isinstance(value, int) or isinstance(value, bool) or not 200 <= value <= 4000:
-        raise IngestionError("invalid_chunk_size", "Ingestion job has an invalid chunk size.")
-    return value
-
-
-def estimate_token_count(text: str) -> int:
-    """Estimate token-like units without assuming a specific model tokenizer."""
-    count = 0
-    in_word = False
-    for character in text:
-        if character.isspace():
-            in_word = False
-            continue
-        if "\u3400" <= character <= "\u9fff":
-            count += 1
-            in_word = False
-        elif character.isalnum():
-            if not in_word:
-                count += 1
-            in_word = True
-        else:
-            count += 1
-            in_word = False
-    return max(1, count)
+class _SupersededIngestionJob(RuntimeError):
+    pass
 
 
 def recover_stale_ingestion_jobs(db: Session, now: datetime) -> None:
@@ -98,11 +51,15 @@ def recover_stale_ingestion_jobs(db: Session, now: datetime) -> None:
     ).all()
 
     for job in stale_jobs:
-        document = db.get(Document, job.document_id)
+        asset = db.scalar(
+            select(Asset)
+            .where(Asset.id == job.asset_id)
+            .with_for_update()
+        )
         if (
-            document is None
-            or document.deleted_at is not None
-            or document.latest_ingestion_job_id not in {None, job.id}
+            asset is None
+            or asset.deleted_at is not None
+            or asset.latest_ingestion_job_id not in {None, job.id}
         ):
             job.status = "cancelled"
             job.finished_at = now
@@ -115,14 +72,14 @@ def recover_stale_ingestion_jobs(db: Session, now: datetime) -> None:
         job.attempt_count += 1
         job.error_code = None
         job.error_message = None
-        if document.status not in {"deleted", "deleting"}:
+        if asset.status not in {"deleted", "deleting"}:
             if job.job_type == "ingest":
-                document.status = "uploaded"
+                asset.status = "uploaded"
             elif job.job_type == "embed_chunks":
-                document.status = _available_document_status(db, document.id)
+                asset.status = _available_asset_status(db, asset.id)
             else:
-                document.status = "deleting"
-            document.updated_at = now
+                asset.status = "deleting"
+            asset.updated_at = now
     db.flush()
 
 
@@ -143,9 +100,26 @@ def claim_next_ingestion_job(db: Session) -> str | None:
         db.commit()
         return None
 
-    document = db.get(Document, job.document_id)
-    if document is None or document.deleted_at is not None:
+    asset = db.scalar(
+        select(Asset)
+        .where(Asset.id == job.asset_id)
+        .with_for_update()
+    )
+    if asset is None or asset.deleted_at is not None:
         job.status = "cancelled"
+        job.finished_at = now
+        db.commit()
+        return None
+    if (
+        asset.latest_ingestion_job_id not in {None, job.id}
+        or (
+            job.job_type in {"ingest", "embed_chunks"}
+            and asset.status in {"deleting", "deleted"}
+        )
+    ):
+        job.status = "cancelled"
+        job.error_code = "ingestion_job_superseded"
+        job.error_message = "A newer job or deletion state replaced this job."
         job.finished_at = now
         db.commit()
         return None
@@ -153,41 +127,23 @@ def claim_next_ingestion_job(db: Session) -> str | None:
     job.status = "running"
     job.started_at = now
     if job.job_type == "ingest":
-        document.status = "parsing"
+        asset.status = "parsing"
     elif job.job_type == "embed_chunks":
-        document.status = "embedding"
+        asset.status = "embedding"
     else:
-        document.status = "deleting"
-    document.last_error_code = None
-    document.last_error_message = None
-    document.updated_at = now
+        asset.status = "deleting"
+    asset.last_error_code = None
+    asset.last_error_message = None
+    asset.updated_at = now
     db.commit()
     return job.id
-
-
-def extract_pdf_page_texts(payload: bytes) -> list[tuple[int, str]]:
-    reader = PdfReader(BytesIO(payload))
-    return [(page_number, page.extract_text() or "") for page_number, page in enumerate(reader.pages, start=1)]
-
-
-def _coerce_page_text_result(value: PageTextResult | tuple[int, str]) -> PageTextResult:
-    if isinstance(value, PageTextResult):
-        return value
-    page_number, text = value
-    return PageTextResult(page_number=page_number, text=text)
-
-
-def _ocr_page_results(payload: bytes, extractor: PageTextExtractor) -> dict[int, PageTextResult]:
-    return {
-        result.page_number: result
-        for result in (_coerce_page_text_result(item) for item in extractor(payload))
-    }
 
 
 def process_ingestion_job(
     db: Session,
     job_id: str,
-    ocr_extract_page_texts: PageTextExtractor | None = None,
+    *,
+    ingestion_adapters: IngestionAdapterRegistry | None = None,
     embedding_provider: EmbeddingProvider | None = None,
 ) -> None:
     job = db.get(IngestionJob, job_id)
@@ -197,105 +153,109 @@ def process_ingestion_job(
         process_embedding_job(db, job_id, embedding_provider)
         return
     if job.job_type == "delete_cleanup":
-        process_delete_cleanup(db, job_id)
+        process_delete_cleanup(db, job_id, ingestion_adapters)
         return
 
-    document = db.get(Document, job.document_id)
-    if document is None:
-        _mark_job_failed(db, job, None, "document_missing", "Document disappeared before processing.")
+    asset = db.get(Asset, job.asset_id)
+    if asset is None:
+        _mark_job_failed(db, job, None, "asset_missing", "Asset disappeared before processing.")
+        return
+    if asset.latest_ingestion_job_id not in {None, job.id}:
+        _cancel_superseded_job(db, job.id)
         return
 
+    generated_object_keys: list[str] = []
     try:
         if embedding_provider is not None:
             _validate_job_embedding_config(job, embedding_provider)
-        payload = download_bytes(document.object_key)
-        native_page_texts = [_coerce_page_text_result(item) for item in extract_pdf_page_texts(payload)]
-        page_texts = native_page_texts
-        if not page_texts:
-            raise IngestionError("empty_pdf", "PDF has no pages.")
-        if not any(page.text.strip() for page in page_texts):
-            if ocr_extract_page_texts is None:
-                raise IngestionError("no_extractable_text", "PDF has no extractable text.")
-            try:
-                ocr_pages = _ocr_page_results(payload, ocr_extract_page_texts)
-                page_texts = [
-                    ocr_pages.get(page.page_number, PageTextResult(page.page_number, ""))
-                    for page in native_page_texts
-                ]
-            except Exception as error:
-                raise IngestionError("ocr_failed", str(error)) from error
-        elif ocr_extract_page_texts is not None and any(not page.text.strip() for page in page_texts):
-            try:
-                ocr_pages = _ocr_page_results(payload, ocr_extract_page_texts)
-            except Exception as error:
-                raise IngestionError("ocr_failed", str(error)) from error
-            page_texts = [
-                page
-                if page.text.strip()
-                else ocr_pages.get(page.page_number, PageTextResult(page.page_number, ""))
-                for page in page_texts
-            ]
-        if not any(page.text.strip() for page in page_texts):
-            raise IngestionError("no_extractable_text", "PDF has no extractable text after OCR.")
-
-        snapshot = job.config_snapshot or {}
-        chunk_size = _get_job_chunk_size(snapshot)
-        now = datetime.now(UTC)
-        document.status = "chunking"
-        document.page_count = len(page_texts)
-        document.updated_at = now
-        db.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
-        db.execute(delete(DocumentPage).where(DocumentPage.document_id == document.id))
-        db.flush()
-
-        for page_result in page_texts:
-            page = DocumentPage(
-                workspace_id=document.workspace_id,
-                document_id=document.id,
-                page_number=page_result.page_number,
-                extracted_text=page_result.text,
-                char_count=len(page_result.text),
-                ocr_blocks=page_result.ocr_blocks,
-                created_at=now,
+        if ingestion_adapters is None:
+            raise IngestionError(
+                "modality_adapter_unavailable",
+                "No ingestion adapters are configured in this worker build.",
             )
-            db.add(page)
-            db.flush()
-            for chunk_index, (char_start, char_end, chunk_text) in enumerate(
-                split_page_text(page_result.text, chunk_size=chunk_size)
-            ):
-                db.add(
-                    DocumentChunk(
-                        workspace_id=document.workspace_id,
-                        document_id=document.id,
-                        page_id=page.id,
-                        chunk_index=chunk_index,
-                        chunk_text=chunk_text,
-                        token_count=estimate_token_count(chunk_text),
-                        char_start=char_start,
-                        char_end=char_end,
-                        index_version=document.current_index_version,
-                        created_at=now,
-                    ),
-                )
-
-        db.flush()
+        adapter = ingestion_adapters.get(asset.asset_kind)
+        payload = download_bytes(asset.object_key)
+        snapshot = job.config_snapshot or {}
+        now = datetime.now(UTC)
+        latest_generation = db.scalar(
+            select(func.max(AssetRepresentation.processing_generation)).where(
+                AssetRepresentation.asset_id == asset.id
+            )
+        )
+        processing_generation = (
+            asset.current_processing_generation
+            if latest_generation is None
+            else latest_generation + 1
+        )
+        asset.status = "chunking"
+        asset.updated_at = now
+        result = adapter.ingest(
+            db,
+            asset=asset,
+            payload=payload,
+            processing_generation=processing_generation,
+            config_snapshot=snapshot,
+            created_at=now,
+        )
+        _upload_generated_objects(asset, result, generated_object_keys)
         if embedding_provider is None:
-            document.status = "chunked"
+            asset.status = "chunked"
+            _assert_job_is_latest(db, job)
         else:
-            document.status = "embedding"
-            document.updated_at = datetime.now(UTC)
-            _embed_document_chunks(db, document, embedding_provider)
-            document.status = "ready"
-        document.updated_at = datetime.now(UTC)
+            asset.status = "embedding"
+            asset.updated_at = datetime.now(UTC)
+            _embed_content_units(
+                db,
+                asset,
+                embedding_provider,
+                processing_generation=processing_generation,
+            )
+            _assert_job_is_latest(db, job)
+            asset.current_processing_generation = processing_generation
+            db.flush()
+            _activate_current_embeddings(
+                db,
+                asset,
+                embedding_provider,
+                processing_generation=processing_generation,
+            )
+            asset.status = "ready"
+        if embedding_provider is None:
+            asset.current_processing_generation = processing_generation
+        asset.updated_at = datetime.now(UTC)
         job.status = "succeeded"
         job.finished_at = datetime.now(UTC)
         db.commit()
+    except _SupersededIngestionJob:
+        failed_cleanup_keys = _discard_generated_objects(generated_object_keys)
+        _cancel_superseded_job(db, job.id, failed_cleanup_keys)
     except IngestionError as error:
-        _mark_job_failed(db, job, document, error.code, str(error))
+        _mark_job_failed_after_object_cleanup(
+            db,
+            job,
+            asset,
+            error.code,
+            str(error),
+            generated_object_keys,
+        )
     except ModelProviderError as error:
-        _mark_job_failed(db, job, document, error.code, error.message)
+        _mark_job_failed_after_object_cleanup(
+            db,
+            job,
+            asset,
+            error.code,
+            error.message,
+            generated_object_keys,
+        )
     except Exception as error:
-        _mark_job_failed(db, job, document, "ingestion_failed", str(error))
+        _mark_job_failed_after_object_cleanup(
+            db,
+            job,
+            asset,
+            "ingestion_failed",
+            str(error),
+            generated_object_keys,
+        )
 
 
 def process_embedding_job(
@@ -306,91 +266,243 @@ def process_embedding_job(
     job = db.get(IngestionJob, job_id)
     if job is None or job.status != "running":
         return
-    document = db.get(Document, job.document_id)
-    if document is None:
-        _mark_job_failed(db, job, None, "document_missing", "Document disappeared before embedding.")
+    asset = db.get(Asset, job.asset_id)
+    if asset is None:
+        _mark_job_failed(db, job, None, "asset_missing", "Asset disappeared before embedding.")
+        return
+    if asset.latest_ingestion_job_id not in {None, job.id}:
+        _cancel_superseded_job(db, job.id)
         return
     if embedding_provider is None:
-        _mark_embedding_job_failed(db, job, document, "embedding_provider_missing", "Embedding provider is not configured.")
+        _mark_embedding_job_failed(db, job, asset, "embedding_provider_missing", "Embedding provider is not configured.")
         return
 
     try:
         _validate_job_embedding_config(job, embedding_provider)
-        document.status = "embedding"
-        document.updated_at = datetime.now(UTC)
-        _embed_document_chunks(db, document, embedding_provider)
-        document.status = "ready"
-        document.updated_at = datetime.now(UTC)
+        asset.status = "embedding"
+        asset.updated_at = datetime.now(UTC)
+        _embed_content_units(
+            db,
+            asset,
+            embedding_provider,
+            processing_generation=asset.current_processing_generation,
+        )
+        _assert_job_is_latest(db, job)
+        _activate_current_embeddings(
+            db,
+            asset,
+            embedding_provider,
+            processing_generation=asset.current_processing_generation,
+        )
+        asset.status = "ready"
+        asset.updated_at = datetime.now(UTC)
         job.status = "succeeded"
         job.finished_at = datetime.now(UTC)
         db.commit()
+    except _SupersededIngestionJob:
+        _cancel_superseded_job(db, job.id)
     except ModelProviderError as error:
-        _mark_embedding_job_failed(db, job, document, error.code, error.message)
+        _mark_embedding_job_failed(db, job, asset, error.code, error.message)
     except Exception as error:
-        _mark_embedding_job_failed(db, job, document, "embedding_failed", str(error))
+        _mark_embedding_job_failed(db, job, asset, "embedding_failed", str(error))
 
 
-def process_delete_cleanup(db: Session, job_id: str) -> None:
+def process_delete_cleanup(
+    db: Session,
+    job_id: str,
+    ingestion_adapters: IngestionAdapterRegistry | None,
+) -> None:
     job = db.get(IngestionJob, job_id)
     if job is None or job.status != "running":
         return
-    document = db.get(Document, job.document_id)
-    if document is None:
+    asset = db.get(Asset, job.asset_id)
+    if asset is None:
         job.status = "succeeded"
         job.finished_at = datetime.now(UTC)
         db.commit()
         return
-    if document.deleted_at is not None:
+    if asset.latest_ingestion_job_id not in {None, job.id}:
+        _cancel_superseded_job(db, job.id)
+        return
+    if asset.deleted_at is not None:
         job.status = "cancelled"
         job.finished_at = datetime.now(UTC)
         db.commit()
         return
 
     try:
-        delete_object_if_exists(document.object_key)
-        db.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
-        db.execute(delete(DocumentPage).where(DocumentPage.document_id == document.id))
+        if ingestion_adapters is None:
+            raise IngestionError(
+                "modality_adapter_unavailable",
+                "No ingestion adapters are configured in this worker build.",
+            )
+        adapter = ingestion_adapters.get(asset.asset_kind)
+        derived_object_keys = db.scalars(
+            select(AssetRepresentation.object_key).where(
+                AssetRepresentation.asset_id == asset.id,
+                AssetRepresentation.object_key.is_not(None),
+            )
+        ).all()
+        object_keys = dict.fromkeys(
+            (asset.object_key, *(key for key in derived_object_keys if key is not None))
+        )
+        for object_key in object_keys:
+            delete_object_if_exists(object_key)
+        delete_objects_with_prefix(
+            f"workspaces/{asset.workspace_id}/assets/{asset.id}/"
+        )
+        adapter.cleanup(db, asset=asset)
         now = datetime.now(UTC)
-        document.deleted_at = now
-        document.status = "deleted"
-        document.last_error_code = None
-        document.last_error_message = None
-        document.updated_at = now
+        asset.deleted_at = now
+        asset.status = "deleted"
+        asset.last_error_code = None
+        asset.last_error_message = None
+        asset.updated_at = now
         job.status = "succeeded"
         job.error_code = None
         job.error_message = None
         job.finished_at = now
         db.commit()
     except Exception as error:
-        _mark_delete_job_failed(db, job, document, "delete_cleanup_failed", str(error))
+        _mark_delete_job_failed(db, job, asset, "delete_cleanup_failed", str(error))
 
 
-def _embed_document_chunks(db: Session, document: Document, embedding_provider: EmbeddingProvider) -> None:
-    chunks = db.scalars(
-        select(DocumentChunk)
-        .where(
-            DocumentChunk.document_id == document.id,
-            DocumentChunk.workspace_id == document.workspace_id,
-            DocumentChunk.index_version == document.current_index_version,
+def _embed_content_units(
+    db: Session,
+    asset: Asset,
+    embedding_provider: EmbeddingProvider,
+    *,
+    processing_generation: int,
+) -> None:
+    units = db.scalars(
+        select(ContentUnit)
+        .join(
+            AssetRepresentation,
+            AssetRepresentation.id == ContentUnit.representation_id,
         )
-        .order_by(DocumentChunk.page_id, DocumentChunk.chunk_index),
+        .join(EvidenceLocator, EvidenceLocator.id == ContentUnit.source_locator_id)
+        .where(
+            ContentUnit.asset_id == asset.id,
+            ContentUnit.workspace_id == asset.workspace_id,
+            ContentUnit.index_version == asset.current_index_version,
+            AssetRepresentation.asset_id == asset.id,
+            AssetRepresentation.workspace_id == asset.workspace_id,
+            AssetRepresentation.processing_generation == processing_generation,
+            EvidenceLocator.asset_id == asset.id,
+            EvidenceLocator.workspace_id == asset.workspace_id,
+            EvidenceLocator.representation_id_snapshot == AssetRepresentation.id,
+            EvidenceLocator.processing_generation_snapshot == processing_generation,
+        )
+        .order_by(ContentUnit.unit_order, ContentUnit.id),
     ).all()
-    if not chunks:
-        raise IngestionError("no_chunks", "Document produced no non-empty chunks.")
+    if not units:
+        raise IngestionError("no_chunks", "Asset produced no non-empty chunks.")
+
+    unit_ids = [unit.id for unit in units]
+    db.execute(
+        update(ContentUnitEmbedding)
+        .where(
+            ContentUnitEmbedding.asset_id == asset.id,
+            ContentUnitEmbedding.is_current.is_(True),
+            or_(
+                ContentUnitEmbedding.processing_generation != processing_generation,
+                ContentUnitEmbedding.index_version != asset.current_index_version,
+            ),
+        )
+        .values(is_current=False)
+    )
+    db.execute(
+        delete(ContentUnitEmbedding).where(
+            ContentUnitEmbedding.content_unit_id.in_(unit_ids),
+            ContentUnitEmbedding.embedding_space == "text",
+            ContentUnitEmbedding.provider == embedding_provider.provider,
+            ContentUnitEmbedding.model == embedding_provider.model,
+            ContentUnitEmbedding.version == embedding_provider.version,
+        )
+    )
 
     batch_size = settings.embedding_batch_size
-    for offset in range(0, len(chunks), batch_size):
-        batch = chunks[offset : offset + batch_size]
-        vectors = embedding_provider.embed_documents([chunk.chunk_text for chunk in batch])
+    for offset in range(0, len(units), batch_size):
+        batch = units[offset : offset + batch_size]
+        vectors = embedding_provider.embed_documents([unit.text_content for unit in batch])
         if len(vectors) != len(batch):
             raise ModelProviderError("embedding_invalid_response", "Embedding provider returned an invalid vector count.")
-        for chunk, vector in zip(batch, vectors, strict=True):
-            chunk.embedding = vector
-            chunk.embedding_dimensions = embedding_provider.dimensions
-            chunk.embedding_provider = embedding_provider.provider
-            chunk.embedding_model = embedding_provider.model
-            chunk.embedding_version = embedding_provider.version
+        for unit, vector in zip(batch, vectors, strict=True):
+            db.add(
+                ContentUnitEmbedding(
+                    workspace_id=asset.workspace_id,
+                    asset_id=asset.id,
+                    content_unit_id=unit.id,
+                    processing_generation=processing_generation,
+                    index_version=unit.index_version,
+                    is_current=False,
+                    embedding_space="text",
+                    provider=embedding_provider.provider,
+                    model=embedding_provider.model,
+                    dimensions=embedding_provider.dimensions,
+                    version=embedding_provider.version,
+                    embedding=vector,
+                    created_at=datetime.now(UTC),
+                )
+            )
         db.flush()
+
+
+def _activate_current_embeddings(
+    db: Session,
+    asset: Asset,
+    embedding_provider: EmbeddingProvider,
+    *,
+    processing_generation: int,
+) -> None:
+    db.execute(
+        update(ContentUnitEmbedding)
+        .where(
+            ContentUnitEmbedding.asset_id == asset.id,
+            ContentUnitEmbedding.workspace_id == asset.workspace_id,
+            ContentUnitEmbedding.processing_generation == processing_generation,
+            ContentUnitEmbedding.index_version == asset.current_index_version,
+            ContentUnitEmbedding.embedding_space == "text",
+            ContentUnitEmbedding.provider == embedding_provider.provider,
+            ContentUnitEmbedding.model == embedding_provider.model,
+            ContentUnitEmbedding.version == embedding_provider.version,
+            ContentUnitEmbedding.dimensions == embedding_provider.dimensions,
+            ContentUnitEmbedding.is_current.is_(False),
+        )
+        .values(is_current=True)
+    )
+
+
+def _assert_job_is_latest(db: Session, job: IngestionJob) -> None:
+    latest_job_id = db.scalar(
+        select(Asset.latest_ingestion_job_id)
+        .where(Asset.id == job.asset_id)
+        .with_for_update()
+    )
+    if latest_job_id not in {None, job.id}:
+        raise _SupersededIngestionJob(job.id)
+
+
+def _cancel_superseded_job(
+    db: Session,
+    job_id: str,
+    failed_cleanup_keys: list[str] | None = None,
+) -> None:
+    db.rollback()
+    job = db.get(IngestionJob, job_id)
+    if job is None:
+        return
+    now = datetime.now(UTC)
+    job.status = "cancelled"
+    job.error_code = "ingestion_job_superseded"
+    job.error_message = "A newer ingestion job replaced this job before commit."
+    if failed_cleanup_keys:
+        job.error_code = "generated_object_cleanup_failed"
+        job.error_message += " Pending generated object cleanup: " + ",".join(
+            sorted(failed_cleanup_keys)
+        )
+    job.finished_at = now
+    db.commit()
 
 
 def _validate_job_embedding_config(job: IngestionJob, embedding_provider: EmbeddingProvider) -> None:
@@ -408,78 +520,218 @@ def _validate_job_embedding_config(job: IngestionJob, embedding_provider: Embedd
         )
 
 
-def _available_document_status(db: Session, document_id: str) -> str:
-    chunks = db.scalars(
-        select(DocumentChunk).where(DocumentChunk.document_id == document_id),
-    ).all()
-    if not chunks:
+def _available_asset_status(db: Session, asset_id: str) -> str:
+    asset = db.get(Asset, asset_id)
+    if asset is None:
         return "chunked"
-    return "ready" if all(
-        chunk.embedding is not None
-        and chunk.embedding_dimensions is not None
-        and chunk.embedding_provider is not None
-        and chunk.embedding_model is not None
-        and chunk.embedding_version is not None
-        for chunk in chunks
-    ) else "chunked"
+    unit_ids = db.scalars(
+        select(ContentUnit.id)
+        .join(
+            AssetRepresentation,
+            AssetRepresentation.id == ContentUnit.representation_id,
+        )
+        .join(EvidenceLocator, EvidenceLocator.id == ContentUnit.source_locator_id)
+        .where(
+            ContentUnit.asset_id == asset.id,
+            ContentUnit.workspace_id == asset.workspace_id,
+            ContentUnit.index_version == asset.current_index_version,
+            AssetRepresentation.asset_id == asset.id,
+            AssetRepresentation.workspace_id == asset.workspace_id,
+            AssetRepresentation.processing_generation == asset.current_processing_generation,
+            EvidenceLocator.asset_id == asset.id,
+            EvidenceLocator.workspace_id == asset.workspace_id,
+            EvidenceLocator.representation_id_snapshot == AssetRepresentation.id,
+            EvidenceLocator.processing_generation_snapshot
+            == asset.current_processing_generation,
+        )
+    ).all()
+    if not unit_ids:
+        return "chunked"
+    embedded_unit_ids = set(
+        db.scalars(
+            select(ContentUnitEmbedding.content_unit_id).where(
+                ContentUnitEmbedding.content_unit_id.in_(unit_ids),
+                ContentUnitEmbedding.asset_id == asset.id,
+                ContentUnitEmbedding.workspace_id == asset.workspace_id,
+                ContentUnitEmbedding.processing_generation
+                == asset.current_processing_generation,
+                ContentUnitEmbedding.index_version == asset.current_index_version,
+                ContentUnitEmbedding.is_current.is_(True),
+                ContentUnitEmbedding.embedding_space == "text",
+                ContentUnitEmbedding.provider == settings.embedding_provider,
+                ContentUnitEmbedding.model == settings.embedding_model,
+                ContentUnitEmbedding.version == settings.embedding_version,
+                ContentUnitEmbedding.dimensions == settings.embedding_dimensions,
+            )
+        ).all()
+    )
+    return "ready" if embedded_unit_ids == set(unit_ids) else "chunked"
+
+
+def _upload_generated_objects(
+    asset: Asset,
+    result: IngestionResult,
+    attempted_object_keys: list[str],
+) -> None:
+    if not isinstance(result, IngestionResult):
+        raise IngestionError(
+            "modality_adapter_result_invalid",
+            "Ingestion adapter returned an invalid result.",
+        )
+    expected_prefix = f"workspaces/{asset.workspace_id}/assets/{asset.id}/representations/"
+    seen_keys: set[str] = set()
+    for generated in result.generated_objects:
+        _validate_generated_object(asset, generated, expected_prefix, seen_keys)
+        attempted_object_keys.append(generated.object_key)
+        delete_object_if_exists(generated.object_key)
+        upload_bytes(generated.object_key, generated.payload, generated.content_type)
+        seen_keys.add(generated.object_key)
+
+
+def _validate_generated_object(
+    asset: Asset,
+    generated: GeneratedObject,
+    expected_prefix: str,
+    seen_keys: set[str],
+) -> None:
+    if generated.object_key == asset.object_key or not generated.object_key.startswith(expected_prefix):
+        raise IngestionError(
+            "generated_object_key_invalid",
+            "Generated objects must use the asset representation namespace.",
+        )
+    if generated.object_key in seen_keys:
+        raise IngestionError("generated_object_duplicate", "Generated object keys must be unique.")
+    if not generated.payload or not generated.content_type:
+        raise IngestionError("generated_object_invalid", "Generated object payload is invalid.")
+    if sha256(generated.payload).hexdigest() != generated.content_sha256:
+        raise IngestionError(
+            "generated_object_hash_mismatch",
+            "Generated object hash does not match its payload.",
+        )
+
+
+def _discard_generated_objects(object_keys: list[str]) -> list[str]:
+    failed_object_keys: list[str] = []
+    for object_key in reversed(object_keys):
+        try:
+            delete_object_if_exists(object_key)
+        except Exception as error:
+            failed_object_keys.append(object_key)
+            logger.exception(
+                "generated_object_cleanup_failed object_key=%s error_type=%s",
+                object_key,
+                type(error).__name__,
+            )
+    return failed_object_keys
+
+
+def _mark_job_failed_after_object_cleanup(
+    db: Session,
+    job: IngestionJob,
+    asset: Asset,
+    error_code: str,
+    error_message: str,
+    generated_object_keys: list[str],
+) -> None:
+    failed_cleanup_keys = _discard_generated_objects(generated_object_keys)
+    if failed_cleanup_keys:
+        error_code = "generated_object_cleanup_failed"
+        error_message = (
+            f"{error_message} Pending generated object cleanup: "
+            f"{','.join(sorted(failed_cleanup_keys))}"
+        )
+    _mark_job_failed(db, job, asset, error_code, error_message)
 
 
 def _mark_embedding_job_failed(
     db: Session,
     job: IngestionJob,
-    document: Document,
+    asset: Asset,
     error_code: str,
     error_message: str,
 ) -> None:
-    db.rollback()
+    job, current_asset = _prepare_job_failure(db, job.id)
+    if job is None:
+        return
     now = datetime.now(UTC)
     job.status = "failed"
     job.error_code = error_code
     job.error_message = error_message
     job.finished_at = now
-    document.status = _available_document_status(db, document.id)
-    document.last_error_code = error_code
-    document.last_error_message = error_message
-    document.updated_at = now
+    if current_asset is not None:
+        current_asset.status = _available_asset_status(db, current_asset.id)
+        current_asset.last_error_code = error_code
+        current_asset.last_error_message = error_message
+        current_asset.updated_at = now
     db.commit()
 
 
 def _mark_job_failed(
     db: Session,
     job: IngestionJob,
-    document: Document | None,
+    asset: Asset | None,
     error_code: str,
     error_message: str,
 ) -> None:
-    db.rollback()
+    job, current_asset = _prepare_job_failure(db, job.id)
+    if job is None:
+        return
     now = datetime.now(UTC)
     job.status = "failed"
     job.error_code = error_code
     job.error_message = error_message
     job.finished_at = now
-    if document is not None:
-        document.status = "failed"
-        document.last_error_code = error_code
-        document.last_error_message = error_message
-        document.updated_at = now
+    if current_asset is not None:
+        current_asset.status = "failed"
+        current_asset.last_error_code = error_code
+        current_asset.last_error_message = error_message
+        current_asset.updated_at = now
     db.commit()
 
 
 def _mark_delete_job_failed(
     db: Session,
     job: IngestionJob,
-    document: Document,
+    asset: Asset,
     error_code: str,
     error_message: str,
 ) -> None:
-    db.rollback()
+    job, current_asset = _prepare_job_failure(db, job.id)
+    if job is None:
+        return
     now = datetime.now(UTC)
     job.status = "failed"
     job.error_code = error_code
     job.error_message = error_message
     job.finished_at = now
-    document.status = "deleting"
-    document.last_error_code = error_code
-    document.last_error_message = error_message
-    document.updated_at = now
+    if current_asset is not None:
+        current_asset.status = "deleting"
+        current_asset.last_error_code = error_code
+        current_asset.last_error_message = error_message
+        current_asset.updated_at = now
     db.commit()
+
+
+def _prepare_job_failure(
+    db: Session,
+    job_id: str,
+) -> tuple[IngestionJob | None, Asset | None]:
+    """Reload failure targets and cancel stale work before changing Asset state."""
+    db.rollback()
+    job = db.get(IngestionJob, job_id)
+    if job is None:
+        return None, None
+    asset = db.scalar(
+        select(Asset)
+        .where(Asset.id == job.asset_id)
+        .with_for_update()
+    )
+    if asset is not None and asset.latest_ingestion_job_id not in {None, job.id}:
+        now = datetime.now(UTC)
+        job.status = "cancelled"
+        job.error_code = "ingestion_job_superseded"
+        job.error_message = "A newer ingestion job replaced this job before failure commit."
+        job.finished_at = now
+        db.commit()
+        return None, None
+    return job, asset

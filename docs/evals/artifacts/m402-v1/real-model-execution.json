@@ -1,0 +1,208 @@
+{
+  "schemaVersion": "m402-real-model-execution-v1",
+  "goldenSchemaVersion": "multimodal-golden-v1",
+  "testFile": "apps/worker/tests/test_multimodal_golden_execution.py",
+  "testFileSha256": "789e0674b29787857aee8bcdf932b966ad8459406a851b3468f01e6f3441e25e",
+  "testNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+  "cases": [
+    {
+      "caseId": "answer-pdf-table",
+      "question": "What score does the PDF table report for Atlas?",
+      "generationMessages": [
+        {
+          "role": "system",
+          "content": "Answer only from supplied evidence. If it does not support the question, state that the selected assets do not contain supporting evidence."
+        },
+        {
+          "role": "user",
+          "content": "Question:\nWhat score does the PDF table report for Atlas?\n\nAsset evidence context:\n[1] pdf-artifact-matrix-fixture.pdf, pdf_region\n| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |\n\n[2] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 180\nModel Score\n\n[3] pdf-artifact-matrix-fixture.pdf, pdf_region\n| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |\n\n[4] pdf-artifact-matrix-fixture.pdf, pdf_region\n| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |\n\n[5] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 270\nModel Score\n\n[6] pdf-artifact-matrix-fixture.pdf, pdf_region\n| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |\n\n[7] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 0\nModel Score\n\n[8] pdf-artifact-matrix-fixture.pdf, pdf_page\nraster artifact rotation 0\nModel Score\n\n[9] pdf-artifact-matrix-fixture.pdf, pdf_region\nChart 91. Vector trend evidence.\n\n[10] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 90\nModel Score"
+        }
+      ],
+      "generationMessagesSha256": "a4e3c23a3ec1dc4eecca8cc6468e683238503d8b13272e7d2238abe21bc9dafb",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "output": "Atlas has a score of **91.4**.",
+      "citationCoverage": [
+        {
+          "fixtureId": "pdf-artifact-matrix",
+          "locatorKind": "pdf_region",
+          "covered": true
+        }
+      ],
+      "matchedAnswerPoints": [
+        "Atlas has a score of 91.4."
+      ],
+      "refusalMatched": false,
+      "error": null,
+      "passed": true
+    },
+    {
+      "caseId": "answer-pdf-chart",
+      "question": "What does the PDF fixture say happens after the third point?",
+      "generationMessages": [
+        {
+          "role": "system",
+          "content": "Answer only from supplied evidence. If it does not support the question, state that the selected assets do not contain supporting evidence."
+        },
+        {
+          "role": "user",
+          "content": "Question:\nWhat does the PDF fixture say happens after the third point?\n\nAsset evidence context:\n[1] pdf-coordinate-fixture.pdf, pdf_page\nIn-page image fixture\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[2] pdf-coordinate-fixture.pdf, pdf_page\nRotation fixture 0\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[3] pdf-coordinate-fixture.pdf, pdf_page\nCropBox rotation fixture 0\nrotation=0\nPrimary evidence region\nStable text for locator verification.\nEvidence inside CropBox\n\n[4] pdf-coordinate-fixture.pdf, pdf_page\nTable fixture\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[5] pdf-coordinate-fixture.pdf, pdf_page\nRotation fixture 180\nrotation=180\nPrimary evidence region\nStable text for locator verification.\n\n[6] pdf-coordinate-fixture.pdf, pdf_page\nChart and multi-region fixture\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[7] pdf-coordinate-fixture.pdf, pdf_page\nRotation fixture 270\nrotation=270\nPrimary evidence region\nStable text for locator verification.\n\n[8] pdf-coordinate-fixture.pdf, pdf_region\nFigure 1. Trend rises after the third point.\nSupporting caption in a separate region.\n\n[9] pdf-coordinate-fixture.pdf, pdf_page\nCropBox rotation fixture 90\nrotation=0\nPrimary evidence region\nStable text for locator verification.\nEvidence inside CropBox\n\n[10] pdf-coordinate-fixture.pdf, pdf_page\nCropBox rotation fixture 180\nrotation=0\nPrimary evidence region\nStable text for locator verification.\nEvidence inside CropBox"
+        }
+      ],
+      "generationMessagesSha256": "09f1ea8308481b216d6b9ca71aecd8b26fbcf407996001b979a3b873e4922a59",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "output": "The PDF fixture says: \u201cTrend rises after the third point.\u201d",
+      "citationCoverage": [
+        {
+          "fixtureId": "pdf-coordinate",
+          "locatorKind": "pdf_region",
+          "covered": true
+        }
+      ],
+      "matchedAnswerPoints": [],
+      "refusalMatched": false,
+      "error": null,
+      "passed": false
+    },
+    {
+      "caseId": "answer-image-trend",
+      "question": "When does the image say the sustained latency drop begins?",
+      "generationMessages": [
+        {
+          "role": "system",
+          "content": "Answer only from supplied evidence. If it does not support the question, state that the selected assets do not contain supporting evidence."
+        },
+        {
+          "role": "user",
+          "content": "Question:\nWhen does the image say the sustained latency drop begins?\n\nAsset evidence context:\n[1] image-coordinate-fixture.png, image_region\nthe sustained drop.\n\n[2] image-coordinate-fixture.png, image_region\nRelease 4 begins the sustained drop. Verify chart and caption together.\n\n[3] image-coordinate-fixture.png, image_region\nLatencyfallsafterthethirdrelease\n\n[4] image-coordinate-fixture.png, image_region\nImage Evidence Fixture\n\n[5] image-coordinate-fixture.png, image_region\nSynthetic non-confidential chart and caption regions\n\n[6] image-coordinate-fixture.png, image_region\ncaption together.\n\n[7] image-coordinate-fixture.png, image_region\nRelease4begins\n\n[8] image-coordinate-fixture.png, image_region\nVerifychart and\n\n[9] image-coordinate-fixture.png, image_region\nObservation"
+        }
+      ],
+      "generationMessagesSha256": "2baef2441ff13cf1dd0b2be17f3ae9d16a0158f86f6f22f82a61a59fa96c4891",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "output": "The image says the sustained latency drop begins at **Release 4**.",
+      "citationCoverage": [
+        {
+          "fixtureId": "image-coordinate",
+          "locatorKind": "image_region",
+          "covered": true
+        }
+      ],
+      "matchedAnswerPoints": [],
+      "refusalMatched": false,
+      "error": null,
+      "passed": false
+    },
+    {
+      "caseId": "answer-image-constraint",
+      "question": "What evidence does the image instruct the reader to verify?",
+      "generationMessages": [
+        {
+          "role": "system",
+          "content": "Answer only from supplied evidence. If it does not support the question, state that the selected assets do not contain supporting evidence."
+        },
+        {
+          "role": "user",
+          "content": "Question:\nWhat evidence does the image instruct the reader to verify?\n\nAsset evidence context:\n[1] pdf-coordinate-fixture.pdf, pdf_page\nIn-page image fixture\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[2] pdf-coordinate-fixture.pdf, pdf_page\nRotation fixture 0\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[3] pdf-coordinate-fixture.pdf, pdf_page\nCropBox rotation fixture 0\nrotation=0\nPrimary evidence region\nStable text for locator verification.\nEvidence inside CropBox\n\n[4] image-coordinate-fixture.png, image_region\nImage Evidence Fixture\n\n[5] pdf-coordinate-fixture.pdf, pdf_page\nTable fixture\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[6] image-coordinate-fixture.png, image_region\nRelease 4 begins the sustained drop. Verify chart and caption together.\n\n[7] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 180\nModel Score\n\n[8] pdf-artifact-matrix-fixture.pdf, pdf_region\nChart 91. Vector trend evidence.\n\n[9] pdf-artifact-matrix-fixture.pdf, pdf_page\nraster artifact rotation 0\nModel Score\n\n[10] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 270\nModel Score"
+        }
+      ],
+      "generationMessagesSha256": "de4f9013683e690ac93cd1b0b047718f0844f9c28434520528982fc0df34f36d",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "output": "The image instructs the reader to verify the **chart and caption together** as evidence that **Release 4 begins the sustained drop**.",
+      "citationCoverage": [
+        {
+          "fixtureId": "image-coordinate",
+          "locatorKind": "image_region",
+          "covered": true
+        }
+      ],
+      "matchedAnswerPoints": [],
+      "refusalMatched": false,
+      "error": null,
+      "passed": false
+    },
+    {
+      "caseId": "answer-mixed-compare",
+      "question": "Compare the change described by the PDF chart with the image observation.",
+      "generationMessages": [
+        {
+          "role": "system",
+          "content": "Answer only from supplied evidence. If it does not support the question, state that the selected assets do not contain supporting evidence."
+        },
+        {
+          "role": "user",
+          "content": "Question:\nCompare the change described by the PDF chart with the image observation.\n\nAsset evidence context:\n[1] image-coordinate-fixture.png, image_region\nthe sustained drop.\n\n[2] image-coordinate-fixture.png, image_region\nRelease 4 begins the sustained drop. Verify chart and caption together.\n\n[3] pdf-coordinate-fixture.pdf, pdf_page\nIn-page image fixture\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[4] image-coordinate-fixture.png, image_region\nSynthetic non-confidential chart and caption regions\n\n[5] pdf-coordinate-fixture.pdf, pdf_region\nFigure 1. Trend rises after the third point.\nSupporting caption in a separate region.\n\n[6] image-coordinate-fixture.png, image_region\nImage Evidence Fixture\n\n[7] image-coordinate-fixture.png, image_region\nLatencyfallsafterthethirdrelease\n\n[8] image-coordinate-fixture.png, image_region\nVerifychart and\n\n[9] pdf-coordinate-fixture.pdf, pdf_page\nRotation fixture 0\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[10] pdf-coordinate-fixture.pdf, pdf_region\nFigure 2. In-page image caption evidence."
+        }
+      ],
+      "generationMessagesSha256": "817d5c01a3f91c86b27a8683208b23f437d8d86f5de47b0321cd1cc8b05c77b6",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "output": "The selected assets describe opposite changes.\n\nThe PDF evidence says: \u201cFigure 1. Trend rises after the third point.\u201d  \nThe image observation says latency \u201cfalls after the third release\u201d and that \u201cRelease 4 begins the sustained drop.\u201d\n\nSo, the PDF chart describes a rise after the third point, while the image observation describes a sustained drop beginning after the third release.",
+      "citationCoverage": [
+        {
+          "fixtureId": "pdf-coordinate",
+          "locatorKind": "pdf_region",
+          "covered": true
+        },
+        {
+          "fixtureId": "image-coordinate",
+          "locatorKind": "image_region",
+          "covered": true
+        }
+      ],
+      "matchedAnswerPoints": [],
+      "refusalMatched": false,
+      "error": null,
+      "passed": false
+    },
+    {
+      "caseId": "answer-refuse-pdf",
+      "question": "What energy consumption does the PDF report for Atlas?",
+      "generationMessages": [
+        {
+          "role": "system",
+          "content": "Answer only from supplied evidence. If it does not support the question, state that the selected assets do not contain supporting evidence."
+        },
+        {
+          "role": "user",
+          "content": "Question:\nWhat energy consumption does the PDF report for Atlas?\n\nAsset evidence context:\n[1] pdf-artifact-matrix-fixture.pdf, pdf_region\n| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |\n\n[2] pdf-artifact-matrix-fixture.pdf, pdf_region\n| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |\n\n[3] pdf-artifact-matrix-fixture.pdf, pdf_region\n| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |\n\n[4] pdf-artifact-matrix-fixture.pdf, pdf_region\n| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |\n\n[5] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 180\nModel Score\n\n[6] pdf-artifact-matrix-fixture.pdf, pdf_page\nraster artifact rotation 0\nModel Score\n\n[7] pdf-artifact-matrix-fixture.pdf, pdf_region\nChart 91. Vector trend evidence.\n\n[8] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 270\nModel Score\n\n[9] pdf-artifact-matrix-fixture.pdf, pdf_page\ntable artifact rotation 0\nModel Score\n\n[10] pdf-artifact-matrix-fixture.pdf, pdf_region\nFigure 181. Raster result evidence."
+        }
+      ],
+      "generationMessagesSha256": "5ed94ae198cec7f754f64321727a527eec11675576379523cd60042fb6f21512",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "output": "The selected assets do not contain supporting evidence for Atlas energy consumption. They only report `Atlas` with a `Score` of `91.4`.",
+      "citationCoverage": [],
+      "matchedAnswerPoints": [],
+      "refusalMatched": false,
+      "error": null,
+      "passed": false
+    },
+    {
+      "caseId": "answer-refuse-mixed",
+      "question": "Which production customer approved the release shown in these fixtures?",
+      "generationMessages": [
+        {
+          "role": "system",
+          "content": "Answer only from supplied evidence. If it does not support the question, state that the selected assets do not contain supporting evidence."
+        },
+        {
+          "role": "user",
+          "content": "Question:\nWhich production customer approved the release shown in these fixtures?\n\nAsset evidence context:\n[1] pdf-coordinate-fixture.pdf, pdf_page\nIn-page image fixture\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[2] pdf-coordinate-fixture.pdf, pdf_page\nCropBox rotation fixture 0\nrotation=0\nPrimary evidence region\nStable text for locator verification.\nEvidence inside CropBox\n\n[3] image-coordinate-fixture.png, image_region\nRelease 4 begins the sustained drop. Verify chart and caption together.\n\n[4] image-coordinate-fixture.png, image_region\nthe sustained drop.\n\n[5] pdf-coordinate-fixture.pdf, pdf_page\nRotation fixture 0\nrotation=0\nPrimary evidence region\nStable text for locator verification.\n\n[6] pdf-coordinate-fixture.pdf, pdf_region\nFigure 1. Trend rises after the third point.\nSupporting caption in a separate region.\n\n[7] image-coordinate-fixture.png, image_region\nLatencyfallsafterthethirdrelease\n\n[8] image-coordinate-fixture.png, image_region\nImage Evidence Fixture\n\n[9] image-coordinate-fixture.png, image_region\nRelease4begins\n\n[10] pdf-coordinate-fixture.pdf, pdf_page\nTable fixture\nrotation=0\nPrimary evidence region\nStable text for locator verification."
+        }
+      ],
+      "generationMessagesSha256": "4c6aaa53dde480961aa20b2ec5e20ac5c916d77710c3efc971f44c6343a4005f",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "output": "The selected assets do not contain supporting evidence identifying which production customer approved the release.",
+      "citationCoverage": [],
+      "matchedAnswerPoints": [],
+      "refusalMatched": false,
+      "error": null,
+      "passed": false
+    }
+  ],
+  "passed": false
+}

@@ -11,9 +11,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ai_pdf_api.models import Document
+from ai_pdf_api.models import Asset, PdfLocatorDetail
 from ai_pdf_api.services.providers import EmbeddingProvider
-from ai_pdf_api.services.retrieval import RetrievedChunk, retrieve_chunks
+from ai_pdf_api.services.retrieval import retrieve_chunks
 
 
 PageKey = tuple[str, int]
@@ -151,16 +151,19 @@ def evaluate_dataset(
 ) -> dict[str, Any]:
     if top_k < 1:
         raise ValueError("top_k must be positive")
-    documents = db.scalars(
-        select(Document).where(
-            Document.workspace_id == workspace_id,
-            Document.status == "ready",
-            Document.deleted_at.is_(None),
+    assets = db.scalars(
+        select(Asset).where(
+            Asset.workspace_id == workspace_id,
+            Asset.status == "ready",
+            Asset.deleted_at.is_(None),
         )
     ).all()
-    documents_by_filename: dict[str, list[Document]] = {}
-    for document in documents:
-        documents_by_filename.setdefault(document.source_filename, []).append(document)
+    assets_by_filename: dict[str, list[Asset]] = {}
+    for asset in assets:
+        if asset.asset_kind != "pdf":
+            continue
+        assets_by_filename.setdefault(asset.source_filename, []).append(asset)
+    pdf_asset_ids = [asset.id for asset in assets if asset.asset_kind == "pdf"]
 
     case_results: list[dict[str, Any]] = []
     case_metrics: list[dict[str, float]] = []
@@ -168,10 +171,10 @@ def evaluate_dataset(
     for case in cases:
         relevant_keys: set[PageKey] = set()
         for label in case.relevant:
-            matches = documents_by_filename.get(label.source_filename, [])
+            matches = assets_by_filename.get(label.source_filename, [])
             if len(matches) != 1:
                 raise EvaluationDataError(
-                    f"Expected exactly one ready document named {label.source_filename!r} "
+                    f"Expected exactly one ready asset named {label.source_filename!r} "
                     f"in workspace {workspace_id}; found {len(matches)}."
                 )
             relevant_keys.update((matches[0].id, page) for page in label.pages)
@@ -182,6 +185,7 @@ def evaluate_dataset(
             db,
             workspace_id,
             query_embedding,
+            asset_ids=pdf_asset_ids,
             embedding_provider=provider,
             limit=top_k,
         )
@@ -192,7 +196,10 @@ def evaluate_dataset(
         ranked_results: list[dict[str, Any]] = []
         seen_page_keys: set[PageKey] = set()
         for item in retrieved_chunks:
-            page_key = (item.document.id, item.page.page_number)
+            detail = db.get(PdfLocatorDetail, item.locator.id)
+            if detail is None:
+                continue
+            page_key = (item.asset.id, detail.page_number)
             if page_key in seen_page_keys:
                 continue
             seen_page_keys.add(page_key)
@@ -200,9 +207,9 @@ def evaluate_dataset(
             ranked_results.append(
                 {
                     "rank": len(ranked_results) + 1,
-                    "documentId": item.document.id,
-                    "sourceFilename": item.document.source_filename,
-                    "pageNumber": item.page.page_number,
+                    "assetId": item.asset.id,
+                    "sourceFilename": item.asset.source_filename,
+                    "pageNumber": detail.page_number,
                     "distance": float(item.distance),
                     "relevant": page_key in relevant_keys,
                 }

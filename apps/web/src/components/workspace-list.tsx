@@ -77,7 +77,7 @@ export function WorkspaceList() {
           ) : (
             <div className="divide-y divide-zinc-100 border-b border-zinc-100 dark:divide-zinc-900 dark:border-zinc-900">
               {filteredWorkspaces.map((ws) => {
-                const docCount = ws.documentCount;
+                const docCount = ws.assetCount;
                 const noteCount = notes.filter((n) => n.workspaceId === ws.id).length;
                 const threadCount = threads.filter((th) => th.workspaceId === ws.id).length;
                 const dateObj = new Date(ws.updatedAt);

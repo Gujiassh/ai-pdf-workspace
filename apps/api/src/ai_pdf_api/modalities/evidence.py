@@ -1,0 +1,538 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Protocol
+from uuid import uuid4
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from ai_pdf_api.models import (
+    AssetRepresentation,
+    EvidenceLocator,
+    ImageLocatorDetail,
+    PdfLocatorDetail,
+    SpatialLocatorRegion,
+)
+from ai_pdf_api.schemas.chat import (
+    EvidenceLocatorDto,
+    ImageRegionLocator,
+    PageGeometry,
+    PdfPageLocator,
+    PdfRegionLocator,
+    SpatialRegion,
+)
+
+PDF_COORDINATE_SPACE = "pdf_crop_box_normalized_top_left_v1"
+IMAGE_COORDINATE_SPACE = "image_normalized_top_left_v1"
+
+
+class EvidenceContractError(RuntimeError):
+    pass
+
+
+class LocatorCodec(Protocol):
+    kinds: frozenset[str]
+    representation_kinds: frozenset[str]
+
+    def clone_details(
+        self,
+        db: Session,
+        source: EvidenceLocator,
+        target: EvidenceLocator,
+    ) -> None: ...
+
+    def serialize(self, db: Session, locator: EvidenceLocator) -> EvidenceLocatorDto: ...
+
+    def serialize_loaded(
+        self,
+        locator: EvidenceLocator,
+        detail: PdfLocatorDetail | ImageLocatorDetail | None,
+        regions: list[SpatialLocatorRegion],
+    ) -> EvidenceLocatorDto: ...
+
+    def retrieval_key(
+        self,
+        locator: EvidenceLocator,
+        serialized: EvidenceLocatorDto,
+    ) -> str: ...
+
+
+def _regions(db: Session, locator_id: str) -> list[SpatialLocatorRegion]:
+    return db.scalars(
+        select(SpatialLocatorRegion)
+        .where(SpatialLocatorRegion.locator_id == locator_id)
+        .order_by(SpatialLocatorRegion.region_order)
+    ).all()
+
+
+def _region_dtos(regions: Iterable[SpatialLocatorRegion]) -> list[SpatialRegion]:
+    return [
+        SpatialRegion(x=region.x, y=region.y, width=region.width, height=region.height)
+        for region in regions
+    ]
+
+
+def _clone_regions(
+    db: Session,
+    source_locator_id: str,
+    target_locator_id: str,
+) -> None:
+    db.add_all(
+        [
+            SpatialLocatorRegion(
+                locator_id=target_locator_id,
+                region_order=region.region_order,
+                x=region.x,
+                y=region.y,
+                width=region.width,
+                height=region.height,
+            )
+            for region in _regions(db, source_locator_id)
+        ]
+    )
+
+
+class PdfLocatorCodec:
+    kinds = frozenset({"pdf_page", "pdf_region"})
+    representation_kinds = frozenset(
+        {"pdf_text_legacy", "pdf_page_layout", "pdf_ocr", "pdf_table", "pdf_figure"}
+    )
+
+    def clone_details(self, db: Session, source: EvidenceLocator, target: EvidenceLocator) -> None:
+        detail = db.get(PdfLocatorDetail, source.id)
+        if detail is None:
+            raise EvidenceContractError(f"PDF locator {source.id} has no typed detail")
+        if source.locator_kind == "pdf_region" and detail.coordinate_space != PDF_COORDINATE_SPACE:
+            raise EvidenceContractError("pdf_region locator has an unsupported coordinate space")
+        db.add(
+            PdfLocatorDetail(
+                locator_id=target.id,
+                page_id=detail.page_id,
+                page_number=detail.page_number,
+                coordinate_space=detail.coordinate_space,
+                crop_x0_points=detail.crop_x0_points,
+                crop_y0_points=detail.crop_y0_points,
+                crop_x1_points=detail.crop_x1_points,
+                crop_y1_points=detail.crop_y1_points,
+                rotation_degrees=detail.rotation_degrees,
+                display_width_points=detail.display_width_points,
+                display_height_points=detail.display_height_points,
+            )
+        )
+        _clone_regions(db, source.id, target.id)
+
+    def serialize(self, db: Session, locator: EvidenceLocator) -> EvidenceLocatorDto:
+        detail = db.get(PdfLocatorDetail, locator.id)
+        return self.serialize_loaded(locator, detail, _regions(db, locator.id))
+
+    def serialize_loaded(
+        self,
+        locator: EvidenceLocator,
+        detail: PdfLocatorDetail | ImageLocatorDetail | None,
+        regions: list[SpatialLocatorRegion],
+    ) -> EvidenceLocatorDto:
+        if not isinstance(detail, PdfLocatorDetail):
+            raise EvidenceContractError(f"PDF locator {locator.id} has no typed detail")
+        if locator.locator_kind == "pdf_page":
+            if regions:
+                raise EvidenceContractError("pdf_page locator must not contain regions")
+            return PdfPageLocator(
+                kind="pdf_page",
+                version=locator.locator_version,
+                pageNumber=detail.page_number,
+            )
+
+        geometry_values = (
+            detail.crop_x0_points,
+            detail.crop_y0_points,
+            detail.crop_x1_points,
+            detail.crop_y1_points,
+            detail.rotation_degrees,
+            detail.display_width_points,
+            detail.display_height_points,
+        )
+        if detail.coordinate_space != PDF_COORDINATE_SPACE:
+            raise EvidenceContractError("pdf_region locator has an unsupported coordinate space")
+        if any(value is None for value in geometry_values):
+            raise EvidenceContractError("pdf_region locator requires coordinate and page geometry snapshots")
+        region_dtos = _region_dtos(regions)
+        if not region_dtos:
+            raise EvidenceContractError("pdf_region locator requires at least one region")
+        crop_x0, crop_y0, crop_x1, crop_y1, rotation, display_width, display_height = geometry_values
+        return PdfRegionLocator(
+            kind="pdf_region",
+            version=locator.locator_version,
+            pageNumber=detail.page_number,
+            coordinateSpace=detail.coordinate_space,
+            pageGeometry=PageGeometry(
+                cropBoxPoints=[crop_x0, crop_y0, crop_x1, crop_y1],
+                rotationDegrees=rotation,
+                displayWidthPoints=display_width,
+                displayHeightPoints=display_height,
+            ),
+            regions=region_dtos,
+        )
+
+    def retrieval_key(
+        self,
+        locator: EvidenceLocator,
+        serialized: EvidenceLocatorDto,
+    ) -> str:
+        if isinstance(serialized, PdfPageLocator):
+            return f"pdf_page:{serialized.pageNumber}"
+        return locator.id
+
+
+class ImageLocatorCodec:
+    kinds = frozenset({"image_region"})
+    representation_kinds = frozenset({"image_ocr", "image_caption"})
+
+    def clone_details(self, db: Session, source: EvidenceLocator, target: EvidenceLocator) -> None:
+        detail = db.get(ImageLocatorDetail, source.id)
+        if detail is None:
+            raise EvidenceContractError(f"Image locator {source.id} has no typed detail")
+        if detail.coordinate_space != IMAGE_COORDINATE_SPACE:
+            raise EvidenceContractError("image_region locator has an unsupported coordinate space")
+        db.add(
+            ImageLocatorDetail(
+                locator_id=target.id,
+                coordinate_space=detail.coordinate_space,
+                width_pixels=detail.width_pixels,
+                height_pixels=detail.height_pixels,
+                orientation_applied=detail.orientation_applied,
+            )
+        )
+        _clone_regions(db, source.id, target.id)
+
+    def serialize(self, db: Session, locator: EvidenceLocator) -> EvidenceLocatorDto:
+        detail = db.get(ImageLocatorDetail, locator.id)
+        return self.serialize_loaded(locator, detail, _regions(db, locator.id))
+
+    def serialize_loaded(
+        self,
+        locator: EvidenceLocator,
+        detail: PdfLocatorDetail | ImageLocatorDetail | None,
+        regions: list[SpatialLocatorRegion],
+    ) -> EvidenceLocatorDto:
+        if not isinstance(detail, ImageLocatorDetail):
+            raise EvidenceContractError(f"Image locator {locator.id} has no typed detail")
+        region_dtos = _region_dtos(regions)
+        if not region_dtos:
+            raise EvidenceContractError("image_region locator requires at least one region")
+        if detail.coordinate_space != IMAGE_COORDINATE_SPACE:
+            raise EvidenceContractError("image_region locator has an unsupported coordinate space")
+        return ImageRegionLocator(
+            kind="image_region",
+            version=locator.locator_version,
+            coordinateSpace=detail.coordinate_space,
+            widthPixels=detail.width_pixels,
+            heightPixels=detail.height_pixels,
+            orientationApplied=detail.orientation_applied,
+            regions=region_dtos,
+        )
+
+    def retrieval_key(
+        self,
+        locator: EvidenceLocator,
+        serialized: EvidenceLocatorDto,
+    ) -> str:
+        del serialized
+        return locator.id
+
+
+class LocatorCodecRegistry:
+    def __init__(self, codecs: Iterable[LocatorCodec]) -> None:
+        self._by_kind: dict[str, LocatorCodec] = {}
+        for codec in codecs:
+            for kind in codec.kinds:
+                if kind in self._by_kind:
+                    raise EvidenceContractError(f"Duplicate locator codec: {kind}")
+                self._by_kind[kind] = codec
+
+    @property
+    def kinds(self) -> frozenset[str]:
+        return frozenset(self._by_kind)
+
+    def get(self, kind: str) -> LocatorCodec:
+        try:
+            return self._by_kind[kind]
+        except KeyError as error:
+            raise EvidenceContractError(f"Unsupported locator kind: {kind}") from error
+
+
+PRODUCTION_LOCATOR_CODECS = LocatorCodecRegistry((PdfLocatorCodec(), ImageLocatorCodec()))
+
+
+@dataclass(frozen=True)
+class EvidenceRetrievalSource:
+    locator: EvidenceLocator
+    representation: AssetRepresentation
+    workspace_id: str
+    asset_id: str
+    processing_generation: int
+    representation_id: str
+
+
+def _validate_locator_version(locator: EvidenceLocator) -> None:
+    if locator.locator_version != 1:
+        raise EvidenceContractError(
+            f"Unsupported locator version for {locator.locator_kind}: {locator.locator_version}"
+        )
+
+
+def _validate_locator_representation(
+    db: Session,
+    locator: EvidenceLocator,
+    codec: LocatorCodec,
+) -> AssetRepresentation:
+    representation = db.get(AssetRepresentation, locator.representation_id_snapshot)
+    if representation is None:
+        raise EvidenceContractError(
+            f"Evidence locator {locator.id} representation is missing"
+        )
+    return _validate_locator_representation_value(locator, codec, representation)
+
+
+def _validate_locator_representation_value(
+    locator: EvidenceLocator,
+    codec: LocatorCodec,
+    representation: AssetRepresentation,
+) -> AssetRepresentation:
+    if (
+        representation.id != locator.representation_id_snapshot
+        or representation.workspace_id != locator.workspace_id
+        or representation.asset_id != locator.asset_id
+        or representation.processing_generation != locator.processing_generation_snapshot
+    ):
+        raise EvidenceContractError(
+            f"Evidence locator {locator.id} representation snapshot is inconsistent"
+        )
+    if representation.representation_kind not in codec.representation_kinds:
+        raise EvidenceContractError(
+            f"Evidence locator {locator.id} has an invalid representation kind"
+        )
+    return representation
+
+
+def _validate_expected_snapshot(
+    locator: EvidenceLocator,
+    *,
+    workspace_id: str | None,
+    asset_id: str | None,
+    processing_generation: int | None,
+    representation_id: str | None,
+) -> None:
+    expected = (
+        ("workspace", workspace_id, locator.workspace_id),
+        ("asset", asset_id, locator.asset_id),
+        (
+            "processing generation",
+            processing_generation,
+            locator.processing_generation_snapshot,
+        ),
+        ("representation", representation_id, locator.representation_id_snapshot),
+    )
+    for label, expected_value, actual_value in expected:
+        if expected_value is not None and expected_value != actual_value:
+            raise EvidenceContractError(
+                f"Evidence locator {locator.id} does not match the {label} snapshot"
+            )
+
+
+def _serialize_with_codec(
+    db: Session,
+    locator: EvidenceLocator,
+    codec: LocatorCodec,
+) -> EvidenceLocatorDto:
+    try:
+        return codec.serialize(db, locator)
+    except EvidenceContractError:
+        raise
+    except ValueError as error:
+        raise EvidenceContractError(
+            f"Evidence locator {locator.id} contains invalid typed details"
+        ) from error
+
+
+def clone_evidence_locator(
+    db: Session,
+    source_locator_id: str,
+    *,
+    created_at: datetime,
+    workspace_id: str | None = None,
+    asset_id: str | None = None,
+    processing_generation: int | None = None,
+    representation_id: str | None = None,
+) -> EvidenceLocator:
+    source = db.get(EvidenceLocator, source_locator_id)
+    if source is None:
+        raise EvidenceContractError(f"Evidence locator not found: {source_locator_id}")
+    _validate_locator_version(source)
+    _validate_expected_snapshot(
+        source,
+        workspace_id=workspace_id,
+        asset_id=asset_id,
+        processing_generation=processing_generation,
+        representation_id=representation_id,
+    )
+    codec = PRODUCTION_LOCATOR_CODECS.get(source.locator_kind)
+    _validate_locator_representation(db, source, codec)
+    _serialize_with_codec(db, source, codec)
+    target = EvidenceLocator(
+        id=str(uuid4()),
+        workspace_id=source.workspace_id,
+        asset_id=source.asset_id,
+        locator_kind=source.locator_kind,
+        locator_version=source.locator_version,
+        processing_generation_snapshot=source.processing_generation_snapshot,
+        representation_id_snapshot=source.representation_id_snapshot,
+        created_at=created_at,
+    )
+    db.add(target)
+    db.flush()
+    codec.clone_details(db, source, target)
+    db.flush()
+    return target
+
+
+def serialize_evidence_locator(
+    db: Session,
+    locator_id: str,
+    *,
+    workspace_id: str | None = None,
+    asset_id: str | None = None,
+    processing_generation: int | None = None,
+    representation_id: str | None = None,
+) -> EvidenceLocatorDto:
+    locator = db.get(EvidenceLocator, locator_id)
+    if locator is None:
+        raise EvidenceContractError(f"Evidence locator not found: {locator_id}")
+    _validate_locator_version(locator)
+    _validate_expected_snapshot(
+        locator,
+        workspace_id=workspace_id,
+        asset_id=asset_id,
+        processing_generation=processing_generation,
+        representation_id=representation_id,
+    )
+    codec = PRODUCTION_LOCATOR_CODECS.get(locator.locator_kind)
+    _validate_locator_representation(db, locator, codec)
+    return _serialize_with_codec(db, locator, codec)
+
+
+def evidence_retrieval_key(
+    db: Session,
+    locator: EvidenceLocator,
+    *,
+    workspace_id: str,
+    asset_id: str,
+    processing_generation: int,
+    representation_id: str,
+) -> tuple[str, str]:
+    representation = db.get(AssetRepresentation, representation_id)
+    if representation is None:
+        raise EvidenceContractError(
+            f"Evidence locator {locator.id} representation is missing"
+        )
+    return evidence_retrieval_keys(
+        db,
+        (
+            EvidenceRetrievalSource(
+                locator=locator,
+                representation=representation,
+                workspace_id=workspace_id,
+                asset_id=asset_id,
+                processing_generation=processing_generation,
+                representation_id=representation_id,
+            ),
+        ),
+    )[locator.id]
+
+
+def evidence_retrieval_keys(
+    db: Session,
+    sources: Iterable[EvidenceRetrievalSource],
+) -> dict[str, tuple[str, str]]:
+    source_list = list(sources)
+    if not source_list:
+        return {}
+
+    codecs: dict[str, LocatorCodec] = {}
+    for source in source_list:
+        locator = source.locator
+        _validate_locator_version(locator)
+        _validate_expected_snapshot(
+            locator,
+            workspace_id=source.workspace_id,
+            asset_id=source.asset_id,
+            processing_generation=source.processing_generation,
+            representation_id=source.representation_id,
+        )
+        codec = PRODUCTION_LOCATOR_CODECS.get(locator.locator_kind)
+        _validate_locator_representation_value(
+            locator,
+            codec,
+            source.representation,
+        )
+        codecs[locator.id] = codec
+
+    locator_ids = list(dict.fromkeys(source.locator.id for source in source_list))
+    pdf_ids = [
+        source.locator.id
+        for source in source_list
+        if source.locator.locator_kind in PdfLocatorCodec.kinds
+    ]
+    image_ids = [
+        source.locator.id
+        for source in source_list
+        if source.locator.locator_kind in ImageLocatorCodec.kinds
+    ]
+    details: dict[str, PdfLocatorDetail | ImageLocatorDetail] = {}
+    if pdf_ids:
+        details.update(
+            (detail.locator_id, detail)
+            for detail in db.scalars(
+                select(PdfLocatorDetail).where(PdfLocatorDetail.locator_id.in_(pdf_ids))
+            )
+        )
+    if image_ids:
+        details.update(
+            (detail.locator_id, detail)
+            for detail in db.scalars(
+                select(ImageLocatorDetail).where(ImageLocatorDetail.locator_id.in_(image_ids))
+            )
+        )
+    regions_by_locator: dict[str, list[SpatialLocatorRegion]] = {
+        locator_id: [] for locator_id in locator_ids
+    }
+    for region in db.scalars(
+        select(SpatialLocatorRegion)
+        .where(SpatialLocatorRegion.locator_id.in_(locator_ids))
+        .order_by(SpatialLocatorRegion.locator_id, SpatialLocatorRegion.region_order)
+    ):
+        regions_by_locator[region.locator_id].append(region)
+
+    keys: dict[str, tuple[str, str]] = {}
+    for source in source_list:
+        locator = source.locator
+        codec = codecs[locator.id]
+        try:
+            serialized = codec.serialize_loaded(
+                locator,
+                details.get(locator.id),
+                regions_by_locator[locator.id],
+            )
+        except EvidenceContractError:
+            raise
+        except ValueError as error:
+            raise EvidenceContractError(
+                f"Evidence locator {locator.id} contains invalid typed details"
+            ) from error
+        keys[locator.id] = (
+            source.asset_id,
+            codec.retrieval_key(locator, serialized),
+        )
+    return keys

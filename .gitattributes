@@ -1,0 +1,2 @@
+# Runtime evidence is byte-preserved and verified by artifact SHA manifests.
+docs/evals/artifacts/** -whitespace

@@ -1,0 +1,28 @@
+{
+  "contractStatus": "approved-m304b-implementation-pending",
+  "threadId": "thread_fixture",
+  "question": "Compare the PDF chart with the standalone image.",
+  "assetScope": {
+    "mode": "selected",
+    "assetIds": [
+      "asset_pdf_fixture",
+      "asset_image_fixture"
+    ]
+  },
+  "evidenceTargets": [
+    {
+      "kind": "image_region",
+      "assetId": "asset_image_fixture",
+      "processingGeneration": 1,
+      "coordinateSpace": "image_normalized_top_left_v1",
+      "regions": [
+        {
+          "x": 0.2,
+          "y": 0.3,
+          "width": 0.5,
+          "height": 0.5
+        }
+      ]
+    }
+  ]
+}

@@ -1,39 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   AlignLeft,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  Layers,
   RefreshCw,
+  SquareDashedMousePointer,
   X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 
 import { useTranslation } from "@/lib/i18n-context";
+import type { EvidenceRendererProps } from "@/lib/evidence/registry";
+import type { SpatialRegion } from "@/lib/evidence/types";
 import { useWorkspace } from "@/lib/workspace-context";
-import type { OcrTextBlockDto } from "@/lib/documents/types";
+import type { AssetDetailResponseDto, OcrTextBlockDto } from "@/lib/assets/types";
 
 import { OutlineTree } from "./outline-tree";
 import { PdfPageSurface } from "./pdf-renderer";
-import { PdfViewerEmptyState } from "./pdf-viewer-empty-state";
+import type { PdfRenderedGeometry } from "./pdf-renderer";
+import {
+  createSurfaceRegion,
+  isPdfGeometryCompatible,
+  normalizeSurfacePoint,
+  type SurfacePoint,
+} from "./pdf-region-geometry";
 import { resolvePdfPageInput } from "./pdf-viewer-links";
 import { SelectionPopover } from "./selection-popover";
 import { usePdfDocument } from "./use-pdf-document";
 
-export function PdfViewer() {
+export function PdfEvidenceRenderer({ asset, locator }: EvidenceRendererProps) {
   const {
     currentWorkspace,
-    documents,
-    openDocumentIds,
-    activeDocumentId,
     activePdfPage,
     selectionText,
-    openDocument,
-    closeDocument,
     setActivePdfPage,
     closeEvidencePanel,
     setSelectionText,
@@ -49,38 +56,45 @@ export function PdfViewer() {
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [viewerWidth, setViewerWidth] = useState(760);
   const [isCitationPulseVisible, setIsCitationPulseVisible] = useState(false);
+  const [regionSelectionMode, setRegionSelectionMode] = useState(false);
+  const [regionSelection, setRegionSelection] = useState<SpatialRegion | null>(null);
+  const [regionPreview, setRegionPreview] = useState<SpatialRegion | null>(null);
   const [ocrPage, setOcrPage] = useState<{ key: string; blocks: OcrTextBlockDto[] }>({ key: "", blocks: [] });
+  const [renderedGeometry, setRenderedGeometry] = useState<{
+    key: string;
+    value: PdfRenderedGeometry;
+  } | null>(null);
   const paperRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const regionStartRef = useRef<SurfacePoint | null>(null);
 
-  const wsDocs = documents.filter((document) => document.workspaceId === currentWorkspace?.id);
-  const activeDoc = wsDocs.find(
-    (document) => document.id === activeDocumentId && (document.status === "chunked" || document.status === "ready"),
-  );
-  const activePdfDocumentId = activeDoc?.id ?? null;
-  const ocrPageKey = `${activePdfDocumentId ?? ""}:${activePdfPage}`;
+  const activePdfAssetId = asset.id;
+  const ocrPageKey = `${activePdfAssetId}:${activePdfPage}`;
   const ocrBlocks = ocrPage.key === ocrPageKey ? ocrPage.blocks : [];
-  const pdfUrl = currentWorkspace && activeDoc
-    ? `/api/workspaces/${currentWorkspace.id}/documents/${activeDoc.id}/file`
+  const pdfUrl = currentWorkspace
+    ? `/api/workspaces/${currentWorkspace.id}/assets/${asset.id}/file`
     : null;
 
   useEffect(() => {
     const workspaceId = currentWorkspace?.id;
-    if (!workspaceId || !activePdfDocumentId) {
+    if (!workspaceId) {
       return;
     }
 
     let cancelled = false;
-    fetch(`/api/workspaces/${workspaceId}/documents/${activePdfDocumentId}?pageNumber=${activePdfPage}`, {
+    fetch(`/api/workspaces/${workspaceId}/assets/${activePdfAssetId}?pageNumber=${activePdfPage}`, {
       cache: "no-store",
     })
       .then(async (response) => {
         if (!response.ok) throw new Error("OCR page data request failed.");
-        return response.json() as Promise<{ pages?: Array<{ ocrBlocks?: OcrTextBlockDto[] }> }>;
+        return response.json() as Promise<AssetDetailResponseDto>;
       })
       .then((payload) => {
         if (!cancelled) {
-          setOcrPage({ key: ocrPageKey, blocks: payload.pages?.[0]?.ocrBlocks ?? [] });
+          setOcrPage({
+            key: ocrPageKey,
+            blocks: payload.detail.kind === "pdf" ? payload.detail.pages[0]?.ocrBlocks ?? [] : [],
+          });
         }
       })
       .catch(() => undefined);
@@ -88,7 +102,7 @@ export function PdfViewer() {
     return () => {
       cancelled = true;
     };
-  }, [activePdfDocumentId, activePdfPage, currentWorkspace?.id, ocrPageKey]);
+  }, [activePdfAssetId, activePdfPage, currentWorkspace?.id, ocrPageKey]);
   const {
     pdf: activePdfDocument,
     pageCount,
@@ -97,11 +111,17 @@ export function PdfViewer() {
     retry: retryPdf,
     markPageError,
   } = usePdfDocument({
-    documentId: activePdfDocumentId,
+    assetId: activePdfAssetId,
     url: pdfUrl,
-    fallbackPageCount: activeDoc?.pagesCount ?? 0,
+    fallbackPageCount: 0,
   });
   const pdfPageWidth = Math.max(280, Math.min(1200, Math.floor(viewerWidth * zoom / 100)));
+  const currentRenderedGeometry = renderedGeometry?.key === ocrPageKey
+    ? renderedGeometry.value
+    : null;
+  const regionGeometryMatches = locator?.kind !== "pdf_region"
+    || (currentRenderedGeometry !== null
+      && isPdfGeometryCompatible(locator.pageGeometry, currentRenderedGeometry));
 
   useEffect(() => {
     const element = viewerRef.current;
@@ -126,7 +146,7 @@ export function PdfViewer() {
   }, []);
 
   useEffect(() => {
-    if (!activePdfDocumentId || !viewerRef.current) {
+    if (!viewerRef.current) {
       return;
     }
 
@@ -134,17 +154,41 @@ export function PdfViewer() {
     setIsCitationPulseVisible(true);
     const timeout = window.setTimeout(() => setIsCitationPulseVisible(false), 2200);
     return () => window.clearTimeout(timeout);
-  }, [activePdfDocumentId, activePdfPage]);
+  }, [activePdfAssetId, activePdfPage, locator]);
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || (!regionSelectionMode && !regionSelection)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setRegionSelectionMode(false);
+      setRegionSelection(null);
+      setRegionPreview(null);
+      regionStartRef.current = null;
+    };
+    window.addEventListener("keydown", handleEscape, { capture: true });
+    return () => window.removeEventListener("keydown", handleEscape, { capture: true });
+  }, [regionSelection, regionSelectionMode]);
+
+  const navigateToPage = (page: number) => {
+    setRegionSelectionMode(false);
+    setRegionSelection(null);
+    setRegionPreview(null);
+    regionStartRef.current = null;
+    setActivePdfPage(page);
+  };
 
   const handleNextPage = () => {
     if (activePdfPage < pageCount) {
-      setActivePdfPage(activePdfPage + 1);
+      navigateToPage(activePdfPage + 1);
     }
   };
 
   const handlePrevPage = () => {
     if (activePdfPage > 1) {
-      setActivePdfPage(activePdfPage - 1);
+      navigateToPage(activePdfPage - 1);
     }
   };
 
@@ -152,18 +196,18 @@ export function PdfViewer() {
     const nextPage = resolvePdfPageInput(input.value, pageCount, activePdfPage);
     input.value = String(nextPage);
     if (nextPage !== activePdfPage) {
-      setActivePdfPage(nextPage);
+      navigateToPage(nextPage);
     }
   };
 
   const handlePageError = (error: unknown) => {
-    if (!activePdfDocumentId) {
-      return;
-    }
     markPageError(error);
   };
 
   const handleTextSelection = () => {
+    if (regionSelectionMode) {
+      return;
+    }
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
       setShowSelectionPopup(false);
@@ -190,6 +234,86 @@ export function PdfViewer() {
     setShowSelectionPopup(true);
   };
 
+  const toggleRegionSelectionMode = () => {
+    setRegionSelectionMode((current) => {
+      const next = !current;
+      if (next) {
+        setShowSelectionPopup(false);
+        setSelectionText(null);
+        setRegionSelection(null);
+        window.getSelection()?.removeAllRanges();
+      } else {
+        setRegionPreview(null);
+        regionStartRef.current = null;
+      }
+      return next;
+    });
+  };
+
+  const getRegionPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const bounds = paperRef.current?.getBoundingClientRect();
+    if (!bounds) {
+      return null;
+    }
+    return {
+      point: normalizeSurfacePoint(event.clientX, event.clientY, bounds),
+      surface: { width: bounds.width, height: bounds.height },
+    };
+  };
+
+  const handleRegionPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!regionSelectionMode || event.button !== 0) {
+      return;
+    }
+    const pointer = getRegionPointer(event);
+    if (!pointer) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    regionStartRef.current = pointer.point;
+    setRegionSelection(null);
+    setRegionPreview(null);
+  };
+
+  const handleRegionPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = regionStartRef.current;
+    if (!start || !event.currentTarget.hasPointerCapture(event.pointerId)) {
+      return;
+    }
+    const pointer = getRegionPointer(event);
+    if (!pointer) {
+      return;
+    }
+    setRegionPreview(createSurfaceRegion(start, pointer.point, pointer.surface, 0));
+  };
+
+  const handleRegionPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = regionStartRef.current;
+    const pointer = start ? getRegionPointer(event) : null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    regionStartRef.current = null;
+    setRegionPreview(null);
+    if (!start || !pointer) {
+      return;
+    }
+    const region = createSurfaceRegion(start, pointer.point, pointer.surface);
+    setRegionSelection(region);
+    if (region) {
+      setRegionSelectionMode(false);
+    }
+  };
+
+  const handleRegionPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    regionStartRef.current = null;
+    setRegionPreview(null);
+  };
+
   const handleAskAIAboutSelection = async () => {
     if (!selectionText) return;
     const text = selectionText;
@@ -203,72 +327,27 @@ export function PdfViewer() {
   };
 
   const handleCaptureNoteFromSelection = () => {
-    if (!selectionText || !activeDoc) return;
+    if (!selectionText) return;
     const text = selectionText;
     setShowSelectionPopup(false);
     setSelectionText(null);
     window.getSelection()?.removeAllRanges();
 
     createNote(
-      t("pdf.selectionTitleTemplate").replace("{doc}", activeDoc.name),
+      t("pdf.selectionTitleTemplate").replace("{doc}", asset.title),
       t("chat.noteContentTemplate").replace("{snippet}", text),
-      {
-        documentId: activeDoc.id,
-        documentName: activeDoc.name,
-        pageNumber: activePdfPage,
-        snippet: text,
-      },
     );
     setActiveTab("notes");
     closeEvidencePanel();
   };
 
-  if (!activeDoc || !pdfUrl) {
-    return (
-      <PdfViewerEmptyState
-        workspaceName={currentWorkspace?.name}
-        documentsCount={wsDocs.length}
-      />
-    );
+  if (!pdfUrl) {
+    return null;
   }
 
   return (
     <div data-pdf-viewer className="flex h-full flex-1 flex-col overflow-hidden bg-zinc-100 text-zinc-600 transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-300">
-      <div className="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white/90 px-2 transition dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mr-2 flex min-w-0 flex-1 items-center overflow-x-auto scrollbar-none">
-          {openDocumentIds.map((docId) => {
-            const doc = wsDocs.find((item) => item.id === docId);
-            if (!doc) return null;
-            const isActive = activeDocumentId === docId;
-
-            return (
-              <div
-                key={docId}
-                onClick={() => openDocument(docId)}
-                className={`group flex shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-zinc-200 px-4 py-3 text-xs transition dark:border-zinc-900 ${
-                  isActive
-                    ? "bg-zinc-50 font-bold text-zinc-900 dark:bg-zinc-900 dark:text-white"
-                    : "text-zinc-400 hover:bg-zinc-50/50 hover:text-zinc-800 dark:hover:bg-zinc-900/30 dark:hover:text-zinc-100"
-                }`}
-              >
-                <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-                <span className="max-w-[120px] truncate">{doc.name}</span>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    closeDocument(docId);
-                  }}
-                  className="rounded p-0.5 text-zinc-400 opacity-0 transition hover:bg-zinc-200 hover:text-zinc-900 group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-white"
-                  aria-label="关闭文档"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
+      <div className="flex shrink-0 items-center justify-end border-b border-zinc-200 bg-white/90 px-2 transition dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex shrink-0 items-center gap-2 px-3">
           <button
             type="button"
@@ -283,12 +362,39 @@ export function PdfViewer() {
           >
             <AlignLeft className="h-3.5 w-3.5" />
           </button>
+          <button
+            type="button"
+            data-pdf-region-select
+            aria-pressed={regionSelectionMode}
+            onClick={toggleRegionSelectionMode}
+            className={`flex h-11 w-11 items-center justify-center rounded-md border transition sm:h-8 sm:w-8 ${
+              regionSelectionMode
+                ? "border-cyan-600 bg-cyan-600 text-white"
+                : "border-zinc-200 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white"
+            }`}
+            title={t("viewer.regionSelect")}
+            aria-label={t("viewer.regionSelect")}
+          >
+            <SquareDashedMousePointer className="h-3.5 w-3.5" />
+          </button>
+          {regionSelection ? (
+            <button
+              type="button"
+              data-pdf-region-clear
+              onClick={() => setRegionSelection(null)}
+              className="flex h-11 w-11 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 sm:h-8 sm:w-8 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white"
+              title={t("viewer.regionClear")}
+              aria-label={t("viewer.regionClear")}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
         </div>
       </div>
 
       <div className="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white/80 px-5 py-2 backdrop-blur-xs transition dark:border-zinc-800 dark:bg-zinc-950/80">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-xs font-semibold text-zinc-800 dark:text-zinc-300">{activeDoc.name}</span>
+          <span className="truncate text-xs font-semibold text-zinc-800 dark:text-zinc-300">{asset.title}</span>
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
@@ -332,7 +438,7 @@ export function PdfViewer() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 data-pdf-page-input
-                key={`${activePdfDocumentId}:${activePdfPage}`}
+                key={`${activePdfAssetId}:${activePdfPage}`}
                 defaultValue={activePdfPage}
                 onChange={(event) => {
                   event.currentTarget.value = event.currentTarget.value.replace(/[^0-9]/g, "");
@@ -371,50 +477,10 @@ export function PdfViewer() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {showOutlinePanel ? (
           <aside className="flex w-64 shrink-0 select-none flex-col overflow-y-auto border-r border-zinc-200 bg-white/90 transition duration-200 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="border-b border-zinc-100 p-4 dark:border-zinc-900/60">
-              <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                <Layers className="h-3.5 w-3.5" />
-                活动标签页 ({openDocumentIds.length})
-              </span>
-              <div className="mt-2.5 space-y-0.5">
-                {openDocumentIds.map((docId) => {
-                  const doc = wsDocs.find((item) => item.id === docId);
-                  if (!doc) return null;
-                  const isActive = activeDocumentId === docId;
-                  return (
-                    <div
-                      key={`list-${docId}`}
-                      onClick={() => openDocument(docId)}
-                      className={`group flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition ${
-                        isActive
-                          ? "bg-zinc-100 font-bold text-zinc-900 dark:bg-zinc-900 dark:text-white"
-                          : "text-zinc-500 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-900/40"
-                      }`}
-                    >
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <FileText className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-emerald-600" : "text-zinc-400"}`} />
-                        <span className="max-w-[140px] truncate">{doc.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          closeDocument(docId);
-                        }}
-                        className="rounded p-0.5 text-zinc-400 opacity-0 transition hover:bg-zinc-200 hover:text-zinc-900 group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-white"
-                        aria-label="关闭文档"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
             <OutlineTree
-              activeDocumentId={activeDoc.id}
+              activeAssetId={asset.id}
               activePdfPage={activePdfPage}
-              setActivePdfPage={setActivePdfPage}
+              setActivePdfPage={navigateToPage}
               outline={pdfOutline}
             />
           </aside>
@@ -436,9 +502,10 @@ export function PdfViewer() {
           ) : activePdfDocument ? (
             <div
               ref={paperRef}
+              data-pdf-paper
               onMouseUp={handleTextSelection}
               style={{ width: pdfPageWidth }}
-              className={`relative bg-white shadow-2xl ring-1 ring-black/10 dark:ring-white/10 ${
+              className={`relative self-start bg-white shadow-2xl ring-1 ring-black/10 dark:ring-white/10 ${
                 isCitationPulseVisible ? "animate-citation-pulse" : ""
               }`}
             >
@@ -448,8 +515,56 @@ export function PdfViewer() {
                 width={pdfPageWidth}
                 ocrBlocks={ocrBlocks}
                 onError={handlePageError}
-                onNavigate={setActivePdfPage}
+                onNavigate={navigateToPage}
+                onGeometry={(geometry) => setRenderedGeometry({ key: ocrPageKey, value: geometry })}
               />
+              {locator?.kind === "pdf_region"
+              && locator.coordinateSpace === "pdf_crop_box_normalized_top_left_v1"
+              && locator.pageNumber === activePdfPage
+              && regionGeometryMatches ? (
+                <div className="pointer-events-none absolute inset-0 z-[5]" data-evidence-regions>
+                  {locator.regions.map((region, index) => (
+                    <div
+                      key={`${region.x}:${region.y}:${index}`}
+                      className="absolute border-2 border-amber-500 bg-amber-300/20 shadow-[0_0_0_1px_rgba(255,255,255,0.9)]"
+                      style={{
+                        left: `${region.x * 100}%`,
+                        top: `${region.y * 100}%`,
+                        width: `${region.width * 100}%`,
+                        height: `${region.height * 100}%`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {locator?.kind === "pdf_region" && locator.pageNumber === activePdfPage && !regionGeometryMatches && currentRenderedGeometry ? (
+                <div className="absolute inset-x-4 top-4 z-[6] border border-rose-300 bg-white/95 px-3 py-2 text-xs font-medium text-rose-700 shadow-sm dark:border-rose-900 dark:bg-zinc-950/95 dark:text-rose-300">
+                  {t("viewer.locatorMismatch")}
+                </div>
+              ) : null}
+              {regionSelection || regionPreview ? (
+                <div className="pointer-events-none absolute inset-0 z-[9]" data-pdf-region-draft>
+                  <div
+                    className="absolute border-2 border-cyan-600 bg-cyan-300/20 shadow-[0_0_0_1px_rgba(255,255,255,0.9)]"
+                    style={{
+                      left: `${(regionPreview ?? regionSelection)!.x * 100}%`,
+                      top: `${(regionPreview ?? regionSelection)!.y * 100}%`,
+                      width: `${(regionPreview ?? regionSelection)!.width * 100}%`,
+                      height: `${(regionPreview ?? regionSelection)!.height * 100}%`,
+                    }}
+                  />
+                </div>
+              ) : null}
+              {regionSelectionMode ? (
+                <div
+                  data-pdf-region-selection-surface
+                  className="absolute inset-0 z-[10] cursor-crosshair touch-none"
+                  onPointerDown={handleRegionPointerDown}
+                  onPointerMove={handleRegionPointerMove}
+                  onPointerUp={handleRegionPointerUp}
+                  onPointerCancel={handleRegionPointerCancel}
+                />
+              ) : null}
               <SelectionPopover
                 show={showSelectionPopup}
                 text={selectionText}

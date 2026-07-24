@@ -1,20 +1,20 @@
 # Evidence 合同迁移影响设计
 ## 状态
 
-- 状态：Draft，待 Evidence RFC 决策后细化
-- 实施授权：未获得
-- 当前影响：只记录迁移、回滚和验证要求
+- 状态：Implemented，Phase 1 受控迁移已完成
+- 实施授权：六项合同裁决已批准
+- 当前影响：生产运行时已统一到 Asset/Evidence；后续变更继续遵守本文件的历史语义和恢复门禁
 
-## 1. 当前冻结边界
+## 1. 已执行迁移边界
 
-在用户明确批准前，以下内容不变：
+迁移已经按以下不变量执行：
 
-- `documents / document_pages / document_chunks / message_citations / note_sources` 表与字段语义
-- Chat 历史响应和 Chat SSE citation payload
+- `documents / document_pages / document_chunks / document_tags` 已一次性迁移并移除；`message_citations / note_sources` 保留历史显示语义但改为不可变 locator 快照
+- Chat 历史响应和 Chat SSE citation 已切换为 Asset/Evidence envelope
 - `citationIndex` 与正文 `[n]` 映射
-- citation -> note 的 Workspace 校验和快照复制
-- Viewer 的 `documentId + pageNumber` 跳转
-- 文档删除、重索引和历史来源回放
+- citation -> note 的 Workspace 校验与完整 locator/sourceVersions 快照复制
+- Viewer 的 `assetId + locator` 跳转
+- Asset 删除、重索引和历史来源回放
 - PostgreSQL/MinIO 备份恢复格式
 
 ## 2. 迁移前语义 oracle
@@ -29,9 +29,9 @@
 | Viewer 跳转 | 有源文件时打开相同文档和 1-based 页码 | Playwright DOM/canvas 证据 |
 | 备份恢复 | 用户、Workspace、文档、citation、note source 和对象字节保持一致 | 销卷恢复 + SHA-256 |
 
-## 3. 候选迁移阶段
+## 3. 已执行迁移阶段
 
-以下阶段是评审顺序，不是已批准实施计划。
+以下阶段已在 `c9d1e2f3a4b5` 和对应 API/Worker/Web 切换中执行。
 
 ### Stage 0：冻结旧 fixture
 
@@ -39,48 +39,51 @@
 - 保存当前 API、SSE、数据库行和 Viewer 跳转证据。
 - 固定 Alembic head、备份格式和应用镜像版本。
 
-### Stage 1：增加候选存储
+### Stage 1：增加 Asset 目标存储
 
-- 只在 RFC 批准后添加 locator discriminator/version 和 PDF region 存储。
+- 已添加 Asset/Representation/ContentUnit/Embedding、locator discriminator/version 和 PDF/Image region 类型化存储。
 - 新字段或子表必须有数据库约束，不能以“先放任意 JSON”代替合同。
 - 现有 `page_number_snapshot` 在迁移期间继续作为旧语义真相源，除非另有明确裁决。
 
 ### Stage 2：机械回填旧记录
 
 - 每条旧 citation 只能映射为 `pdf_page(pageNumber=page_number_snapshot)`。
+- 每条现有 Document 必须机械迁移为 `asset_kind=pdf`，禁止按文件名猜类型。
+- `document_pages/document_chunks` 分别迁移为 PDF page、文本 ContentUnit 和 Embedding；记录数、顺序、版本和 Workspace 归属逐项比较。
+- `document_tags` 迁移为 Asset tag 关系，标签含义不变。
 - 禁止从 chunk 文本、OCR block 或当前 parser 结果猜测历史 bbox。
 - NoteSource 必须从其自身快照机械回填，不能重新读取当前 Citation 覆盖历史来源。
 - 回填前后记录数、Workspace 归属、页码、标题、摘要和 source order 必须逐行比较。
 
-### Stage 3：双读验证
+### Stage 3：隔离验证
 
-- 使用同一 fixture 分别从旧字段和候选 locator 生成响应，仅比较必须保持的不变量。
-- 不在生产业务逻辑中引入无期限 fallback chain。
-- 只有旧/新结果对照通过后，才能请求切换读路径批准。
+- 在隔离数据库中使用同一 fixture 从旧模型和 Asset 模型生成响应，仅比较必须保持的不变量。
+- 不在生产业务逻辑中引入无期限双读或 fallback chain。
+- 只有旧/新结果对照通过后，才能进入受控版本切换。
 
 ### Stage 4：写路径与 API 切换
 
-- 需要单独的 API 版本和前后端类型评审。
-- 新生成 citation 可以写 `pdf_page` 或 `pdf_region`；旧客户端行为必须明确。
+- API、SSE 与前后端类型已经按同一受控版本切换完成。
+- 新合同可表达 `pdf_page`、`pdf_region` 或 `image_region`；当前 Worker/Chat 已产出并消费前两种，`image_region` 仍由 Phase 3 独立图片纵向链路启用。
 - Citation -> Note 必须复制 locator 快照，不能只保存关联 ID。
 - 切换必须有可执行回滚点和数据库备份。
 
-### Stage 5：删除旧字段
+### Stage 5：删除旧字段和旧运行时
 
-本阶段不预设删除旧页码字段。只有所有历史数据、客户端和备份恢复都完成迁移，并再次获得明确批准，才讨论删除。
+旧 Document 表、字段、API/BFF 路由和 Web 业务类型已在同一版本切换中删除。历史页码没有丢弃，而是机械写入 `pdf_page` locator detail；生产扫描中 `/documents`、`documentId` 和 Document 业务类型为零。
 
 ## 4. 回滚要求
 
 ### DDL 回滚
 
-- 新增表/列的 downgrade 只能删除可证明未成为唯一真相源的数据。
-- 一旦新区域 citation 在生产创建，直接 downgrade 会丢失区域语义；必须先导出或机械降为页码级快照，并明确这是信息损失。
+- `c9d1e2f3a4b5` 明确不可原地 downgrade；回滚只能恢复迁移前 PostgreSQL/MinIO 同批备份。
+- 新区域 citation 或图片 Asset 一旦创建，旧应用无法表达其语义；必须停止写入并受控导出，`image_region` 不能机械降为 PDF 页码。
 
 ### 应用回滚
 
 - 回滚版本必须能读取迁移窗口内所有已提交记录。
 - 如果旧应用不能理解新 locator，不能仅依赖部署回滚；需要先停止新写入并执行受控数据转换。
-- 不提供静默忽略 `pdf_region` 的 fallback。
+- 不提供静默忽略 `pdf_region/image_region` 的 fallback。
 
 ### 失败恢复
 
@@ -90,38 +93,40 @@
 
 ## 5. API 与客户端影响
 
-正式设计至少要回答：
+当前实现结论：
 
-- 新 Citation 是替换当前对象还是引入新版本 endpoint/event。
-- `pageNumber` 是否继续作为 `pdf_page/pdf_region` 的公共快速字段。
-- Web 端 discriminated union 如何禁止未知 kind 被猜测渲染。
-- 历史 Chat、SSE、note list 和 note create 的旧/新 payload 如何演进。
-- Viewer 源已删除、region 几何不匹配或 parser version 缺失时展示什么状态。
+- Citation 已替换为包含 `assetId/assetKind/locator/sourceVersions` 的稳定对象，SSE 与历史消息同形。
+- `pageNumber` 位于 `pdf_page/pdf_region` locator 内，不作为所有模态的公共顶层字段。
+- Asset list/upload/retry/delete 已一次性替换 Document endpoint，旧 `/documents` 返回 404。
+- Chat `assetScope` 支持 `all_ready | selected`，服务端在检索前校验 Workspace、ready 状态和重复 ID，并持久化实际 Asset 范围快照。
+- Web 使用 locator 和 EvidenceModule discriminated registry；未知或畸形 locator 明确合同失败，不猜 renderer。
+- 源已删除时保留历史快照并禁止打开 Viewer；`pdf_region` 几何或 representation 不匹配时明确报错，不降级整页。
 
 当前与候选 payload 位于 `docs/fixtures/evidence-contract/`，候选文件仅用于设计对照。
 
 ## 6. 删除与重索引影响
 
-- 删除原 PDF 后 locator 快照仍保留，但无法再执行视觉高亮；历史界面显示来源已删除，仍展示标题、页码、excerpt 和区域摘要。
-- 重索引不得更新历史 locator、excerpt 或 representation/parser version 快照。
+- 删除原 PDF/图片后 locator 快照仍保留，但无法再执行视觉高亮；历史界面显示来源已删除，仍展示标题、定位摘要、excerpt 和区域摘要。
+- 重索引不得更新历史 locator、excerpt、processing generation、representation 或 parser version 快照。
 - 如果源文件不变但 parser 输出变化，新 ContentUnit 可以替换，旧 citation 仍按生成时快照解释。
 - 如果源文件内容变化，应创建新资产版本或新文档，不原位复用旧 locator 身份。
 
 ## 7. 备份恢复影响
 
-合同实施后必须扩展阶段 9 恢复 oracle：
+Phase 1 已完成 PostgreSQL 层恢复 oracle，Phase 4 继续扩展完整销卷恢复：
 
-- locator 主记录和 PDF regions 数量、顺序、坐标及版本逐行一致。
-- Citation 与 NoteSource 的 locator 快照一致。
-- 原 PDF 和必要的版本化 Representation 对象字节一致。
-- 恢复后 Viewer 在相同 PDF fixture、相同 viewport 下高亮同一区域。
-- 旧 page citation 和新 region citation 都能历史回放。
+- [x] Asset、Representation、ContentUnit、Embedding 和 locator 主记录逐项一致。
+- [x] PDF region 数量、顺序、坐标、几何和版本逐行一致，并进入 custom `pg_dump` / 空库 `pg_restore` payload oracle；Image region 在 Phase 3 完成后加入同一门禁。
+- [x] Citation 与 NoteSource 的 locator 快照一致。
+- [x] 初次 M403 已验证原 PDF/图片和必要版本化 Representation 对象 SHA-256 一致；加强后 M403 将重新确认该不变量。
+- [ ] 恢复后 Viewer 在相同 PDF/图片 fixture、相同 viewport 下高亮同一区域。
+- [x] 旧 page citation 与新 PDF region Citation/NoteSource 在成功重处理后保持 locator、region、excerpt 和 sourceVersions 快照不变；Image region 在 Phase 3 完成后加入历史回放门禁。
 
 备份格式变更需要提高 format version；旧 restore 脚本不得接受未知格式。
 
-## 8. 实施审批包
+## 8. 实施审批结果
 
-请求代码实施批准时必须同时提交：
+Phase 1 已提交并验证：
 
 1. 最终 RFC 决策和 ADR。
 2. Alembic upgrade/downgrade 草案与数据回填算法。
@@ -130,4 +135,4 @@
 5. 备份恢复变化和破坏性回滚说明。
 6. 单元、集成、Playwright 和销卷恢复命令。
 
-缺少任一项时，只能继续设计，不能修改持久化或保存合同。
+Phase 1 的 Alembic、API/SSE fixtures、迁移 oracle、Web runtime 和回滚限制均已落地。后续 Phase 2/3 若改变 locator 几何、持久化字段或保存语义，仍必须重新走合同评审，不能从 UI 需求直接改库。

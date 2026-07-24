@@ -2,6 +2,8 @@ import type {
   ChatThread,
   Citation,
   CitationDto,
+  InputEvidence,
+  InputEvidenceDto,
   Message,
   MessageDto,
   ThreadSummaryDto,
@@ -11,10 +13,28 @@ export function toUiCitation(citation: CitationDto): Citation {
   return {
     id: citation.id,
     citationIndex: citation.citationIndex,
-    documentId: citation.documentId ?? "",
-    documentName: citation.documentTitle,
-    pageNumber: citation.pageNumber,
-    snippet: citation.excerpt,
+    assetId: citation.assetId,
+    assetKind: citation.assetKind,
+    assetTitle: citation.assetTitle,
+    sourceAvailable: citation.sourceAvailable,
+    excerpt: citation.excerpt,
+    locator: citation.locator,
+    sourceVersions: citation.sourceVersions,
+  };
+}
+
+export function toUiInputEvidence(evidence: InputEvidenceDto): InputEvidence {
+  return {
+    id: evidence.id,
+    messageId: evidence.messageId,
+    targetOrder: evidence.targetOrder,
+    assetId: evidence.assetId,
+    assetKind: evidence.assetKind,
+    assetTitle: evidence.assetTitle,
+    sourceAvailable: evidence.sourceAvailable,
+    excerpt: evidence.excerpt,
+    locator: evidence.locator,
+    sourceVersions: evidence.sourceVersions,
   };
 }
 
@@ -24,6 +44,7 @@ export function toUiMessage(message: MessageDto): Message {
     role: message.role === "user" ? "user" : "assistant",
     content: message.content,
     citations: message.citations.map(toUiCitation),
+    inputEvidence: message.inputEvidence.map(toUiInputEvidence),
     createdAt: message.createdAt,
     ...(message.parentMessageId ? { parentMessageId: message.parentMessageId } : {}),
     ...(message.status && message.status !== "completed" ? { status: message.status } : {}),

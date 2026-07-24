@@ -7,7 +7,7 @@ import type { OutlineNode } from "./outline-tree";
 import { loadPdfJs, loadPdfOutline, type PdfOutlineItem } from "./pdf-renderer";
 
 type PdfLoadState = {
-  documentId: string;
+  assetId: string;
   reloadToken: number;
   pageCount: number;
   outline: OutlineNode[];
@@ -15,13 +15,13 @@ type PdfLoadState = {
 };
 
 type PdfDocumentState = {
-  documentId: string;
+  assetId: string;
   reloadToken: number;
   pdf: PDFDocumentProxy;
 };
 
 type UsePdfDocumentOptions = {
-  documentId: string | null;
+  assetId: string | null;
   url: string | null;
   fallbackPageCount: number;
 };
@@ -36,7 +36,7 @@ type UsePdfDocumentResult = {
 };
 
 export function usePdfDocument({
-  documentId,
+  assetId,
   url,
   fallbackPageCount,
 }: UsePdfDocumentOptions): UsePdfDocumentResult {
@@ -45,11 +45,11 @@ export function usePdfDocument({
   const [documentState, setDocumentState] = useState<PdfDocumentState | null>(null);
 
   useEffect(() => {
-    if (!documentId || !url) {
+    if (!assetId || !url) {
       return;
     }
 
-    const currentDocumentId = documentId;
+    const currentAssetId = assetId;
     const currentUrl = url;
     let cancelled = false;
     let loadingTask: { promise: Promise<PDFDocumentProxy>; destroy: () => Promise<unknown> } | null = null;
@@ -67,9 +67,9 @@ export function usePdfDocument({
         }
 
         loadedPdf = pdf;
-        setDocumentState({ documentId: currentDocumentId, reloadToken, pdf });
+        setDocumentState({ assetId: currentAssetId, reloadToken, pdf });
         setLoadState({
-          documentId: currentDocumentId,
+          assetId: currentAssetId,
           reloadToken,
           pageCount: pdf.numPages,
           outline: [],
@@ -82,7 +82,7 @@ export function usePdfDocument({
           setLoadState((previous) => {
             if (
               !previous
-              || previous.documentId !== currentDocumentId
+              || previous.assetId !== currentAssetId
               || previous.reloadToken !== reloadToken
             ) {
               return previous;
@@ -95,7 +95,7 @@ export function usePdfDocument({
           return;
         }
         setLoadState({
-          documentId: currentDocumentId,
+          assetId: currentAssetId,
           reloadToken,
           pageCount: fallbackPageCount,
           outline: [],
@@ -115,32 +115,32 @@ export function usePdfDocument({
         void loadingTask.destroy();
       }
     };
-  }, [documentId, fallbackPageCount, reloadToken, url]);
+  }, [assetId, fallbackPageCount, reloadToken, url]);
 
-  const activeLoadState = documentId
-    && loadState?.documentId === documentId
+  const activeLoadState = assetId
+    && loadState?.assetId === assetId
     && loadState.reloadToken === reloadToken
     ? loadState
     : null;
-  const activeDocumentState = documentId
-    && documentState?.documentId === documentId
+  const activeDocumentState = assetId
+    && documentState?.assetId === assetId
     && documentState.reloadToken === reloadToken
     ? documentState
     : null;
 
   const markPageError = useCallback((error: unknown) => {
-    if (!documentId) {
+    if (!assetId) {
       return;
     }
     setLoadState({
-      documentId,
+      assetId,
       reloadToken,
       pageCount: fallbackPageCount,
       outline: [],
       hasError: true,
     });
     console.error(error);
-  }, [documentId, fallbackPageCount, reloadToken]);
+  }, [assetId, fallbackPageCount, reloadToken]);
 
   return {
     pdf: activeDocumentState?.pdf ?? null,

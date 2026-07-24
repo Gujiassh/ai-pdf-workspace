@@ -14,6 +14,8 @@ import {
 } from "@/lib/chat/client";
 import { mergeUiThreads, toUiCitation, toUiThread, toUiThreadWithMessages } from "@/lib/chat/normalize";
 import type { ChatThread, Message } from "@/lib/chat/types";
+import type { AssetScope } from "@/lib/chat/types";
+import type { EvidenceTargetRequest } from "@/lib/evidence/types";
 import type { WorkspaceLocale } from "@/lib/workspaces/normalize";
 import type { Workspace } from "./workspace-context";
 import type { SendMessageOptions } from "./workspace-context";
@@ -51,6 +53,61 @@ export function replaceUiThread(previous: ChatThread[], thread: ChatThread): Cha
   return replaced ? nextThreads : [...nextThreads, thread];
 }
 
+export function buildAssetScope(
+  selectedAssetIds: string[],
+  evidenceTargets: EvidenceTargetRequest[] = [],
+): AssetScope {
+  const requiredAssetIds = evidenceTargets.map((target) => target.assetId);
+  const scopedAssetIds = [...new Set([...selectedAssetIds, ...requiredAssetIds])];
+  return scopedAssetIds.length > 0
+    ? { mode: "selected", assetIds: scopedAssetIds }
+    : { mode: "all_ready" };
+}
+
+type FailedOptimisticMessagesOptions = {
+  messages: Message[];
+  requestAccepted: boolean;
+  temporaryUserMessageId: string;
+  temporaryAssistantMessageId: string;
+  userMessageId: string;
+  assistantMessageId: string;
+  errorMessage: string;
+  createdAt: string;
+};
+
+export function reconcileFailedOptimisticMessages({
+  messages,
+  requestAccepted,
+  temporaryUserMessageId,
+  temporaryAssistantMessageId,
+  userMessageId,
+  assistantMessageId,
+  errorMessage,
+  createdAt,
+}: FailedOptimisticMessagesOptions): Message[] {
+  const userIds = new Set([temporaryUserMessageId, userMessageId]);
+  const assistantIds = new Set([temporaryAssistantMessageId, assistantMessageId]);
+  const acceptedUser = requestAccepted
+    ? messages.find((message) => userIds.has(message.id))
+    : undefined;
+  const retainedMessages = messages.filter((message) => (
+    !assistantIds.has(message.id) && (requestAccepted || !userIds.has(message.id))
+  ));
+
+  return [
+    ...retainedMessages,
+    {
+      id: requestAccepted ? assistantMessageId : temporaryAssistantMessageId,
+      role: "assistant",
+      content: errorMessage,
+      citations: [],
+      createdAt,
+      parentMessageId: acceptedUser?.id ?? null,
+      status: "failed",
+    },
+  ];
+}
+
 type UseChatOptions = {
   locale: WorkspaceLocale;
   user: AuthUser | null;
@@ -60,6 +117,7 @@ type UseChatOptions = {
   activeThreadId: string | null;
   activeThreadIdRef: MutableRefObject<string | null>;
   selectionText: string | null;
+  selectedAssetIds: string[];
   setActiveThreadId: (id: string | null) => void;
   updateWorkspace: (workspaceId: string, updater: (workspace: Workspace) => Workspace) => void;
 };
@@ -73,6 +131,7 @@ export function useChat({
   activeThreadId,
   activeThreadIdRef,
   selectionText,
+  selectedAssetIds,
   setActiveThreadId,
   updateWorkspace,
 }: UseChatOptions) {
@@ -266,8 +325,9 @@ export function useChat({
       const workspaceId = currentWorkspaceId;
       const threadId = activeThreadId ?? threadsRef.current.find((thread) => thread.workspaceId === workspaceId)?.id ?? null;
       if (!workspaceId || !threadId || !question) {
-        return;
+        return false;
       }
+      const evidenceTargets = options.evidenceTargets ?? [];
 
       const currentThread = threadsRef.current.find((thread) => thread.id === threadId);
       const editIndex = options.editMessageId && currentThread
@@ -313,6 +373,7 @@ export function useChat({
       let userMessageId = temporaryUserMessageId;
       let assistantMessageId = temporaryAssistantMessageId;
       let streamCompleted = false;
+      let requestAccepted = false;
 
       const updateThreadMessages = (update: (message: Message) => Message) => {
         setThreads((previous) => previous.map((thread) =>
@@ -334,10 +395,20 @@ export function useChat({
         const response = await startChatStream(workspaceId, {
           threadId,
           question,
+          assetScope: buildAssetScope(selectedAssetIds, evidenceTargets),
           parentMessageId,
           ...(options.editMessageId ? { editMessageId: options.editMessageId } : {}),
           ...(selectionText?.trim() ? { selectionText: selectionText.trim() } : {}),
+          ...(evidenceTargets.length > 0 ? { evidenceTargets } : {}),
         });
+        requestAccepted = true;
+        if (evidenceTargets.length > 0) {
+          updateThreadMessages((message) => message.id === temporaryUserMessageId
+            ? { ...message, pendingInputEvidenceCount: evidenceTargets.length }
+            : message,
+          );
+        }
+        options.onRequestAccepted?.();
 
         await consumeChatStream(response, {
           onMeta: (payload) => {
@@ -389,21 +460,23 @@ export function useChat({
             thread.id === threadId
               ? {
                   ...thread,
-                  messages: thread.messages
-                    .filter((item) => ![temporaryUserMessageId, temporaryAssistantMessageId, userMessageId, assistantMessageId].includes(item.id))
-                    .concat({
-                      id: temporaryAssistantMessageId,
-                      role: "assistant",
-                      content: message,
-                      citations: [],
-                      createdAt: now,
-                    }),
+                  messages: reconcileFailedOptimisticMessages({
+                    messages: thread.messages,
+                    requestAccepted,
+                    temporaryUserMessageId,
+                    temporaryAssistantMessageId,
+                    userMessageId,
+                    assistantMessageId,
+                    errorMessage: message,
+                    createdAt: now,
+                  }),
                 }
               : thread,
           ));
         }
       }
-    }, [activeThreadId, currentWorkspaceId, fetchThreadWithMessages, replaceThread, selectionText, setThreads]);
+      return requestAccepted;
+    }, [activeThreadId, currentWorkspaceId, fetchThreadWithMessages, replaceThread, selectedAssetIds, selectionText, setThreads]);
 
   const removeWorkspace = useCallback(
     (workspaceId: string) => {

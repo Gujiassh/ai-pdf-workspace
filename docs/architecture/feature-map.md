@@ -3,7 +3,7 @@
 ## 1. 当前产品能力
 
 ```text
-AI PDF Workspace
+Citeframe
 ├─ 账号与 Workspace
 │  ├─ 登录 / 会话 / 隔离
 │  ├─ Workspace 创建 / 切换 / 归档
@@ -29,21 +29,25 @@ AI PDF Workspace
    └─ Caddy HTTPS 安全入口
 ```
 
-以上是当前已实现事实。正式数据模型仍是 `Document -> Page -> Chunk -> Citation`，PDF 是唯一正式 Asset 类型。
+以上是当前已实现事实。正式数据模型已经切换为 `Asset -> Representation -> ContentUnit -> EvidenceLocator -> Citation/NoteSource`；PDF 是当前唯一启用摄取的 Asset 类型，Image 已注册合同但保持 disabled。
 
-## 2. 下一阶段：多模态 PDF
+## 2. 当前阶段：多模态 PDF + 独立图片
 
-下一阶段只扩 PDF 内部证据表达，不同时接入所有媒体格式：
+Asset 和 Evidence 主链已经迁移完成；当前只正式支持 PDF 与图片，并按纵向闭环逐步启用：
 
+- PDF/Image 统一资产列表、上传、处理状态、重试和删除
+- Chat 全部资产/显式资产范围
 - 页面布局和段落区域
 - OCR bbox 质量与坐标合同
 - 表格结构、表头/行列关系和表格问题
 - 图片/图表区域、描述和必要时的视觉检索
-- `pdf_page / pdf_region` 类型化 locator
+- 独立图片 OCR、caption、区域检索和查看
+- `pdf_page / pdf_region / image_region` 类型化 locator
 - citation 点击后的精确区域高亮
-- 文本、扫描页、表格、图表、图片和无答案问题的分层评测
+- 通用 Evidence Viewer，内部使用 PDF/Image 专用 renderer
+- 文本、扫描页、表格、图表、独立图片和无答案问题的分层评测
 
-实现前必须先批准 Evidence 数据合同与迁移设计。目标模型可以讨论 `Asset / Representation / ContentUnit / Embedding / EvidenceLocator`，但不能在当前表中先放任意 JSON locator 或顺手改 Citation API。
+Evidence 数据合同与迁移设计已经批准并实施。已有 locator 意义、Citation/NoteSource envelope 和保存语义继续冻结；后续仍不能引入任意 JSON locator 或绕过类型目录与 codec。
 
 ## 3. 目标领域边界
 
@@ -56,11 +60,12 @@ AI PDF Workspace
 
 聚合、数量和分布问题走 SQL/分析路径；LLM 不得根据少量召回样本猜总量。模态入库适配器只产 Representation、ContentUnit 和 Locator，不把具体模态业务规则堆进 Chat 或共享容器。
 
+稳定内核通过部署期封闭注册表调度模态模块。新增 Audio/Video/其他文件时增加 adapter、类型目录、类型化 locator、检索通道和 renderer，不修改 Asset、Chat scope、Citation、NoteSource 或 Evidence Viewer shell；未知或未启用 kind 明确失败，不接受任意文件猜测。
+
 ## 4. 远期与独立赌注
 
 | 方向 | 定位 | 进入条件 |
 | --- | --- | --- |
-| 独立图片 | 同一技术研究 JTBD 下的区域检索和以图找图 | 多模态 PDF 已证明复用价值 |
 | Audio | ASR、说话人、时间段证据 | 单独用户任务与黄金集 |
 | Video | 镜头、关键帧、字幕、时间段证据 | 单独成本和延迟门禁 |
 | Omnilabel | 标签、预测、数据集质量和结构化分析 | 独立用户研究、权限与 SQL/分析架构 |

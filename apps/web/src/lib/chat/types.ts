@@ -1,3 +1,9 @@
+import type {
+  EvidenceLocator,
+  EvidenceTargetRequest,
+  SourceVersions,
+} from "@/lib/evidence/types";
+
 export type ThreadSummaryDto = {
   id: string;
   workspaceId: string;
@@ -19,11 +25,26 @@ export type CitationDto = {
   id: string;
   messageId: string;
   citationIndex: number;
-  documentId: string | null;
-  documentTitle: string;
-  pageNumber: number;
-  chunkId: string | null;
+  assetId: string;
+  assetKind: string;
+  assetTitle: string;
+  sourceAvailable: boolean;
   excerpt: string;
+  locator: EvidenceLocator;
+  sourceVersions: SourceVersions;
+};
+
+export type InputEvidenceDto = {
+  id: string;
+  messageId: string;
+  targetOrder: number;
+  assetId: string;
+  assetKind: string;
+  assetTitle: string;
+  sourceAvailable: boolean;
+  excerpt: string;
+  locator: EvidenceLocator;
+  sourceVersions: SourceVersions;
 };
 
 export type MessageDto = {
@@ -38,6 +59,7 @@ export type MessageDto = {
   modelName: string | null;
   createdAt: string;
   citations: CitationDto[];
+  inputEvidence: InputEvidenceDto[];
 };
 
 export type ThreadMessagesResponseDto = {
@@ -48,10 +70,16 @@ export type ThreadMessagesResponseDto = {
 export type ChatStreamRequestDto = {
   threadId: string;
   question: string;
+  assetScope: AssetScope;
   selectionText?: string;
+  evidenceTargets?: EvidenceTargetRequest[];
   parentMessageId?: string | null;
   editMessageId?: string;
 };
+
+export type AssetScope =
+  | { mode: "all_ready" }
+  | { mode: "selected"; assetIds: string[] };
 
 export type ChatStreamMetaDto = {
   threadId: string;
@@ -80,10 +108,26 @@ export type ChatStreamErrorDto = {
 export type Citation = {
   id: string;
   citationIndex: number;
-  documentId: string;
-  documentName: string;
-  pageNumber: number;
-  snippet: string;
+  assetId: string;
+  assetKind: string;
+  assetTitle: string;
+  sourceAvailable: boolean;
+  excerpt: string;
+  locator: EvidenceLocator;
+  sourceVersions: SourceVersions;
+};
+
+export type InputEvidence = {
+  id: string;
+  messageId: string;
+  targetOrder: number;
+  assetId: string;
+  assetKind: string;
+  assetTitle: string;
+  sourceAvailable: boolean;
+  excerpt: string;
+  locator: EvidenceLocator;
+  sourceVersions: SourceVersions;
 };
 
 export type Message = {
@@ -91,6 +135,8 @@ export type Message = {
   role: "user" | "assistant";
   content: string;
   citations?: Citation[];
+  inputEvidence?: InputEvidence[];
+  pendingInputEvidenceCount?: number;
   createdAt: string;
   parentMessageId?: string | null;
   status?: string;

@@ -1,12 +1,37 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import lru_cache
 from math import isfinite
 from typing import Any
 
 import numpy as np
 
-from ai_pdf_api.services.ingestion import PageTextResult
+
+@dataclass(frozen=True)
+class OcrRegionResult:
+    text: str
+    x: float
+    y: float
+    width: float
+    height: float
+    char_start: int
+    char_end: int
+
+    def as_block(self) -> dict[str, Any]:
+        return {
+            "text": self.text,
+            "x": self.x,
+            "y": self.y,
+            "width": self.width,
+            "height": self.height,
+        }
+
+
+@dataclass(frozen=True)
+class OcrTextResult:
+    text: str
+    regions: tuple[OcrRegionResult, ...]
 
 
 @lru_cache(maxsize=1)
@@ -39,7 +64,11 @@ def _recognized_rows(result: object) -> list[object]:
     return result if isinstance(result, list) else []
 
 
-def _normalize_bbox(raw_bbox: object, width: int, height: int) -> tuple[float, float, float, float] | None:
+def _normalize_bbox(
+    raw_bbox: object,
+    width: int,
+    height: int,
+) -> tuple[float, float, float, float] | None:
     if width <= 0 or height <= 0:
         return None
     try:
@@ -69,46 +98,49 @@ def _normalize_bbox(raw_bbox: object, width: int, height: int) -> tuple[float, f
 
 
 def _recognized_blocks(result: object, width: int, height: int) -> list[dict[str, Any]]:
-    blocks: list[dict[str, Any]] = []
+    return [region.as_block() for region in _recognized_content(result, width, height).regions]
+
+
+def _recognized_content(
+    result: object,
+    width: int,
+    height: int,
+) -> OcrTextResult:
+    lines: list[str] = []
+    regions: list[OcrRegionResult] = []
+    cursor = 0
     for item in _recognized_rows(result):
         if not isinstance(item, (list, tuple)) or len(item) < 2:
             continue
-        text = item[1]
-        if not isinstance(text, str) or not text.strip():
+        raw_text = item[1]
+        if not isinstance(raw_text, str) or not raw_text.strip():
             continue
+        text = raw_text.strip()
+        if lines:
+            cursor += 1
+        char_start = cursor
+        cursor += len(text)
+        lines.append(text)
         bbox = _normalize_bbox(item[0], width, height)
         if bbox is None:
             continue
         x_min, y_min, x_max, y_max = bbox
-        block: dict[str, Any] = {
-            "text": text.strip(),
-            "x": x_min,
-            "y": y_min,
-            "width": x_max - x_min,
-            "height": y_max - y_min,
-        }
-        blocks.append(block)
-    return blocks
-
-
-def extract_page_texts_with_ocr(payload: bytes) -> list[PageTextResult]:
-    import fitz
-
-    ocr = _build_ocr()
-    pdf = fitz.open(stream=payload, filetype="pdf")
-    try:
-        page_texts: list[PageTextResult] = []
-        for page_number, page in enumerate(pdf, start=1):
-            pixmap = page.get_pixmap(dpi=200, alpha=False)
-            image = np.frombuffer(pixmap.samples, dtype=np.uint8).reshape(pixmap.height, pixmap.width, pixmap.n)
-            result = ocr(image)
-            page_texts.append(
-                PageTextResult(
-                    page_number=page_number,
-                    text=_recognized_text(result),
-                    ocr_blocks=_recognized_blocks(result, pixmap.width, pixmap.height),
-                )
+        regions.append(
+            OcrRegionResult(
+                text=text,
+                x=x_min,
+                y=y_min,
+                width=x_max - x_min,
+                height=y_max - y_min,
+                char_start=char_start,
+                char_end=cursor,
             )
-        return page_texts
-    finally:
-        pdf.close()
+        )
+    return OcrTextResult(text="\n".join(lines), regions=tuple(regions))
+
+
+def recognize_pixels(pixels: np.ndarray) -> OcrTextResult:
+    if pixels.ndim != 3 or pixels.shape[0] < 1 or pixels.shape[1] < 1:
+        raise ValueError("OCR pixels require a non-empty height x width x channels array")
+    result = _build_ocr()(pixels)
+    return _recognized_content(result, pixels.shape[1], pixels.shape[0])

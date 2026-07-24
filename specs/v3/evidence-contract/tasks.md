@@ -1,4 +1,6 @@
-# V3 Evidence 合同发现与设计任务
+# V3 Evidence 合同发现与设计任务（历史阶段）
+
+当前实施任务已转入 `../multimodal-workspace/tasks.md`；本文件保留研究协议、fixture 和分析工具记录。
 
 ## Phase 1：基线与协议
 
@@ -20,14 +22,14 @@
 - [ ] T010 执行手工/产品交叉对照
 - [ ] T011 计算支持结论完成率、核验后耗时、页码准确率和拒答结果
 - [ ] T012 区分检索、回答、区域定位和 Viewer 失败
-- [ ] T013 判断是否满足 `pdf_region` 进入详细设计的用户证据门禁
+- [ ] T013 在 Beta 前判断区域级 Evidence 的真实用户价值
 
 ## Phase 4：合同评审包
 
 - [x] T014 准备旋转、CropBox、扫描、表格、图表和多区域合成 fixture
 - [x] T015 提供当前 Citation/NoteSource 与候选新 payload 对照 fixture
 - [x] T016 提供数据库迁移、回滚、历史回放、删除/重索引和备份恢复影响设计
-- [ ] T017 对 RFC 待批准决策逐项取得用户明确裁决
+- [x] T017 对 RFC 六项决策逐项取得用户明确裁决
 
 ## 支持工具
 
@@ -35,9 +37,9 @@
 - [x] T019 计算完成率、耗时、Citation、拒答、转笔记和区域定位缺口指标
 - [x] T020 提供确定性 JSON CLI、自动门禁状态和单元测试
 
-## 实施禁区
+## 历史实施门禁
 
-- G001：用户批准前不得创建 Asset/Representation/ContentUnit/locator migration。
-- G002：用户批准前不得修改 Citation/NoteSource API、Chat SSE 或保存语义。
+- G001：用户批准前不得创建 Asset/Representation/ContentUnit/locator migration；已于 2026-07-17 满足。
+- G002：用户批准前不得修改 Citation/NoteSource API、Chat SSE 或保存语义；已于 2026-07-17 满足。
 
-G001-G002 是持续门禁，不是待完成任务。
+后续合同版本仍需重新经过同等级审批；当前 v1 不再处于待批准状态。

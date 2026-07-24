@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useWorkspace, Document } from "@/lib/workspace-context";
+import { useWorkspace, Asset } from "@/lib/workspace-context";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "@/lib/i18n-context";
 import { 
@@ -17,26 +17,28 @@ export function WorkspaceSidebar() {
   const {
     workspaces,
     currentWorkspace,
-    documents,
+    assets,
     threads,
     activeThread,
     tags,
-    activeDocumentId,
+    activeAssetId,
     leftSidebarOpen,
+    selectedAssetIds,
     selectedTagIds,
     switchWorkspace,
     createWorkspace,
-    uploadDocument,
-    deleteDocument,
-    retryDocument,
-    retryDeleteDocument,
-    openDocument,
+    uploadAsset,
+    deleteAsset,
+    retryAsset,
+    retryDeleteAsset,
+    openAsset,
     createThread,
     switchThread,
     deleteThread,
     addTag,
     deleteTag,
-    toggleDocumentTag,
+    toggleAssetTag,
+    toggleAssetScope,
     setActiveTab,
     setLeftSidebarOpen,
     setSelectedTagIds,
@@ -52,17 +54,19 @@ export function WorkspaceSidebar() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const wsDocs = documents.filter((d) => d.workspaceId === currentWorkspace?.id);
+  const wsAssets = assets.filter((asset) => asset.workspaceId === currentWorkspace?.id);
   const wsThreads = threads.filter((t) => t.workspaceId === currentWorkspace?.id);
   const wsTags = tags.filter((t) => t.workspaceId === currentWorkspace?.id);
   
-  const isAnyDocProcessing = wsDocs.some((d) => d.status !== "ready" && d.status !== "chunked" && d.status !== "failed");
+  const isAnyAssetProcessing = wsAssets.some(
+    (asset) => !["ready", "chunked", "failed", "deleted"].includes(asset.status),
+  );
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       try {
-        await uploadDocument(file);
+        await uploadAsset(file);
       } catch (error) {
         alert(error instanceof Error ? error.message : "Upload failed.");
       } finally {
@@ -104,23 +108,14 @@ export function WorkspaceSidebar() {
     );
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ready": return "bg-emerald-500";
-      case "chunked": return "bg-sky-400";
-      case "failed": return "bg-rose-500";
-      default: return "bg-cyan-400 animate-pulse";
-    }
-  };
-
-  const getStatusLabel = (doc: Document) => {
-    switch (doc.status) {
-      case "pending_upload": return `${t("sidebar.statusPendingUpload")} (${doc.progress}%)`;
-      case "uploaded": return `${t("sidebar.statusUploaded")} (${doc.progress}%)`;
-      case "parsing": return `${t("sidebar.statusParsing")} (${doc.progress}%)`;
-      case "chunking": return `${t("sidebar.statusChunking")} (${doc.progress}%)`;
+  const getStatusLabel = (asset: Asset) => {
+    switch (asset.status) {
+      case "pending_upload": return `${t("sidebar.statusPendingUpload")} (${asset.progress}%)`;
+      case "uploaded": return `${t("sidebar.statusUploaded")} (${asset.progress}%)`;
+      case "parsing": return `${t("sidebar.statusParsing")} (${asset.progress}%)`;
+      case "chunking": return `${t("sidebar.statusChunking")} (${asset.progress}%)`;
       case "chunked": return t("sidebar.statusChunked");
-      case "embedding": return `${t("sidebar.statusEmbedding")} (${doc.progress}%)`;
+      case "embedding": return `${t("sidebar.statusEmbedding")} (${asset.progress}%)`;
       case "ready": return t("sidebar.statusReady");
       case "deleting": return t("sidebar.statusDeleting");
       default: return t("sidebar.statusFailed");
@@ -159,7 +154,7 @@ export function WorkspaceSidebar() {
             title={t("sidebar.uploadTooltip")}
           >
             <UploadCloud className="h-4 w-4" />
-            {isAnyDocProcessing && (
+            {isAnyAssetProcessing && (
               <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
             )}
           </button>
@@ -289,10 +284,10 @@ export function WorkspaceSidebar() {
       {/* Navigation and Lists */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         
-        {/* Documents section (Tab enabled) */}
+        {/* Assets section (Tab enabled) */}
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("sidebar.docsHeader")}</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("sidebar.assetsHeader")}</span>
             <button
               onClick={triggerUpload}
               className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-[10px] font-bold text-zinc-800 transition hover:bg-zinc-100 active:scale-95 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
@@ -310,7 +305,7 @@ export function WorkspaceSidebar() {
           </div>
 
           <div className="mt-2.5 space-y-1">
-            {wsDocs.length === 0 ? (
+            {wsAssets.length === 0 ? (
               <div 
                 onClick={triggerUpload}
                 className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-zinc-100/60 p-5 text-center transition hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/10 dark:hover:border-zinc-700"
@@ -319,13 +314,13 @@ export function WorkspaceSidebar() {
                 <span className="mt-1.5 text-[10px] font-bold text-zinc-500">{t("sidebar.dropzone")}</span>
               </div>
             ) : (
-              wsDocs.map((doc) => {
-                const isActive = activeDocumentId === doc.id;
+              wsAssets.map((asset) => {
+                const isActive = activeAssetId === asset.id;
                 
                 return (
                   <div
-                    key={doc.id}
-                    onClick={() => (doc.status === "chunked" || doc.status === "ready") && openDocument(doc.id)}
+                    key={asset.id}
+                    onClick={() => (asset.status === "chunked" || asset.status === "ready") && openAsset(asset.id)}
                     className={`group relative flex cursor-pointer items-center justify-between rounded-xl px-2.5 py-2 transition ${
                       isActive
                         ? "bg-zinc-100 font-semibold text-zinc-900 dark:bg-zinc-900 dark:text-white"
@@ -333,24 +328,32 @@ export function WorkspaceSidebar() {
                     }`}
                   >
                     <div className="flex min-w-0 flex-1 items-start gap-2">
-                      <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${getStatusColor(doc.status)}`} />
+                      <input
+                        type="checkbox"
+                        checked={selectedAssetIds.includes(asset.id)}
+                        disabled={asset.status !== "ready"}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={() => toggleAssetScope(asset.id)}
+                        aria-label={t("sidebar.toggleAssetScope").replace("{asset}", asset.title)}
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-emerald-600 disabled:cursor-not-allowed disabled:opacity-30"
+                      />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-xs">{doc.name}</div>
+                        <div className="truncate text-xs">{asset.sourceFilename}</div>
                         <div className="mt-0.5 flex items-center gap-1.5 text-[9px] text-zinc-500 font-semibold">
-                          <span>{doc.size}</span>
+                          <span className="uppercase">{asset.kind}</span>
                           <span>•</span>
-                          <span>{doc.pagesCount} {t("viewer.pages")}</span>
-                          {doc.status !== "ready" && (
+                          <span>{asset.size}</span>
+                          {asset.status !== "ready" && (
                             <>
                               <span>•</span>
-                              <span className="text-cyan-400 font-bold">{getStatusLabel(doc)}</span>
+                              <span className="text-cyan-400 font-bold">{getStatusLabel(asset)}</span>
                             </>
                           )}
                         </div>
                         {wsTags.length > 0 && (
                           <div className="mt-1 flex flex-wrap gap-1">
                             {wsTags.map((tag) => {
-                              const hasTag = doc.tags.includes(tag.name);
+                              const hasTag = asset.tags.includes(tag.name);
                               return (
                                 <button
                                   key={tag.id}
@@ -358,7 +361,7 @@ export function WorkspaceSidebar() {
                                   title={tag.name}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    void toggleDocumentTag(doc.id, tag.name).catch((error) => alert(error instanceof Error ? error.message : "Failed to update document tags."));
+                                    void toggleAssetTag(asset.id, tag.name).catch((error) => alert(error instanceof Error ? error.message : "Failed to update asset tags."));
                                   }}
                                   className={`rounded-full px-1.5 py-0.5 text-[8px] font-bold transition ${hasTag ? "text-zinc-950" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"}`}
                                   style={{ backgroundColor: hasTag ? tag.color : undefined }}
@@ -373,19 +376,19 @@ export function WorkspaceSidebar() {
                     </div>
                     
                     <div className={`flex shrink-0 items-center gap-1 transition ${
-                      (doc.status === "failed" || (doc.status === "deleting" && doc.errorMsg))
+                      (asset.status === "failed" || (asset.status === "deleting" && asset.errorMsg))
                         ? "opacity-100"
                         : "opacity-0 group-hover:opacity-100"
                     }`}>
-                      {(doc.status === "failed" || (doc.status === "deleting" && doc.errorMsg)) && (
+                      {(asset.status === "failed" || (asset.status === "deleting" && asset.errorMsg)) && (
                         <button
                           type="button"
-                          title={t(doc.status === "failed" ? "sidebar.retryDocument" : "sidebar.retryDeleteDocument")}
-                          aria-label={t(doc.status === "failed" ? "sidebar.retryDocument" : "sidebar.retryDeleteDocument")}
+                          title={t(asset.status === "failed" ? "sidebar.retryAsset" : "sidebar.retryDeleteAsset")}
+                          aria-label={t(asset.status === "failed" ? "sidebar.retryAsset" : "sidebar.retryDeleteAsset")}
                           onClick={(event) => {
                             event.stopPropagation();
-                            const retry = doc.status === "failed" ? retryDocument : retryDeleteDocument;
-                            void retry(doc.id).catch((error) => {
+                            const retry = asset.status === "failed" ? retryAsset : retryDeleteAsset;
+                            void retry(asset.id).catch((error) => {
                               alert(error instanceof Error ? error.message : "Retry failed.");
                             });
                           }}
@@ -394,14 +397,14 @@ export function WorkspaceSidebar() {
                           <RotateCcw className="h-3 w-3" />
                         </button>
                       )}
-                      {doc.status !== "deleting" && (
+                      {asset.status !== "deleting" && (
                         <button
                           type="button"
                           title={t("dashboard.deleteTooltip")}
                           aria-label={t("dashboard.deleteTooltip")}
                           onClick={(event) => {
                             event.stopPropagation();
-                            void deleteDocument(doc.id).catch((error) => {
+                            void deleteAsset(asset.id).catch((error) => {
                               alert(error instanceof Error ? error.message : "Delete failed.");
                             });
                           }}
@@ -412,12 +415,11 @@ export function WorkspaceSidebar() {
                       )}
                     </div>
 
-                    {/* Simulating progress bar overlay */}
-                    {doc.status !== "ready" && doc.status !== "chunked" && doc.status !== "failed" && (
+                    {asset.status !== "ready" && asset.status !== "chunked" && asset.status !== "failed" && (
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 overflow-hidden bg-zinc-200 dark:bg-zinc-900">
                         <div 
                           className="h-full bg-cyan-400 transition-all duration-300"
-                          style={{ width: `${doc.progress}%` }}
+                          style={{ width: `${asset.progress}%` }}
                         />
                       </div>
                     )}
@@ -491,6 +493,8 @@ export function WorkspaceSidebar() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("sidebar.threadsHeader")}</span>
             <button
               onClick={handleCreateThread}
+              title={t("sidebar.newThread")}
+              aria-label={t("sidebar.newThread")}
               className="flex items-center gap-0.5 rounded-lg border border-border bg-card px-1.5 py-0.5 text-[10px] font-bold text-zinc-800 transition hover:bg-zinc-100 active:scale-95 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
             >
               <Plus className="h-3 w-3" />

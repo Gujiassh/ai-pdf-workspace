@@ -4,11 +4,17 @@ import React, { createContext, useContext, useRef } from "react";
 
 import { useAuth } from "@/lib/auth/auth-context";
 import type { ChatThread } from "@/lib/chat/types";
+import type {
+  EvidenceLocator,
+  EvidenceTarget,
+  EvidenceTargetRequest,
+  SourceVersions,
+} from "@/lib/evidence/types";
 import type { TagDto } from "@/lib/notes/types";
 
 import { useTranslation } from "./i18n-context";
 import { useChat } from "./use-chat";
-import { useDocuments } from "./use-documents";
+import { useAssets } from "./use-assets";
 import { useNotesTags } from "./use-notes-tags";
 import { useWorkspaceViewState } from "./workspace-view-state";
 import { useWorkspaces } from "./use-workspaces";
@@ -27,22 +33,25 @@ export type Workspace = {
   embeddingVersion: string;
   generationProvider: string;
   generationModel: string;
-  documentCount: number;
+  assetCount: number;
   noteCount: number;
   threadCount: number;
   createdAt: string;
   updatedAt: string;
 };
 
-export type DocumentStatus = "pending_upload" | "uploaded" | "parsing" | "chunking" | "chunked" | "embedding" | "ready" | "failed" | "deleting" | "deleted";
+export type AssetStatus = "pending_upload" | "uploaded" | "parsing" | "chunking" | "chunked" | "embedding" | "ready" | "failed" | "deleting" | "deleted";
 
-export type Document = {
+export type Asset = {
   id: string;
   workspaceId: string;
-  name: string;
+  kind: string;
+  title: string;
+  sourceFilename: string;
+  mimeType: string;
   size: string;
-  pagesCount: number;
-  status: DocumentStatus;
+  status: AssetStatus;
+  currentProcessingGeneration: number;
   progress: number;
   errorMsg?: string;
   tags: string[];
@@ -53,10 +62,13 @@ export type { ChatThread, Citation, Message } from "@/lib/chat/types";
 
 export type NoteSource = {
   messageCitationId?: string;
-  documentId: string;
-  documentName: string;
-  pageNumber: number;
-  snippet: string;
+  assetId: string;
+  assetKind: string;
+  assetTitle: string;
+  sourceAvailable: boolean;
+  excerpt: string;
+  locator: EvidenceLocator;
+  sourceVersions: SourceVersions;
 };
 
 export type Note = {
@@ -80,42 +92,52 @@ type WorkspaceContextType = {
   isHydrating: boolean;
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
-  documents: Document[];
+  assets: Asset[];
   notes: Note[];
   threads: ChatThread[];
   activeThread: ChatThread | null;
   tags: Tag[];
-  openDocumentIds: string[];
-  activeDocumentId: string | null;
+  openAssetIds: string[];
+  activeAssetId: string | null;
+  activeEvidenceLocator: EvidenceLocator | null;
+  activeEvidenceSourceVersions: SourceVersions | null;
   activePdfPage: number;
   activeTab: "chat" | "notes" | "settings";
   leftSidebarOpen: boolean;
   evidencePanelOpen: boolean;
   evidencePanelExpanded: boolean;
   selectionText: string | null;
+  selectedAssetIds: string[];
   selectedTagIds: string[];
   switchWorkspace: (id: string) => void;
   createWorkspace: (name: string, description: string | null) => Promise<void>;
   deleteWorkspace: (id: string) => Promise<void>;
   updateWorkspaceSettings: (id: string, settings: WorkspaceSettingsInput) => Promise<void>;
-  uploadDocument: (file: File) => Promise<void>;
-  deleteDocument: (id: string) => Promise<void>;
-  retryDocument: (id: string) => Promise<void>;
-  retryDeleteDocument: (id: string) => Promise<void>;
-  openDocument: (id: string) => void;
-  closeDocument: (id: string) => void;
+  uploadAsset: (file: File) => Promise<void>;
+  deleteAsset: (id: string) => Promise<void>;
+  retryAsset: (id: string) => Promise<void>;
+  retryDeleteAsset: (id: string) => Promise<void>;
+  openAsset: (id: string) => void;
+  openEvidence: (target: EvidenceTarget) => void;
+  closeAsset: (id: string) => void;
   createThread: () => Promise<void>;
   switchThread: (id: string) => void;
   deleteThread: (id: string) => Promise<void>;
-  sendMessage: (content: string, options?: SendMessageOptions) => Promise<void>;
-  createNote: (title: string, content: string, source?: NoteSource) => Promise<void>;
+  sendMessage: (content: string, options?: SendMessageOptions) => Promise<boolean>;
+  createNote: (title: string, content: string, options?: CreateNoteOptions) => Promise<void>;
+  submitEvidenceQuestion: (content: string, target: EvidenceTargetRequest) => Promise<boolean>;
+  createEvidenceNote: (
+    title: string,
+    content: string,
+    target: EvidenceTargetRequest,
+  ) => Promise<void>;
   updateNote: (id: string, title: string, content: string) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   addTag: (name: string) => Promise<void>;
   deleteTag: (id: string) => Promise<void>;
-  toggleDocumentTag: (docId: string, tagName: string) => Promise<void>;
+  toggleAssetTag: (assetId: string, tagName: string) => Promise<void>;
   toggleNoteTag: (noteId: string, tagName: string) => Promise<void>;
-  setActiveDocumentId: (id: string | null) => void;
+  setActiveAssetId: (id: string | null) => void;
   setActivePdfPage: (page: number) => void;
   setActiveTab: (tab: "chat" | "notes" | "settings") => void;
   setLeftSidebarOpen: (open: boolean) => void;
@@ -123,11 +145,20 @@ type WorkspaceContextType = {
   setEvidencePanelExpanded: (expanded: boolean) => void;
   closeEvidencePanel: () => void;
   setSelectionText: (text: string | null) => void;
+  toggleAssetScope: (assetId: string) => void;
+  clearAssetScope: () => void;
   setSelectedTagIds: React.Dispatch<React.SetStateAction<string[]>>;
 };
 
 export type SendMessageOptions = {
   editMessageId?: string;
+  evidenceTargets?: EvidenceTargetRequest[];
+  onRequestAccepted?: () => void;
+};
+
+export type CreateNoteOptions = {
+  source?: NoteSource;
+  evidenceTargets?: EvidenceTargetRequest[];
 };
 
 export type WorkspaceSettingsInput = {
@@ -142,14 +173,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { locale } = useTranslation();
   const { user, isHydrating: isAuthHydrating } = useAuth();
   const viewState = useWorkspaceViewState();
-  const documentsRef = useRef<Document[]>([]);
+  const assetsRef = useRef<Asset[]>([]);
   const tagRelationsRef = useRef<TagDto[]>([]);
   const syncWorkspaceViewState = viewState.syncWorkspaceViewState;
   const clearWorkspaceViewState = viewState.clearWorkspaceViewState;
 
   const onWorkspaceSelected = React.useCallback(
     (workspaceId: string) => {
-      syncWorkspaceViewState(workspaceId, documentsRef.current);
+      syncWorkspaceViewState(workspaceId, assetsRef.current);
     },
     [syncWorkspaceViewState],
   );
@@ -168,15 +199,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     onWorkspaceCleared,
   });
 
-  const documentState = useDocuments({
+  const assetState = useAssets({
     locale,
     user,
     isAuthHydrating,
     currentWorkspaceId: viewState.currentWorkspaceId,
     tagRelationsRef,
-    documentsRef,
-    syncDocumentViewState: viewState.syncDocumentViewState,
-    closeDocument: viewState.closeDocument,
+    assetsRef,
+    syncAssetViewState: viewState.syncAssetViewState,
+    closeAsset: viewState.closeAsset,
     updateWorkspace: workspaceState.updateWorkspace,
   });
 
@@ -186,11 +217,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     currentWorkspaceId: viewState.currentWorkspaceId,
     currentWorkspaceIdRef: viewState.currentWorkspaceIdRef,
     tagRelationsRef,
-    documentsRef,
+    assetsRef,
     setSelectedTagIds: viewState.setSelectedTagIds,
-    applyDocumentTags: documentState.applyTagRelations,
-    updateDocumentTags: documentState.updateDocumentTags,
-    removeDocumentTagName: documentState.removeTagName,
+    applyAssetTags: assetState.applyTagRelations,
+    updateAssetTags: assetState.updateAssetTags,
+    removeAssetTagName: assetState.removeTagName,
     updateWorkspace: workspaceState.updateWorkspace,
   });
 
@@ -203,22 +234,47 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     activeThreadId: viewState.activeThreadId,
     activeThreadIdRef: viewState.activeThreadIdRef,
     selectionText: viewState.selectionText,
+    selectedAssetIds: viewState.selectedAssetIds,
     setActiveThreadId: viewState.setActiveThreadId,
     updateWorkspace: workspaceState.updateWorkspace,
   });
 
   const deleteWorkspaceFromState = workspaceState.deleteWorkspace;
-  const removeDocumentsWorkspace = documentState.removeWorkspace;
+  const removeAssetsWorkspace = assetState.removeWorkspace;
   const removeNotesTagsWorkspace = notesTagsState.removeWorkspace;
   const removeChatWorkspace = chatState.removeWorkspace;
+  const sendChatMessage = chatState.sendMessage;
+  const createNoteFromState = notesTagsState.createNote;
+  const closeEvidencePanelFromState = viewState.closeEvidencePanel;
+  const setActiveTabFromState = viewState.setActiveTab;
   const deleteWorkspace = React.useCallback(
     async (id: string) => {
       await deleteWorkspaceFromState(id);
-      removeDocumentsWorkspace(id);
+      removeAssetsWorkspace(id);
       removeNotesTagsWorkspace(id);
       removeChatWorkspace(id);
     },
-    [deleteWorkspaceFromState, removeChatWorkspace, removeDocumentsWorkspace, removeNotesTagsWorkspace],
+    [deleteWorkspaceFromState, removeChatWorkspace, removeAssetsWorkspace, removeNotesTagsWorkspace],
+  );
+
+  const submitEvidenceQuestion = React.useCallback(
+    async (content: string, target: EvidenceTargetRequest) => sendChatMessage(content, {
+      evidenceTargets: [target],
+      onRequestAccepted: () => {
+        setActiveTabFromState("chat");
+        closeEvidencePanelFromState();
+      },
+    }),
+    [closeEvidencePanelFromState, sendChatMessage, setActiveTabFromState],
+  );
+
+  const createEvidenceNote = React.useCallback(
+    async (title: string, content: string, target: EvidenceTargetRequest) => {
+      await createNoteFromState(title, content, { evidenceTargets: [target] });
+      setActiveTabFromState("notes");
+      closeEvidencePanelFromState();
+    },
+    [closeEvidencePanelFromState, createNoteFromState, setActiveTabFromState],
   );
 
   return (
@@ -227,42 +283,48 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         isHydrating: workspaceState.isHydrating,
         workspaces: workspaceState.workspaces,
         currentWorkspace: workspaceState.currentWorkspace,
-        documents: documentState.documents,
+        assets: assetState.assets,
         notes: notesTagsState.notes,
         threads: chatState.threads,
         activeThread: chatState.activeThread,
         tags: notesTagsState.tags,
-        openDocumentIds: viewState.openDocumentIds,
-        activeDocumentId: viewState.activeDocumentId,
+        openAssetIds: viewState.openAssetIds,
+        activeAssetId: viewState.activeAssetId,
+        activeEvidenceLocator: viewState.activeEvidenceLocator,
+        activeEvidenceSourceVersions: viewState.activeEvidenceSourceVersions,
         activePdfPage: viewState.activePdfPage,
         activeTab: viewState.activeTab,
         leftSidebarOpen: viewState.leftSidebarOpen,
         evidencePanelOpen: viewState.evidencePanelOpen,
         evidencePanelExpanded: viewState.evidencePanelExpanded,
         selectionText: viewState.selectionText,
+        selectedAssetIds: viewState.selectedAssetIds,
         selectedTagIds: viewState.selectedTagIds,
         switchWorkspace: workspaceState.switchWorkspace,
         createWorkspace: workspaceState.createWorkspace,
         deleteWorkspace,
         updateWorkspaceSettings: workspaceState.updateWorkspaceSettings,
-        uploadDocument: documentState.uploadDocument,
-        deleteDocument: documentState.deleteDocument,
-        retryDocument: documentState.retryDocument,
-        retryDeleteDocument: documentState.retryDeleteDocument,
-        openDocument: viewState.openDocument,
-        closeDocument: viewState.closeDocument,
+        uploadAsset: assetState.uploadAsset,
+        deleteAsset: assetState.deleteAsset,
+        retryAsset: assetState.retryAsset,
+        retryDeleteAsset: assetState.retryDeleteAsset,
+        openAsset: viewState.openAsset,
+        openEvidence: viewState.openEvidence,
+        closeAsset: viewState.closeAsset,
         createThread: chatState.createThread,
         switchThread: chatState.switchThread,
         deleteThread: chatState.deleteThread,
         sendMessage: chatState.sendMessage,
         createNote: notesTagsState.createNote,
+        submitEvidenceQuestion,
+        createEvidenceNote,
         updateNote: notesTagsState.updateNote,
         deleteNote: notesTagsState.deleteNote,
         addTag: notesTagsState.addTag,
         deleteTag: notesTagsState.deleteTag,
-        toggleDocumentTag: notesTagsState.toggleDocumentTag,
+        toggleAssetTag: notesTagsState.toggleAssetTag,
         toggleNoteTag: notesTagsState.toggleNoteTag,
-        setActiveDocumentId: viewState.setActiveDocumentId,
+        setActiveAssetId: viewState.setActiveAssetId,
         setActivePdfPage: viewState.setActivePdfPage,
         setActiveTab: viewState.setActiveTab,
         setLeftSidebarOpen: viewState.setLeftSidebarOpen,
@@ -270,6 +332,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setEvidencePanelExpanded: viewState.setEvidencePanelExpanded,
         closeEvidencePanel: viewState.closeEvidencePanel,
         setSelectionText: viewState.setSelectionText,
+        toggleAssetScope: viewState.toggleAssetScope,
+        clearAssetScope: viewState.clearAssetScope,
         setSelectedTagIds: viewState.setSelectedTagIds,
       }}
     >

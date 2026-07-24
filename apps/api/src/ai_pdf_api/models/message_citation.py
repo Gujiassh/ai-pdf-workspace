@@ -15,14 +15,15 @@ class MessageCitation(Base):
     workspace_id: Mapped[str] = mapped_column(String(36), ForeignKey("workspaces.id"), index=True)
     message_id: Mapped[str] = mapped_column(String(36), ForeignKey("chat_messages.id", ondelete="CASCADE"), index=True)
     citation_index: Mapped[int] = mapped_column(Integer)
-    document_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("documents.id", ondelete="SET NULL"), nullable=True
+    evidence_locator_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("evidence_locators.id"), index=True
     )
-    chunk_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("document_chunks.id", ondelete="SET NULL"), nullable=True
-    )
-    page_number_snapshot: Mapped[int] = mapped_column(Integer)
-    document_title_snapshot: Mapped[str] = mapped_column(String(255))
+    asset_id: Mapped[str] = mapped_column(String(36), ForeignKey("assets.id"), index=True)
+    asset_kind_snapshot: Mapped[str] = mapped_column(String(64))
+    asset_title_snapshot: Mapped[str] = mapped_column(String(255))
     excerpt_snapshot: Mapped[str] = mapped_column(Text)
+    processing_generation_snapshot: Mapped[int] = mapped_column(Integer)
+    representation_id_snapshot: Mapped[str] = mapped_column(String(36))
+    parser_version_snapshot: Mapped[str] = mapped_column(String(64))
     index_version_snapshot: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

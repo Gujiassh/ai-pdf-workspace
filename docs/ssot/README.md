@@ -18,6 +18,10 @@
 8. `../research/user-task-validation-2026-07.md`
 9. `../architecture/evidence-contract-rfc.md`
 10. `../architecture/evidence-migration-impact.md`
-11. `../../specs/v3/evidence-contract/spec.md`
+11. `../architecture/multimodal-workspace-interaction-design.md`
+12. `../architecture/multimodal-asset-target-design.md`
+13. `../architecture/multimodal-api-data-contract-draft.md`
+14. `../architecture/modality-extension-contract.md`
+15. `../../specs/v3/multimodal-workspace/spec.md`
 
-`specs/v1/`、`specs/v2/retrieval-quality/` 和 `specs/v2/deployment-baseline/` 均作为完成基线保留。`specs/v3/evidence-contract/` 只管理当前用户验证和合同设计；合同批准后再创建多模态 PDF 实施 spec。
+`specs/v1/`、`specs/v2/retrieval-quality/` 和 `specs/v2/deployment-baseline/` 均作为完成基线保留。`specs/v3/evidence-contract/` 保留研究协议与早期合同发现记录；当前 V3 主线由 `specs/v3/multimodal-workspace/` 管理，范围为多模态 PDF + 独立图片。

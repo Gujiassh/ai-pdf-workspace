@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "coordinateStatus": "approved-contract-fixture-v1",
+  "coordinateSpace": "image_normalized_top_left_v1",
+  "image": {
+    "filename": "image-coordinate-fixture.png",
+    "widthPixels": 1200,
+    "heightPixels": 800,
+    "orientationApplied": true,
+    "sha256": "585b2489a7e6288d71636258b84e56610b345a1fc74ffd42967ee434678d8955"
+  },
+  "regions": [
+    {
+      "label": "chart",
+      "x": 0.066667,
+      "y": 0.2375,
+      "width": 0.566667,
+      "height": 0.525
+    },
+    {
+      "label": "caption",
+      "x": 0.683333,
+      "y": 0.275,
+      "width": 0.25,
+      "height": 0.375
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "citationIds": {
+    "imageCurrent": "a5973943-499f-554a-9e92-08ad05eb9db8",
+    "imageHistorical": "bfeb85b6-cebf-58e5-a57e-66706a679002",
+    "pdfCurrent": "3773b181-5716-5f92-beb9-3cc00d55a640",
+    "pdfHistorical": "c5aff0a0-1ab0-5392-a859-7ad528e45e8c"
+  },
+  "email": "m403-restore@example.com",
+  "password": "M403-restore-acceptance!",
+  "schemaVersion": "m403-state-v1",
+  "threadId": "7552224f-7cc6-53b9-b723-65f8479f1f19",
+  "userId": "c28fc7bf-4d92-57e7-a43b-94a840035404",
+  "workspaceId": "532eaad0-5bf5-5296-aff0-b25f8d0b4e2f"
+}

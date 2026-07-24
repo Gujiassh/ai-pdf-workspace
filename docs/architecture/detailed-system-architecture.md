@@ -1,4 +1,4 @@
-# AI PDF Workspace 详细系统架构设计
+# Citeframe 详细系统架构设计
 
 ## 1. 文档定位
 
@@ -47,18 +47,18 @@
 3. 检索与业务数据强耦合，V1 不值得独立上向量专用数据库
 4. 用户面向的是 Workspace，不是全局知识池
 5. V1 架构必须可讲清楚、可本地复现、可后续演进，而不是先做企业级重平台
-6. 当前架构以文本型 PDF 为主；无文本层扫描 PDF 在 Worker 内通过 RapidOCR fallback 转为页面文本和归一化 OCR blocks，不引入独立 OCR API 和多模态页面理解链
+6. 当前运行时已采用 Asset/Evidence 内核；PDF adapter 在 Worker 内输出页面几何、原生文本和 RapidOCR region，Image 保持注册但摄取关闭
 
 ### 2.3 当前文档范围
 
-当前架构按 `文本 PDF 主链` 设计：
+当前运行时按 `Asset/Evidence + PDF adapter` 主链实现：
 
 - 直接提取文本层 PDF；无文本层扫描 PDF 走 Worker 内部 OCR fallback
-- OCR 结果写入 `document_pages.ocr_blocks`，页面详情返回坐标块供 Viewer 叠加透明可选层；`extracted_text` 仍用于检索和 citation
-- 不处理图表、表格、图片区域的视觉理解
-- 不引入 visual chunk、region-level citation、多模态 embedding
+- OCR 结果写入 `pdf_pages.legacy_ocr_blocks` 供透明选择层显示，同时形成 `pdf_ocr_region + pdf_region` 检索与 Evidence
+- 页面 MediaBox/CropBox、rotation、display geometry 与 normalized top-left region 已持久化并进入 Citation/NoteSource 快照
+- 表格、图表和页内图片区域已由 Phase 2 M202 产出 typed region Evidence；visual embedding 仍需评测证明必要性后单独批准
 
-如果后续真的要做多模态，需要在当前架构之外新增一条独立的页面理解处理链，而不是先把复杂度压进 V1。
+后续 PDF 表格/figure 与 Image 通过各自 adapter、Representation/ContentUnit 类型、locator codec 和 renderer 接入，不把模态规则压回共享 ingestion 或 Chat。
 
 ## 3. 总体架构结论
 
@@ -153,7 +153,7 @@
 ### 4.2 推荐目录结构
 
 ```txt
-ai-pdf-workspace/
+citeframe/
   apps/
     web/
     api/
@@ -1046,7 +1046,7 @@ V1 明确采用：
 
 ## 14.4 下一目标架构边界
 
-后续多模态 PDF 不直接把现有 `Document/Page/Chunk/Citation` 改名。先单独设计 `Asset / Representation / ContentUnit / Embedding / EvidenceLocator`，其中 `pdf_region` 必须冻结 page、bbox 坐标单位、原点、旋转、CropBox 和多区域语义。正式实施属于持久化与 Citation API 合同变化，必须经单独规格和批准。
+V3 多模态 PDF + 独立图片需要把现有 `Document/Page/Chunk/Citation` 受控迁移为 `Asset / Representation / ContentUnit / Embedding / EvidenceLocator` 目标结构，不能只做名称替换或长期双模型。`pdf_region/image_region` 必须冻结坐标单位、原点、几何快照和多区域语义。正式实施属于持久化与 Citation API 合同变化，必须经 `specs/v3/multimodal-workspace/` 与六项合同裁决批准。
 
 ## 15. 这份架构文档能指导什么
 

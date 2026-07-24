@@ -22,12 +22,13 @@ import {
 } from "lucide-react";
 
 import { ChatPanel } from "@/components/chat-panel";
+import { EvidenceViewer } from "@/components/evidence-viewer";
 import { NotesPanel } from "@/components/notes-panel";
-import { PdfViewer } from "@/components/pdf-viewer";
 import { SettingsPanel } from "@/components/settings-panel";
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useTranslation } from "@/lib/i18n-context";
+import { getLocatorSummary } from "@/lib/evidence/types";
 import { useWorkspace } from "@/lib/workspace-context";
 import {
   clampEvidencePanelWidth,
@@ -46,8 +47,9 @@ export default function WorkspaceDetailPage() {
     isHydrating: isWorkspaceHydrating,
     workspaces,
     currentWorkspace,
-    documents,
-    activeDocumentId,
+    assets,
+    activeAssetId,
+    activeEvidenceLocator,
     switchWorkspace,
     activeTab,
     setActiveTab,
@@ -63,7 +65,7 @@ export default function WorkspaceDetailPage() {
   const { user, isHydrating: isAuthHydrating } = useAuth();
   const { t } = useTranslation();
   const workspaceId = params?.workspaceId as string;
-  const activeDocument = documents.find((document) => document.id === activeDocumentId);
+  const activeAsset = assets.find((asset) => asset.id === activeAssetId);
 
   useEffect(() => {
     if (isAuthHydrating || isWorkspaceHydrating) {
@@ -94,7 +96,7 @@ export default function WorkspaceDetailPage() {
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") {
+      if (event.key !== "Escape" || event.defaultPrevented) {
         return;
       }
       if (evidencePanelExpanded) {
@@ -195,7 +197,7 @@ export default function WorkspaceDetailPage() {
                 {currentWorkspace.name}
               </h1>
               <p className="mt-0.5 truncate text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
-                {t("workspace.knowledgeScope")} · {currentWorkspace.documentCount} {t("dashboard.docs")}
+                {t("workspace.knowledgeScope")} · {currentWorkspace.assetCount} {t("dashboard.docs")}
               </p>
             </div>
           </div>
@@ -255,7 +257,7 @@ export default function WorkspaceDetailPage() {
             <button
               type="button"
               data-evidence-toggle
-              disabled={!activeDocument}
+              disabled={!activeAsset}
               aria-pressed={evidencePanelOpen}
               onClick={() => evidencePanelOpen ? closeEvidencePanel() : setEvidencePanelOpen(true)}
               title={t("workspace.evidencePanel")}
@@ -272,7 +274,7 @@ export default function WorkspaceDetailPage() {
         </header>
 
         <div ref={workspaceCanvasRef} className="relative flex min-h-0 flex-1 overflow-hidden">
-          <section className="min-w-0 flex-1 overflow-hidden bg-card" aria-live="polite">
+          <section data-workspace-primary className="min-w-0 flex-1 overflow-hidden bg-card" aria-live="polite">
             {activeTab === "chat" ? <ChatPanel /> : null}
             {activeTab === "notes" ? <NotesPanel /> : null}
             {activeTab === "settings" ? <SettingsPanel /> : null}
@@ -326,17 +328,18 @@ export default function WorkspaceDetailPage() {
                   </span>
                 </div>
               ) : null}
-              <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3">
+              <div data-evidence-panel-header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
                     <FileSearch className="h-3.5 w-3.5" />
                   </span>
                   <div className="min-w-0">
                     <p className="text-[9px] font-bold uppercase text-amber-700 dark:text-amber-400">
-                      {t("workspace.pdfSource")}
+                      {t("workspace.evidenceSource")}
                     </p>
                     <p className="truncate text-[11px] font-semibold text-zinc-700 dark:text-zinc-200">
-                      {activeDocument?.name ?? t("viewer.noDocTitle")}
+                      {activeAsset?.title ?? t("viewer.noDocTitle")}
+                      {activeEvidenceLocator ? ` · ${getLocatorSummary(activeEvidenceLocator)}` : ""}
                     </p>
                   </div>
                 </div>
@@ -362,7 +365,7 @@ export default function WorkspaceDetailPage() {
                 </div>
               </div>
               <div className="min-h-0 flex-1">
-                <PdfViewer />
+                <EvidenceViewer />
               </div>
             </aside>
           ) : null}

@@ -1,5 +1,5 @@
 {
-  "name": "@ai-pdf-workspace/prompt-contracts",
+  "name": "@citeframe/prompt-contracts",
   "private": true,
   "version": "0.1.0",
   "type": "module"

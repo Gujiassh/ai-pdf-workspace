@@ -2,13 +2,16 @@
 
 import React, { useState } from "react";
 import type { TranslationKey } from "@/lib/i18n-context";
+import { getLocatorSummary } from "@/lib/evidence/types";
 import { Message, Citation } from "@/lib/workspace-context";
-import { Sparkles, Loader2, FileText, BookmarkPlus, X, Check, Pencil } from "lucide-react";
+import type { InputEvidence } from "@/lib/chat/types";
+import { CircleAlert, Sparkles, Loader2, FileText, BookmarkPlus, X, Check, Pencil, ScanSearch } from "lucide-react";
 import { ChatMarkdown } from "./chat-markdown";
 
 interface ChatBubbleProps {
   msg: Message;
   onCitationClick: (cit: Citation) => void;
+  onInputEvidenceClick: (evidence: InputEvidence) => void;
   onQuickNoteOpen: (cit: Citation) => void;
   showNoteEditorId: string | null;
   setShowNoteEditorId: (id: string | null) => void;
@@ -24,6 +27,7 @@ interface ChatBubbleProps {
 export function ChatBubble({
   msg,
   onCitationClick,
+  onInputEvidenceClick,
   onQuickNoteOpen,
   showNoteEditorId,
   setShowNoteEditorId,
@@ -36,6 +40,7 @@ export function ChatBubble({
   t,
 }: ChatBubbleProps) {
   const isUser = msg.role === "user";
+  const isFailed = !isUser && msg.status === "failed";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(msg.content);
   const [saving, setSaving] = useState(false);
@@ -98,8 +103,41 @@ export function ChatBubble({
             </div>
           ) : (
             <>
-              <div className="max-w-full rounded-xl bg-zinc-950 px-4 py-3 text-sm leading-6 text-white shadow-sm dark:bg-zinc-800 dark:text-zinc-100">
-                {msg.content}
+              <div className="max-w-full overflow-hidden rounded-xl bg-zinc-950 text-white shadow-sm dark:bg-zinc-800 dark:text-zinc-100">
+                <p className="px-4 py-3 text-sm leading-6">{msg.content}</p>
+                {msg.inputEvidence && msg.inputEvidence.length > 0 ? (
+                  <div className="border-t border-white/15 px-2 py-2">
+                    {msg.inputEvidence.map((evidence) => (
+                      <button
+                        key={evidence.id}
+                        type="button"
+                        data-message-input-evidence={evidence.id}
+                        disabled={!evidence.sourceAvailable}
+                        onClick={() => onInputEvidenceClick(evidence)}
+                        className="flex min-h-8 w-full items-center gap-1.5 rounded-md px-2 text-left text-[10px] font-medium text-zinc-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <ScanSearch className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                        <span className="min-w-0 truncate">
+                          {evidence.assetTitle} · {getLocatorSummary(evidence.locator)}
+                          {!evidence.sourceAvailable ? ` · ${t("viewer.sourceUnavailable")}` : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : msg.pendingInputEvidenceCount && msg.pendingInputEvidenceCount > 0 ? (
+                  <div
+                    data-message-input-evidence-pending={msg.pendingInputEvidenceCount}
+                    className="flex min-h-8 items-center gap-1.5 border-t border-white/15 px-4 py-2 text-[10px] font-medium text-zinc-200"
+                  >
+                    <ScanSearch className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                    <span>
+                      {t("chat.inputEvidenceLocked").replace(
+                        "{count}",
+                        String(msg.pendingInputEvidenceCount),
+                      )}
+                    </span>
+                  </div>
+                ) : null}
               </div>
               <button
                 type="button"
@@ -115,13 +153,22 @@ export function ChatBubble({
         </div>
       ) : (
         /* Assistant message bubble */
-        <div className="w-full">
-          <div className="mb-2 flex select-none items-center gap-1.5 text-[10px] font-bold uppercase text-zinc-400 dark:text-zinc-500">
-            <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-            <span>{t("chat.aiConsultant")}</span>
+        <div className="w-full" data-chat-status={isFailed ? "failed" : msg.status ?? "completed"}>
+          <div className={`mb-2 flex select-none items-center gap-1.5 text-[10px] font-bold uppercase ${isFailed ? "text-red-700 dark:text-red-300" : "text-zinc-400 dark:text-zinc-500"}`}>
+            {isFailed ? (
+              <CircleAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+            )}
+            <span>{isFailed ? t("chat.responseFailed") : t("chat.aiConsultant")}</span>
           </div>
           
-          {msg.content ? (
+          {isFailed ? (
+            <div role="alert" className="border-l-2 border-red-500 bg-red-50 px-3 py-2 text-sm leading-6 text-red-950 dark:bg-red-950/30 dark:text-red-100">
+              {msg.content && <p>{msg.content}</p>}
+              <p className="mt-1 text-xs text-red-700 dark:text-red-300">{t("chat.failureHint")}</p>
+            </div>
+          ) : msg.content ? (
             <ChatMarkdown
               content={msg.content}
               citations={msg.citations ?? []}
@@ -137,7 +184,7 @@ export function ChatBubble({
           )}
 
           {/* Citations list */}
-          {msg.citations && msg.citations.length > 0 && (
+          {!isFailed && msg.citations && msg.citations.length > 0 && (
             <div className="mt-5 space-y-2.5 border-t border-zinc-100 pt-4 transition dark:border-zinc-900">
               <span className="block select-none text-[9px] font-bold uppercase text-zinc-400 dark:text-zinc-500">{t("chat.sourceTitle")}</span>
               
@@ -145,11 +192,16 @@ export function ChatBubble({
                 {msg.citations.map((cit) => (
                   <div key={cit.id} className="relative inline-flex items-center">
                     <button
+                      data-citation-id={cit.id}
                       onClick={() => onCitationClick(cit)}
+                      disabled={!cit.sourceAvailable}
                       className="flex min-h-7 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-950 transition hover:border-amber-300 hover:bg-amber-100 active:scale-[0.98] dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:border-amber-800 dark:hover:bg-amber-950/60"
                     >
                       <FileText className="h-3 w-3 shrink-0 text-zinc-400" />
-                      <span>{cit.documentName.split(".pdf")[0]} p.{cit.pageNumber}</span>
+                      <span>
+                        {cit.assetTitle} · {getLocatorSummary(cit.locator)}
+                        {!cit.sourceAvailable ? ` · ${t("viewer.sourceUnavailable")}` : ""}
+                      </span>
                     </button>
                     
                     <button
@@ -166,7 +218,7 @@ export function ChatBubble({
           )}
 
           {/* Quick Save Note inline overlay editor */}
-          {msg.citations?.map((cit) => showNoteEditorId === cit.id && (
+          {!isFailed && msg.citations?.map((cit) => showNoteEditorId === cit.id && (
             <div 
               key={`editor-${cit.id}`}
               className="mt-4 space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-zinc-700 shadow-lg animate-in slide-in-from-top-2 duration-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300"

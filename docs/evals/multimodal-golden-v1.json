@@ -1,0 +1,316 @@
+{
+  "schemaVersion": "multimodal-golden-v1",
+  "referenceBaselines": [
+    {
+      "id": "retrieval-pdf-real-v1",
+      "kind": "retrieval_jsonl",
+      "filePath": "docs/evals/retrieval-v1.jsonl",
+      "sourceSha256": "4e5ce744c8e42986f976b87a1736f87e1603ea2a554ed0e15660d5120e1e5040",
+      "caseCount": 40,
+      "modalities": ["pdf"]
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "pdf-coordinate",
+      "modality": "pdf",
+      "manifestKind": "pdf_coordinate_v1",
+      "sourcePath": "docs/fixtures/evidence-contract/pdf-coordinate-fixture.pdf",
+      "manifestPath": "docs/fixtures/evidence-contract/pdf-coordinate-fixture.json",
+      "sourceSha256": "142c86f9ae04aba21fc00e983469b3e686e458c6dc038e90598fd6fa6bb3e0bf",
+      "manifestSha256": "54eb47122268d633e5b4a2c5327d19acd3c2eaed472e11270d5de39b9ae16429"
+    },
+    {
+      "id": "pdf-artifact-matrix",
+      "modality": "pdf",
+      "manifestKind": "pdf_artifact_matrix_v1",
+      "sourcePath": "docs/fixtures/evidence-contract/pdf-artifact-matrix-fixture.pdf",
+      "manifestPath": "docs/fixtures/evidence-contract/pdf-artifact-matrix-fixture.json",
+      "sourceSha256": "0a648609ea6a91f203c1a3e69668b6c73d8de1504c78cbd2e0fed79fcc1fc830",
+      "manifestSha256": "85270f3d3d15398f95c8c760ba512e79065e160678befe25ee5fc0205289e0d1"
+    },
+    {
+      "id": "image-coordinate",
+      "modality": "image",
+      "manifestKind": "image_coordinate_v1",
+      "sourcePath": "docs/fixtures/evidence-contract/image-coordinate-fixture.png",
+      "manifestPath": "docs/fixtures/evidence-contract/image-coordinate-fixture.json",
+      "sourceSha256": "585b2489a7e6288d71636258b84e56610b345a1fc74ffd42967ee434678d8955",
+      "manifestSha256": "a8b3523d253485e7ccd53ac749bdfe9bdff7a88f9bc9bf97fa3546304fe71f77"
+    }
+  ],
+  "cases": [
+    {
+      "id": "retrieval-pdf-rotation",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "taskType": "exact_fact",
+      "question": "Where is the primary locator verification evidence on the 90-degree PDF page?",
+      "scope": {"mode": "all_ready", "selectedFixtureIds": []},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-coordinate", "locatorKind": "pdf_page", "pageNumber": 2, "pageLabel": "rotation-90", "regionIndexes": [], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "retrieval-pdf-scan",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "taskType": "exact_fact",
+      "question": "Which scanned block contains Rasterized scan evidence?",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-coordinate", "locatorKind": "pdf_region", "pageNumber": 12, "pageLabel": "raster-scan", "regionIndexes": [0], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "retrieval-pdf-table",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "taskType": "table",
+      "question": "What score is listed for Atlas?",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-artifact-matrix"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-artifact-matrix", "locatorKind": "pdf_region", "pageNumber": 1, "pageLabel": "table-rotation-0", "regionIndexes": [0], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "retrieval-pdf-chart",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "taskType": "chart",
+      "question": "Find the vector trend evidence chart.",
+      "scope": {"mode": "all_ready", "selectedFixtureIds": []},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-artifact-matrix", "locatorKind": "pdf_region", "pageNumber": 9, "pageLabel": "vector-rotation-0", "regionIndexes": [0, 1], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "retrieval-image-chart",
+      "layer": "retrieval",
+      "modality": "image",
+      "taskType": "image",
+      "question": "Which image shows latency falling after the third release?",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["image-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["chart"]}
+      ]
+    },
+    {
+      "id": "retrieval-image-caption",
+      "layer": "retrieval",
+      "modality": "image",
+      "taskType": "method_constraints",
+      "question": "Which caption says to verify the chart and caption together?",
+      "scope": {"mode": "all_ready", "selectedFixtureIds": []},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["caption"]}
+      ]
+    },
+    {
+      "id": "retrieval-mixed-trend",
+      "layer": "retrieval",
+      "modality": "mixed",
+      "taskType": "cross_asset_compare",
+      "question": "Retrieve both PDF and image evidence about a trend or sustained drop.",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-artifact-matrix", "image-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-artifact-matrix", "locatorKind": "pdf_region", "pageNumber": 9, "pageLabel": "vector-rotation-0", "regionIndexes": [0, 1], "regionLabels": []},
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["chart", "caption"]}
+      ]
+    },
+    {
+      "id": "evidence-pdf-cropbox",
+      "layer": "evidence",
+      "modality": "pdf",
+      "taskType": "exact_fact",
+      "question": "Open the evidence inside the asymmetrically cropped 270-degree page.",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-coordinate", "locatorKind": "pdf_page", "pageNumber": 8, "pageLabel": "crop-box-rotation-270", "regionIndexes": [], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "evidence-pdf-table-cell",
+      "layer": "evidence",
+      "modality": "pdf",
+      "taskType": "table",
+      "question": "Highlight the Evidence-A score cell.",
+      "scope": {"mode": "all_ready", "selectedFixtureIds": []},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-coordinate", "locatorKind": "pdf_region", "pageNumber": 9, "pageLabel": "table-cell", "regionIndexes": [0], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "evidence-pdf-multi-region",
+      "layer": "evidence",
+      "modality": "pdf",
+      "taskType": "chart",
+      "question": "Highlight the chart and its supporting caption regions together.",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-coordinate", "locatorKind": "pdf_region", "pageNumber": 10, "pageLabel": "chart-multi-region", "regionIndexes": [0, 1], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "evidence-pdf-raster-rotation",
+      "layer": "evidence",
+      "modality": "pdf",
+      "taskType": "image",
+      "question": "Open the raster figure and caption on the 270-degree CropBox page.",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-artifact-matrix"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-artifact-matrix", "locatorKind": "pdf_region", "pageNumber": 8, "pageLabel": "raster-rotation-270", "regionIndexes": [0, 1], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "evidence-image-chart",
+      "layer": "evidence",
+      "modality": "image",
+      "taskType": "image",
+      "question": "Open only the chart region in the image.",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["image-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["chart"]}
+      ]
+    },
+    {
+      "id": "evidence-image-caption",
+      "layer": "evidence",
+      "modality": "image",
+      "taskType": "method_constraints",
+      "question": "Open only the observation caption region in the image.",
+      "scope": {"mode": "all_ready", "selectedFixtureIds": []},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["caption"]}
+      ]
+    },
+    {
+      "id": "evidence-mixed",
+      "layer": "evidence",
+      "modality": "mixed",
+      "taskType": "cross_asset_compare",
+      "question": "Open the matching PDF vector figure and image chart without losing either locator.",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-artifact-matrix", "image-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-artifact-matrix", "locatorKind": "pdf_region", "pageNumber": 10, "pageLabel": "vector-rotation-90", "regionIndexes": [0, 1], "regionLabels": []},
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["chart"]}
+      ]
+    },
+    {
+      "id": "answer-pdf-table",
+      "layer": "answer",
+      "modality": "pdf",
+      "taskType": "table",
+      "question": "What score does the PDF table report for Atlas?",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-artifact-matrix"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": ["Atlas has a score of 91.4."],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-artifact-matrix", "locatorKind": "pdf_region", "pageNumber": 1, "pageLabel": "table-rotation-0", "regionIndexes": [0], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "answer-pdf-chart",
+      "layer": "answer",
+      "modality": "pdf",
+      "taskType": "chart",
+      "question": "What does the PDF fixture say happens after the third point?",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": ["The trend rises after the third point."],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-coordinate", "locatorKind": "pdf_region", "pageNumber": 10, "pageLabel": "chart-multi-region", "regionIndexes": [0, 1], "regionLabels": []}
+      ]
+    },
+    {
+      "id": "answer-image-trend",
+      "layer": "answer",
+      "modality": "image",
+      "taskType": "image",
+      "question": "When does the image say the sustained latency drop begins?",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["image-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": ["Release 4 begins the sustained drop."],
+      "evidenceTargets": [
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["chart", "caption"]}
+      ]
+    },
+    {
+      "id": "answer-image-constraint",
+      "layer": "answer",
+      "modality": "image",
+      "taskType": "method_constraints",
+      "question": "What evidence does the image instruct the reader to verify?",
+      "scope": {"mode": "all_ready", "selectedFixtureIds": []},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": ["Verify the chart and caption together."],
+      "evidenceTargets": [
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["caption"]}
+      ]
+    },
+    {
+      "id": "answer-mixed-compare",
+      "layer": "answer",
+      "modality": "mixed",
+      "taskType": "cross_asset_compare",
+      "question": "Compare the change described by the PDF chart with the image observation.",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-coordinate", "image-coordinate"]},
+      "expectedDisposition": "answer",
+      "expectedAnswerPoints": ["The PDF trend rises after the third point.", "The image says Release 4 begins a sustained drop."],
+      "evidenceTargets": [
+        {"fixtureId": "pdf-coordinate", "locatorKind": "pdf_region", "pageNumber": 10, "pageLabel": "chart-multi-region", "regionIndexes": [0, 1], "regionLabels": []},
+        {"fixtureId": "image-coordinate", "locatorKind": "image_region", "pageNumber": null, "pageLabel": null, "regionIndexes": [], "regionLabels": ["chart", "caption"]}
+      ]
+    },
+    {
+      "id": "answer-refuse-pdf",
+      "layer": "answer",
+      "modality": "pdf",
+      "taskType": "no_answer",
+      "question": "What energy consumption does the PDF report for Atlas?",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-artifact-matrix"]},
+      "expectedDisposition": "refuse",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": []
+    },
+    {
+      "id": "answer-refuse-mixed",
+      "layer": "answer",
+      "modality": "mixed",
+      "taskType": "no_answer",
+      "question": "Which production customer approved the release shown in these fixtures?",
+      "scope": {"mode": "selected", "selectedFixtureIds": ["pdf-coordinate", "image-coordinate"]},
+      "expectedDisposition": "refuse",
+      "expectedAnswerPoints": [],
+      "evidenceTargets": []
+    }
+  ]
+}

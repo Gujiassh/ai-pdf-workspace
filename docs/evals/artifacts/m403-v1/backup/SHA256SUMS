@@ -1,0 +1,11 @@
+51db8ce09cc98d689f2077954fed26380997023e7df9f0c251ecb2da928d70bc  manifest.env
+bafdc8bcfece89d7b75e060ca6e4fec7ca0767c69cc1f9b0ae0c82a00f9bbbcf  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/01c2e999-d379-5641-b462-af26b5a55c93/source/m403-failed.png
+3b11b584e8e230708cc05afabb6321676e0e05584916f766a880344e68b460f6  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/cad3a8ca-3403-55e1-857b-1b57549ff5cd/representations/1/image_ocr
+bafdc8bcfece89d7b75e060ca6e4fec7ca0767c69cc1f9b0ae0c82a00f9bbbcf  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/cad3a8ca-3403-55e1-857b-1b57549ff5cd/representations/1/image_oriented
+5e4cf54185df7ce3fb1eab0fe005fb6555eb25da1a3dd6c4e0adb28187804343  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/cad3a8ca-3403-55e1-857b-1b57549ff5cd/representations/2/image_ocr
+c1559a05b15050e833cdd4e3289ba15449d4bdf7479902fd8f92f83e46b6c965  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/cad3a8ca-3403-55e1-857b-1b57549ff5cd/representations/2/image_oriented
+bafdc8bcfece89d7b75e060ca6e4fec7ca0767c69cc1f9b0ae0c82a00f9bbbcf  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/cad3a8ca-3403-55e1-857b-1b57549ff5cd/source/m403-history.png
+80b01dc4158455cfa41bc3dde261fa0ce9fb79372e594095b17c31644e679b9b  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/cee87f3c-532c-5ea3-9ccc-48e5bf0de5f4/representations/1/pdf_page_layout
+fc1ba74ec30291ea8de8823762d50b652c2ec43105662e0809e84814822a782f  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/cee87f3c-532c-5ea3-9ccc-48e5bf0de5f4/representations/2/pdf_page_layout
+e9cecb89701658b20e166f9270d9eae4889b44a2e42a4071f0b9f0b143dbdd87  minio/workspaces/532eaad0-5bf5-5296-aff0-b25f8d0b4e2f/assets/cee87f3c-532c-5ea3-9ccc-48e5bf0de5f4/source/m403-history.pdf
+cfcf86adfc2769bd6b478a38a3f18fcdbdfe1526d1ddc364f4a89a1bf887b8f2  postgres.dump

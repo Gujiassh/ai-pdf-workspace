@@ -11,15 +11,20 @@ from sqlalchemy.pool import StaticPool
 
 from ai_pdf_api.db.base import Base
 from ai_pdf_api.db.session import get_db
+from ai_pdf_api.modalities.evidence import EvidenceContractError, serialize_evidence_locator
 from ai_pdf_api.models import (
     ChatMessage,
     ChatThread,
-    Document,
-    DocumentTag,
+    Asset,
+    AssetRepresentation,
+    AssetTag,
+    EvidenceLocator,
     MessageCitation,
     Note,
     NoteSource,
     NoteTag,
+    PdfLocatorDetail,
+    SpatialLocatorRegion,
     User,
     Workspace,
     WorkspaceMembership,
@@ -90,14 +95,14 @@ def notes_app() -> Generator[tuple[TestClient, Session, User, Workspace, User, W
     session.close()
 
 
-def create_document(session: Session, *, workspace: Workspace, user: User) -> Document:
-    document = Document(
-        id=str(uuid4()),
+def create_asset(session: Session, *, workspace: Workspace, user: User) -> Asset:
+    asset = Asset(
+        asset_kind="pdf",
         workspace_id=workspace.id,
         created_by_user_id=user.id,
         title="Source paper",
         source_filename="source.pdf",
-        object_key=f"workspaces/{workspace.id}/documents/source.pdf",
+        object_key=f"workspaces/{workspace.id}/assets/source.pdf",
         mime_type="application/pdf",
         byte_size=100,
         status="ready",
@@ -105,12 +110,12 @@ def create_document(session: Session, *, workspace: Workspace, user: User) -> Do
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
-    session.add(document)
+    session.add(asset)
     session.commit()
-    return document
+    return asset
 
 
-def create_citation(session: Session, *, workspace: Workspace, user: User, document: Document) -> MessageCitation:
+def create_citation(session: Session, *, workspace: Workspace, user: User, asset: Asset) -> MessageCitation:
     now = datetime.now(UTC)
     thread = ChatThread(
         id=str(uuid4()),
@@ -130,20 +135,45 @@ def create_citation(session: Session, *, workspace: Workspace, user: User, docum
         status="completed",
         created_at=now,
     )
+    representation = AssetRepresentation(
+        id=str(uuid4()),
+        workspace_id=workspace.id,
+        asset_id=asset.id,
+        representation_kind="pdf_text_legacy",
+        processing_generation=1,
+        generator_version="fixture-parser-v1",
+        created_at=now,
+    )
+    locator = EvidenceLocator(
+        id=str(uuid4()),
+        workspace_id=workspace.id,
+        asset_id=asset.id,
+        locator_kind="pdf_page",
+        locator_version=1,
+        processing_generation_snapshot=1,
+        representation_id_snapshot=representation.id,
+        created_at=now,
+    )
+    session.add_all([thread, message, representation, locator])
+    session.flush()
+    session.add(PdfLocatorDetail(locator_id=locator.id, page_number=8))
     citation = MessageCitation(
         id=str(uuid4()),
         workspace_id=workspace.id,
         message_id=message.id,
         citation_index=0,
-        document_id=document.id,
-        chunk_id=None,
-        page_number_snapshot=8,
-        document_title_snapshot=document.title,
+        evidence_locator_id=locator.id,
+        asset_id=asset.id,
+        asset_kind_snapshot="pdf",
+        asset_title_snapshot=asset.title,
         excerpt_snapshot="A persisted source excerpt.",
+        processing_generation_snapshot=1,
+        representation_id_snapshot=representation.id,
+        parser_version_snapshot="fixture-parser-v1",
         index_version_snapshot=1,
         created_at=now,
     )
-    session.add_all([thread, message, citation])
+    session.add(citation)
     session.commit()
     return citation
 
@@ -154,8 +184,8 @@ def headers(user: User) -> dict[str, str]:
 
 def test_create_note_persists_citation_snapshot(notes_app) -> None:
     client, session, owner, workspace, _other, _other_workspace = notes_app
-    document = create_document(session, workspace=workspace, user=owner)
-    citation = create_citation(session, workspace=workspace, user=owner, document=document)
+    asset = create_asset(session, workspace=workspace, user=owner)
+    citation = create_citation(session, workspace=workspace, user=owner, asset=asset)
 
     response = client.post(
         f"/v1/workspaces/{workspace.id}/notes",
@@ -176,9 +206,11 @@ def test_create_note_persists_citation_snapshot(notes_app) -> None:
     assert note["tags"] == []
     assert source == note["sources"][0]
     assert source["messageCitationId"] == citation.id
-    assert source["documentId"] == document.id
-    assert source["documentTitle"] == "Source paper"
-    assert source["pageNumber"] == 8
+    assert source["assetId"] == asset.id
+    assert source["assetTitle"] == "Source paper"
+    assert source["assetKind"] == "pdf"
+    assert source["locator"] == {"kind": "pdf_page", "version": 1, "pageNumber": 8}
+    assert source["sourceVersions"]["parserVersion"] == "fixture-parser-v1"
     assert source["excerpt"] == "A persisted source excerpt."
 
     persisted = session.scalar(select(Note).where(Note.id == note["id"]))
@@ -186,7 +218,114 @@ def test_create_note_persists_citation_snapshot(notes_app) -> None:
     source_row = session.scalar(select(NoteSource).where(NoteSource.note_id == persisted.id))
     assert source_row is not None
     assert source_row.message_citation_id == citation.id
-    assert source_row.document_title_snapshot == "Source paper"
+    assert source_row.asset_title_snapshot == "Source paper"
+
+
+def test_create_note_clones_pdf_region_source_snapshot(notes_app) -> None:
+    client, session, owner, workspace, _other, _other_workspace = notes_app
+    asset = create_asset(session, workspace=workspace, user=owner)
+    citation = create_citation(session, workspace=workspace, user=owner, asset=asset)
+    locator = session.get(EvidenceLocator, citation.evidence_locator_id)
+    detail = session.get(PdfLocatorDetail, citation.evidence_locator_id)
+    assert locator is not None and detail is not None
+    locator.locator_kind = "pdf_region"
+    detail.coordinate_space = "pdf_crop_box_normalized_top_left_v1"
+    detail.crop_x0_points = 0.0
+    detail.crop_y0_points = 0.0
+    detail.crop_x1_points = 612.0
+    detail.crop_y1_points = 792.0
+    detail.rotation_degrees = 0
+    detail.display_width_points = 612.0
+    detail.display_height_points = 792.0
+    session.add_all(
+        [
+            SpatialLocatorRegion(
+                locator_id=locator.id,
+                region_order=0,
+                x=0.15,
+                y=0.25,
+                width=0.3,
+                height=0.1,
+            ),
+            SpatialLocatorRegion(
+                locator_id=locator.id,
+                region_order=1,
+                x=0.2,
+                y=0.5,
+                width=0.4,
+                height=0.1,
+            ),
+        ]
+    )
+    session.commit()
+
+    response = client.post(
+        f"/v1/workspaces/{workspace.id}/notes",
+        headers=headers(owner),
+        json={"bodyMd": "Regional note.", "sourceCitationIds": [citation.id]},
+    )
+
+    assert response.status_code == 201
+    locator_payload = response.json()["sources"][0]["locator"]
+    assert locator_payload["kind"] == "pdf_region"
+    assert locator_payload["pageGeometry"] == {
+        "cropBoxPoints": [0.0, 0.0, 612.0, 792.0],
+        "rotationDegrees": 0,
+        "displayWidthPoints": 612.0,
+        "displayHeightPoints": 792.0,
+    }
+    assert locator_payload["regions"] == [
+        {"x": 0.15, "y": 0.25, "width": 0.3, "height": 0.1},
+        {"x": 0.2, "y": 0.5, "width": 0.4, "height": 0.1},
+    ]
+
+
+def test_evidence_serializer_rejects_unsupported_locator_version(notes_app) -> None:
+    _client, session, owner, workspace, _other, _other_workspace = notes_app
+    asset = create_asset(session, workspace=workspace, user=owner)
+    citation = create_citation(session, workspace=workspace, user=owner, asset=asset)
+    locator = session.get(EvidenceLocator, citation.evidence_locator_id)
+    assert locator is not None
+    locator.locator_version = 2
+    session.commit()
+
+    with pytest.raises(
+        EvidenceContractError,
+        match="Unsupported locator version for pdf_page: 2",
+    ):
+        serialize_evidence_locator(session, locator.id)
+
+
+def test_evidence_codec_rejects_unsupported_coordinate_space(notes_app) -> None:
+    _client, session, owner, workspace, _other, _other_workspace = notes_app
+    asset = create_asset(session, workspace=workspace, user=owner)
+    citation = create_citation(session, workspace=workspace, user=owner, asset=asset)
+    locator = session.get(EvidenceLocator, citation.evidence_locator_id)
+    detail = session.get(PdfLocatorDetail, citation.evidence_locator_id)
+    assert locator is not None and detail is not None
+    locator.locator_kind = "pdf_region"
+    detail.coordinate_space = "wrong_space"
+    detail.crop_x0_points = 0.0
+    detail.crop_y0_points = 0.0
+    detail.crop_x1_points = 612.0
+    detail.crop_y1_points = 792.0
+    detail.rotation_degrees = 0
+    detail.display_width_points = 612.0
+    detail.display_height_points = 792.0
+    session.add(
+        SpatialLocatorRegion(
+            locator_id=locator.id,
+            region_order=0,
+            x=0.1,
+            y=0.2,
+            width=0.3,
+            height=0.1,
+        )
+    )
+    session.commit()
+
+    with pytest.raises(EvidenceContractError, match="unsupported coordinate space"):
+        serialize_evidence_locator(session, locator.id)
 
 
 @pytest.mark.parametrize("citation_kind", ["missing", "cross_workspace"])
@@ -194,12 +333,12 @@ def test_create_note_rejects_invalid_citation_without_partial_note(notes_app, ci
     client, session, owner, workspace, other, other_workspace = notes_app
     citation_id = str(uuid4())
     if citation_kind == "cross_workspace":
-        other_document = create_document(session, workspace=other_workspace, user=other)
+        other_asset = create_asset(session, workspace=other_workspace, user=other)
         citation_id = create_citation(
             session,
             workspace=other_workspace,
             user=other,
-            document=other_document,
+            asset=other_asset,
         ).id
 
     response = client.post(
@@ -214,7 +353,7 @@ def test_create_note_rejects_invalid_citation_without_partial_note(notes_app, ci
 
 def test_tags_and_bindings_return_refreshable_snapshots_and_replace_relations(notes_app) -> None:
     client, session, owner, workspace, _other, _other_workspace = notes_app
-    document = create_document(session, workspace=workspace, user=owner)
+    asset = create_asset(session, workspace=workspace, user=owner)
     note_response = client.post(
         f"/v1/workspaces/{workspace.id}/notes",
         headers=headers(owner),
@@ -232,13 +371,13 @@ def test_tags_and_bindings_return_refreshable_snapshots_and_replace_relations(no
         json={"name": "Review", "slug": "review"},
     ).json()["tag"]
 
-    document_binding = client.post(
-        f"/v1/workspaces/{workspace.id}/documents/{document.id}/tags",
+    asset_binding = client.post(
+        f"/v1/workspaces/{workspace.id}/assets/{asset.id}/tags",
         headers=headers(owner),
         json={"tagIds": [tag_one["id"], tag_two["id"]]},
     )
-    assert document_binding.status_code == 200
-    assert document_binding.json()["tagIds"] == [tag_one["id"], tag_two["id"]]
+    assert asset_binding.status_code == 200
+    assert asset_binding.json()["tagIds"] == [tag_one["id"], tag_two["id"]]
 
     note_binding = client.post(
         f"/v1/workspaces/{workspace.id}/notes/{note_id}/tags",
@@ -250,9 +389,9 @@ def test_tags_and_bindings_return_refreshable_snapshots_and_replace_relations(no
 
     tags = client.get(f"/v1/workspaces/{workspace.id}/tags", headers=headers(owner)).json()["items"]
     by_id = {tag["id"]: tag for tag in tags}
-    assert by_id[tag_one["id"]]["documentIds"] == [document.id]
+    assert by_id[tag_one["id"]]["assetIds"] == [asset.id]
     assert by_id[tag_one["id"]]["noteIds"] == [note_id]
-    assert by_id[tag_two["id"]]["documentIds"] == [document.id]
+    assert by_id[tag_two["id"]]["assetIds"] == [asset.id]
     assert by_id[tag_two["id"]]["noteIds"] == []
 
     notes = client.get(f"/v1/workspaces/{workspace.id}/notes", headers=headers(owner)).json()["items"]
@@ -269,19 +408,19 @@ def test_tags_and_bindings_return_refreshable_snapshots_and_replace_relations(no
     assert cleared_note.json()["tagIds"] == []
     assert session.scalar(select(NoteTag).where(NoteTag.note_id == note_id)) is None
 
-    cleared_document = client.post(
-        f"/v1/workspaces/{workspace.id}/documents/{document.id}/tags",
+    cleared_asset = client.post(
+        f"/v1/workspaces/{workspace.id}/assets/{asset.id}/tags",
         headers=headers(owner),
         json={"tagIds": []},
     )
-    assert cleared_document.status_code == 200
-    assert cleared_document.json()["tagIds"] == []
-    assert session.scalar(select(DocumentTag).where(DocumentTag.document_id == document.id)) is None
+    assert cleared_asset.status_code == 200
+    assert cleared_asset.json()["tagIds"] == []
+    assert session.scalar(select(AssetTag).where(AssetTag.asset_id == asset.id)) is None
 
 
 def test_workspace_isolation_rejects_foreign_resources_and_tag_ids(notes_app) -> None:
     client, session, owner, workspace, other, other_workspace = notes_app
-    document = create_document(session, workspace=workspace, user=owner)
+    asset = create_asset(session, workspace=workspace, user=owner)
     foreign_tag_response = client.post(
         f"/v1/workspaces/{other_workspace.id}/tags",
         headers=headers(other),
@@ -293,17 +432,17 @@ def test_workspace_isolation_rejects_foreign_resources_and_tag_ids(notes_app) ->
     denied_workspace = client.get(f"/v1/workspaces/{other_workspace.id}/tags", headers=headers(owner))
     assert denied_workspace.status_code == 404
     denied_binding = client.post(
-        f"/v1/workspaces/{workspace.id}/documents/{document.id}/tags",
+        f"/v1/workspaces/{workspace.id}/assets/{asset.id}/tags",
         headers=headers(owner),
         json={"tagIds": [foreign_tag_id]},
     )
     assert denied_binding.status_code == 404
-    assert session.scalar(select(DocumentTag).where(DocumentTag.document_id == document.id)) is None
+    assert session.scalar(select(AssetTag).where(AssetTag.asset_id == asset.id)) is None
 
 
-def test_deleting_tag_cleans_document_and_note_relations(notes_app) -> None:
+def test_deleting_tag_cleans_asset_and_note_relations(notes_app) -> None:
     client, session, owner, workspace, _other, _other_workspace = notes_app
-    document = create_document(session, workspace=workspace, user=owner)
+    asset = create_asset(session, workspace=workspace, user=owner)
     note_id = client.post(
         f"/v1/workspaces/{workspace.id}/notes",
         headers=headers(owner),
@@ -315,7 +454,7 @@ def test_deleting_tag_cleans_document_and_note_relations(notes_app) -> None:
         json={"name": "Delete me", "slug": "delete-me"},
     ).json()["tag"]["id"]
     client.post(
-        f"/v1/workspaces/{workspace.id}/documents/{document.id}/tags",
+        f"/v1/workspaces/{workspace.id}/assets/{asset.id}/tags",
         headers=headers(owner),
         json={"tagIds": [tag_id]},
     )
@@ -328,6 +467,6 @@ def test_deleting_tag_cleans_document_and_note_relations(notes_app) -> None:
     deleted = client.delete(f"/v1/workspaces/{workspace.id}/tags/{tag_id}", headers=headers(owner))
 
     assert deleted.status_code == 204
-    assert session.scalar(select(DocumentTag).where(DocumentTag.tag_id == tag_id)) is None
+    assert session.scalar(select(AssetTag).where(AssetTag.tag_id == tag_id)) is None
     assert session.scalar(select(NoteTag).where(NoteTag.tag_id == tag_id)) is None
     assert client.get(f"/v1/workspaces/{workspace.id}/tags/{tag_id}", headers=headers(owner)).status_code == 404

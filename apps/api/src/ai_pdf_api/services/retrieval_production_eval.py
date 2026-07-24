@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ai_pdf_api.core.settings import RetrievalStrategy
-from ai_pdf_api.models import Document
+from ai_pdf_api.models import Asset, PdfLocatorDetail
 from ai_pdf_api.services.providers import EmbeddingProvider
 from ai_pdf_api.services.retrieval import RetrievedChunk, retrieve_query_chunks
 from ai_pdf_api.services.retrieval_eval import (
@@ -157,25 +157,27 @@ def _resolve_relevant_keys(
     cases: list[EvaluationCase],
 ) -> dict[str, frozenset[PageKey]]:
     with session_factory() as db:
-        documents = db.scalars(
-            select(Document).where(
-                Document.workspace_id == workspace_id,
-                Document.status == "ready",
-                Document.deleted_at.is_(None),
+        assets = db.scalars(
+            select(Asset).where(
+                Asset.workspace_id == workspace_id,
+                Asset.status == "ready",
+                Asset.deleted_at.is_(None),
             )
         ).all()
-    documents_by_filename: dict[str, list[Document]] = {}
-    for document in documents:
-        documents_by_filename.setdefault(document.source_filename, []).append(document)
+    assets_by_filename: dict[str, list[Asset]] = {}
+    for asset in assets:
+        if asset.asset_kind != "pdf":
+            continue
+        assets_by_filename.setdefault(asset.source_filename, []).append(asset)
 
     resolved: dict[str, frozenset[PageKey]] = {}
     for case in cases:
         relevant_keys: set[PageKey] = set()
         for label in case.relevant:
-            matches = documents_by_filename.get(label.source_filename, [])
+            matches = assets_by_filename.get(label.source_filename, [])
             if len(matches) != 1:
                 raise EvaluationDataError(
-                    f"Expected exactly one ready document named {label.source_filename!r} "
+                    f"Expected exactly one ready asset named {label.source_filename!r} "
                     f"in workspace {workspace_id}; found {len(matches)}."
                 )
             relevant_keys.update((matches[0].id, page) for page in label.pages)
@@ -194,6 +196,7 @@ def _warm_up(
     rrf_constant: int,
     runs: int,
 ) -> None:
+    pdf_asset_ids = _pdf_asset_ids(session_factory, workspace_id)
     for _ in range(runs):
         query_embedding = provider.embed_query(case.query)
         for strategy in ("dense", "hybrid"):
@@ -203,6 +206,7 @@ def _warm_up(
                     workspace_id,
                     case.query,
                     query_embedding,
+                    asset_ids=pdf_asset_ids,
                     embedding_provider=provider,
                     limit=top_k,
                     strategy=strategy,
@@ -247,6 +251,7 @@ def _evaluate_strategy(
     end_to_end_latencies: list[float] = []
     case_reports: list[dict[str, Any]] = []
     signatures: dict[str, tuple[PageKey, ...]] = {}
+    pdf_asset_ids = _pdf_asset_ids(session_factory, workspace_id)
     for prepared in prepared_cases:
         with session_factory() as db:
             started = time.perf_counter()
@@ -255,6 +260,7 @@ def _evaluate_strategy(
                 workspace_id,
                 prepared.case.query,
                 prepared.query_embedding,
+                asset_ids=pdf_asset_ids,
                 embedding_provider=provider,
                 limit=top_k,
                 strategy=strategy,
@@ -262,22 +268,22 @@ def _evaluate_strategy(
                 rrf_constant=rrf_constant,
             )
             retrieval_latency_ms = _elapsed_ms(started)
-            ranked_pages = _ranked_pages(chunks)
+            ranked_pages = _ranked_pages(db, chunks)
             ranked_results = [
                 {
                     "rank": rank,
-                    "documentId": item.document.id,
-                    "sourceFilename": item.document.source_filename,
-                    "pageNumber": item.page.page_number,
+                    "assetId": item.asset.id,
+                    "sourceFilename": item.asset.source_filename,
+                    "pageNumber": _pdf_page_number(db, item),
                     "distance": float(item.distance),
-                    "relevant": (item.document.id, item.page.page_number)
+                    "relevant": (item.asset.id, _pdf_page_number(db, item))
                     in prepared.relevant_keys,
                 }
                 for rank, item in enumerate(ranked_pages, start=1)
             ]
-        page_keys = tuple(
-            (item.document.id, item.page.page_number) for item in ranked_pages
-        )
+            page_keys = tuple(
+                (item.asset.id, _pdf_page_number(db, item)) for item in ranked_pages
+            )
         signatures[prepared.case.case_id] = page_keys
         case_metrics = calculate_case_metrics(
             list(page_keys),
@@ -374,6 +380,7 @@ def _run_concurrent_query(
     candidate_k: int,
     rrf_constant: int,
 ) -> tuple[float, tuple[PageKey, ...]]:
+    pdf_asset_ids = _pdf_asset_ids(session_factory, workspace_id)
     with session_factory() as db:
         started = time.perf_counter()
         chunks = retrieve_query_chunks(
@@ -381,6 +388,7 @@ def _run_concurrent_query(
             workspace_id,
             prepared.case.query,
             prepared.query_embedding,
+            asset_ids=pdf_asset_ids,
             embedding_provider=provider,
             limit=top_k,
             strategy=strategy,
@@ -389,16 +397,35 @@ def _run_concurrent_query(
         )
         latency_ms = _elapsed_ms(started)
         page_keys = tuple(
-            (item.document.id, item.page.page_number) for item in _ranked_pages(chunks)
+            (item.asset.id, _pdf_page_number(db, item)) for item in _ranked_pages(db, chunks)
         )
     return latency_ms, page_keys
 
 
-def _ranked_pages(chunks: list[RetrievedChunk]) -> list[RetrievedChunk]:
+def _ranked_pages(db: Session, chunks: list[RetrievedChunk]) -> list[RetrievedChunk]:
     pages: dict[PageKey, RetrievedChunk] = {}
     for item in chunks:
-        pages.setdefault((item.document.id, item.page.page_number), item)
+        pages.setdefault((item.asset.id, _pdf_page_number(db, item)), item)
     return list(pages.values())
+
+
+def _pdf_page_number(db: Session, item: RetrievedChunk) -> int:
+    detail = db.get(PdfLocatorDetail, item.locator.id)
+    if detail is None:
+        raise ValueError("PDF retrieval evaluation received a non-PDF candidate")
+    return detail.page_number
+
+
+def _pdf_asset_ids(session_factory: SessionFactory, workspace_id: str) -> list[str]:
+    with session_factory() as db:
+        return db.scalars(
+            select(Asset.id).where(
+                Asset.workspace_id == workspace_id,
+                Asset.asset_kind == "pdf",
+                Asset.status == "ready",
+                Asset.deleted_at.is_(None),
+            )
+        ).all()
 
 
 def _build_verdict(

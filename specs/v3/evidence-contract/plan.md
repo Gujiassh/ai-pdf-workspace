@@ -1,4 +1,6 @@
-# V3 Evidence 合同发现与设计计划
+# V3 Evidence 合同发现与设计计划（历史阶段）
+
+本计划记录早期发现工作。当前 PDF + 图片实施计划见 `../multimodal-workspace/plan.md`。
 ## Phase 1：基线冻结
 
 - 记录当前 Document/Page/Chunk/Citation/NoteSource 字段、API payload 和 Viewer 跳页链路。
@@ -14,9 +16,9 @@
 
 ## Phase 3：合同设计
 
-- 设计 `pdf_page/pdf_region` discriminated locator。
-- 冻结候选坐标空间、页面几何和多区域语义。
-- 比较 PDF 专用类型表、通用 JSONB 和完整 Asset 迁移。
+- 设计 `pdf_page/pdf_region` 基线，后续在当前 RFC 中扩展 `image_region`。
+- 冻结候选坐标空间、页面/图片几何和多区域语义。
+- 比较模态专用类型表、通用 JSONB 和 Asset 迁移。
 - 设计 Citation/NoteSource payload、历史迁移和回滚影响，但不实施。
 
 ## Phase 4：Fixture 与评审包
@@ -30,7 +32,7 @@
 - 小样本会高估留存，需要把七日复用视为方向性证据。
 - 区域定位问题可能实际来自 OCR/解析质量，不能提前归因到 locator 合同。
 - PDF 坐标系容易因旋转、CropBox 和渲染 viewport 产生漂移，必须用像素证据验证。
-- 一次性通用 Asset 迁移会扩大合同和恢复范围，默认不进入首个切片。
+- Asset 迁移会扩大合同和恢复范围；独立图片进入 V3 后它成为必要迁移，必须受控完成。
 
 ## 质量门禁
 

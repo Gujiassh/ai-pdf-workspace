@@ -8,15 +8,17 @@ from threading import Event
 from ai_pdf_api.db.session import SessionLocal
 from ai_pdf_api.core.settings import settings
 from ai_pdf_api.services.ingestion import claim_next_ingestion_job, process_ingestion_job
+from ai_pdf_api.modalities.ingestion import IngestionAdapterRegistry
 from ai_pdf_api.services.providers import get_embedding_provider
 
-from ai_pdf_worker.ocr import extract_page_texts_with_ocr
+from ai_pdf_worker.pdf_ingestion import PdfIngestionAdapter
 from ai_pdf_worker.metrics import WORKER_ACTIVE_JOBS, WORKER_JOBS, start_metrics_server
 
 POLL_INTERVAL_SECONDS = 1.0
 RETRY_INITIAL_DELAY_SECONDS = 1.0
 RETRY_MAX_DELAY_SECONDS = 30.0
 MAX_CONSECUTIVE_ERRORS = 5
+INGESTION_ADAPTERS = IngestionAdapterRegistry((PdfIngestionAdapter(),))
 
 logger = logging.getLogger("ai_pdf_worker")
 
@@ -37,7 +39,7 @@ def process_one_job() -> bool:
             process_ingestion_job(
                 db,
                 job_id,
-                ocr_extract_page_texts=extract_page_texts_with_ocr,
+                ingestion_adapters=INGESTION_ADAPTERS,
                 embedding_provider=get_embedding_provider(),
             )
         except Exception:

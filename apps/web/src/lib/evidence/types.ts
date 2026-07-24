@@ -1,0 +1,82 @@
+export type SpatialRegion = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type PageGeometry = {
+  cropBoxPoints: [number, number, number, number];
+  rotationDegrees: number;
+  displayWidthPoints: number;
+  displayHeightPoints: number;
+};
+
+export type PdfPageLocator = {
+  kind: "pdf_page";
+  version: number;
+  pageNumber: number;
+};
+
+export type PdfRegionLocator = {
+  kind: "pdf_region";
+  version: number;
+  pageNumber: number;
+  coordinateSpace: "pdf_crop_box_normalized_top_left_v1";
+  pageGeometry: PageGeometry;
+  regions: SpatialRegion[];
+};
+
+export type ImageRegionLocator = {
+  kind: "image_region";
+  version: number;
+  coordinateSpace: "image_normalized_top_left_v1";
+  widthPixels: number;
+  heightPixels: number;
+  orientationApplied: boolean;
+  regions: SpatialRegion[];
+};
+
+export type EvidenceLocator = PdfPageLocator | PdfRegionLocator | ImageRegionLocator;
+
+export type SourceVersions = {
+  parserVersion: string;
+  processingGeneration: number;
+  representationId: string;
+  indexVersion: number;
+};
+
+export type EvidenceTarget = {
+  assetId: string;
+  assetKind: string;
+  assetTitle: string;
+  sourceAvailable: boolean;
+  locator: EvidenceLocator;
+  sourceVersions: SourceVersions;
+};
+
+export type ImageRegionEvidenceTargetRequest = {
+  kind: "image_region";
+  assetId: string;
+  processingGeneration: number;
+  coordinateSpace: "image_normalized_top_left_v1";
+  regions: SpatialRegion[];
+};
+
+export type EvidenceTargetRequest = ImageRegionEvidenceTargetRequest;
+
+export function getPdfLocatorPage(locator: EvidenceLocator): number | null {
+  return locator.kind === "pdf_page" || locator.kind === "pdf_region"
+    ? locator.pageNumber
+    : null;
+}
+
+export function getLocatorSummary(locator: EvidenceLocator): string {
+  if (locator.kind === "pdf_page") {
+    return `PDF p.${locator.pageNumber}`;
+  }
+  if (locator.kind === "pdf_region") {
+    return `PDF p.${locator.pageNumber} · ${locator.regions.length > 1 ? `${locator.regions.length} regions` : "region"}`;
+  }
+  return `Image · ${locator.regions.length > 1 ? `${locator.regions.length} regions` : "region"}`;
+}

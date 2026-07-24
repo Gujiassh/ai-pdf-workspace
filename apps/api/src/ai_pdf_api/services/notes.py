@@ -10,16 +10,22 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ai_pdf_api.models import (
+    Asset,
+    AssetTag,
     ChatMessage,
     ChatThread,
-    Document,
-    DocumentTag,
     MessageCitation,
     Note,
     NoteSource,
     NoteTag,
     Tag,
 )
+from ai_pdf_api.modalities.evidence import (
+    EvidenceContractError,
+    clone_evidence_locator,
+    serialize_evidence_locator,
+)
+from ai_pdf_api.services.evidence_targets import EvidenceTargetError, resolve_evidence_targets
 from ai_pdf_api.schemas.notes import (
     CreateNoteRequest,
     CreateNoteResponse,
@@ -36,6 +42,7 @@ from ai_pdf_api.schemas.notes import (
     UpdateNoteRequest,
     UpdateTagRequest,
 )
+from ai_pdf_api.schemas.chat import SourceVersions
 
 
 class NotesError(RuntimeError):
@@ -108,27 +115,43 @@ def _get_tag(db: Session, workspace_id: str, tag_id: str) -> Tag:
     return tag
 
 
-def _get_document(db: Session, workspace_id: str, document_id: str) -> Document:
-    document = db.scalar(
-        select(Document).where(
-            Document.id == document_id,
-            Document.workspace_id == workspace_id,
-            Document.deleted_at.is_(None),
+def _get_asset(db: Session, workspace_id: str, asset_id: str) -> Asset:
+    asset = db.scalar(
+        select(Asset).where(
+            Asset.id == asset_id,
+            Asset.workspace_id == workspace_id,
+            Asset.deleted_at.is_(None),
         )
     )
-    if document is None:
-        raise NotesError("document_not_found", "Document not found.", 404)
-    return document
+    if asset is None:
+        raise NotesError("asset_not_found", "Asset not found.", 404)
+    return asset
 
 
-def _to_source_dto(source: NoteSource) -> NoteSourceDto:
+def _to_source_dto_with_db(db: Session, source: NoteSource) -> NoteSourceDto:
+    asset = db.get(Asset, source.asset_id)
     return NoteSourceDto(
         id=source.id,
         messageCitationId=source.message_citation_id,
-        documentId=source.document_id,
-        documentTitle=source.document_title_snapshot,
-        pageNumber=source.page_number_snapshot,
+        assetId=source.asset_id,
+        assetKind=source.asset_kind_snapshot,
+        assetTitle=source.asset_title_snapshot,
+        sourceAvailable=asset is not None and asset.deleted_at is None,
         excerpt=source.excerpt_snapshot,
+        locator=serialize_evidence_locator(
+            db,
+            source.evidence_locator_id,
+            workspace_id=source.workspace_id,
+            asset_id=source.asset_id,
+            processing_generation=source.processing_generation_snapshot,
+            representation_id=source.representation_id_snapshot,
+        ),
+        sourceVersions=SourceVersions(
+            parserVersion=source.parser_version_snapshot,
+            processingGeneration=source.processing_generation_snapshot,
+            representationId=source.representation_id_snapshot,
+            indexVersion=source.index_version_snapshot,
+        ),
         createdAt=_iso(source.created_at),
     )
 
@@ -188,7 +211,7 @@ def _to_note_dtos(db: Session, workspace_id: str, notes: list[Note]) -> list[Not
             isPinned=note.is_pinned,
             createdAt=_iso(note.created_at),
             updatedAt=_iso(note.updated_at),
-            sources=[_to_source_dto(source) for source in sources_by_note.get(note.id, [])],
+            sources=[_to_source_dto_with_db(db, source) for source in sources_by_note.get(note.id, [])],
             tagIds=[tag.id for tag in tags_by_note.get(note.id, [])],
             tags=[_to_note_tag_dto(tag) for tag in tags_by_note.get(note.id, [])],
         )
@@ -197,23 +220,23 @@ def _to_note_dtos(db: Session, workspace_id: str, notes: list[Note]) -> list[Not
 
 
 def _to_tag_dtos(db: Session, workspace_id: str, tags: list[Tag]) -> list[TagDto]:
-    document_ids_by_tag: dict[str, list[str]] = defaultdict(list)
+    asset_ids_by_tag: dict[str, list[str]] = defaultdict(list)
     note_ids_by_tag: dict[str, list[str]] = defaultdict(list)
     tag_ids = [tag.id for tag in tags]
     if tag_ids:
-        document_rows = db.execute(
-            select(DocumentTag.tag_id, DocumentTag.document_id)
-            .join(Document, Document.id == DocumentTag.document_id)
+        asset_rows = db.execute(
+            select(AssetTag.tag_id, AssetTag.asset_id)
+            .join(Asset, Asset.id == AssetTag.asset_id)
             .where(
-                DocumentTag.workspace_id == workspace_id,
-                DocumentTag.tag_id.in_(tag_ids),
-                Document.workspace_id == workspace_id,
-                Document.deleted_at.is_(None),
+                AssetTag.workspace_id == workspace_id,
+                AssetTag.tag_id.in_(tag_ids),
+                Asset.workspace_id == workspace_id,
+                Asset.deleted_at.is_(None),
             )
-            .order_by(DocumentTag.tag_id, DocumentTag.created_at, DocumentTag.id)
+            .order_by(AssetTag.tag_id, AssetTag.created_at, AssetTag.id)
         ).all()
-        for tag_id, document_id in document_rows:
-            document_ids_by_tag[tag_id].append(document_id)
+        for tag_id, asset_id in asset_rows:
+            asset_ids_by_tag[tag_id].append(asset_id)
 
         note_rows = db.execute(
             select(NoteTag.tag_id, NoteTag.note_id)
@@ -237,7 +260,7 @@ def _to_tag_dtos(db: Session, workspace_id: str, tags: list[Tag]) -> list[TagDto
             slug=tag.slug,
             color=tag.color,
             createdAt=_iso(tag.created_at),
-            documentIds=document_ids_by_tag.get(tag.id, []),
+            assetIds=asset_ids_by_tag.get(tag.id, []),
             noteIds=note_ids_by_tag.get(tag.id, []),
         )
         for tag in tags
@@ -248,7 +271,7 @@ def _binding_response(
     db: Session,
     workspace_id: str,
     *,
-    document_id: str | None = None,
+    asset_id: str | None = None,
     note_id: str | None = None,
     tag_ids: list[str],
 ) -> TagBindingsResponse:
@@ -262,7 +285,7 @@ def _binding_response(
     tags_by_id = {tag.id: tag for tag in tags}
     ordered_tags = [tags_by_id[tag_id] for tag_id in tag_ids]
     return TagBindingsResponse(
-        documentId=document_id,
+        assetId=asset_id,
         noteId=note_id,
         tagIds=tag_ids,
         tags=_to_tag_dtos(db, workspace_id, ordered_tags),
@@ -313,6 +336,13 @@ def create_note(
     try:
         citations = _find_citations(db, workspace_id, citation_ids)
         now = _now()
+        resolved_targets = resolve_evidence_targets(
+            db,
+            workspace_id=workspace_id,
+            targets=payload.evidenceTargets,
+            created_at=now,
+            include_image_payloads=False,
+        )
         note = Note(
             workspace_id=workspace_id,
             created_by_user_id=user_id,
@@ -325,22 +355,57 @@ def create_note(
         )
         db.add(note)
         db.flush()
-        db.add_all(
-            [
+        sources: list[NoteSource] = []
+        for index, citation_id in enumerate(citation_ids):
+            citation = citations[citation_id]
+            locator = clone_evidence_locator(
+                db,
+                citation.evidence_locator_id,
+                created_at=now,
+                workspace_id=citation.workspace_id,
+                asset_id=citation.asset_id,
+                processing_generation=citation.processing_generation_snapshot,
+                representation_id=citation.representation_id_snapshot,
+            )
+            sources.append(
                 NoteSource(
                     workspace_id=workspace_id,
                     note_id=note.id,
                     source_order=index,
                     message_citation_id=citation_id,
-                    document_id=citations[citation_id].document_id,
-                    page_number_snapshot=citations[citation_id].page_number_snapshot,
-                    document_title_snapshot=citations[citation_id].document_title_snapshot,
-                    excerpt_snapshot=citations[citation_id].excerpt_snapshot,
+                    evidence_locator_id=locator.id,
+                    asset_id=citation.asset_id,
+                    asset_kind_snapshot=citation.asset_kind_snapshot,
+                    asset_title_snapshot=citation.asset_title_snapshot,
+                    excerpt_snapshot=citation.excerpt_snapshot,
+                    processing_generation_snapshot=citation.processing_generation_snapshot,
+                    representation_id_snapshot=citation.representation_id_snapshot,
+                    parser_version_snapshot=citation.parser_version_snapshot,
+                    index_version_snapshot=citation.index_version_snapshot,
                     created_at=now,
                 )
-                for index, citation_id in enumerate(citation_ids)
-            ]
-        )
+            )
+        source_offset = len(sources)
+        for index, target in enumerate(resolved_targets):
+            sources.append(
+                NoteSource(
+                    workspace_id=workspace_id,
+                    note_id=note.id,
+                    source_order=source_offset + index,
+                    message_citation_id=None,
+                    evidence_locator_id=target.locator.id,
+                    asset_id=target.asset.id,
+                    asset_kind_snapshot=target.asset.asset_kind,
+                    asset_title_snapshot=target.asset.title,
+                    excerpt_snapshot=target.excerpt,
+                    processing_generation_snapshot=target.locator.processing_generation_snapshot,
+                    representation_id_snapshot=target.locator.representation_id_snapshot,
+                    parser_version_snapshot=target.representation.generator_version,
+                    index_version_snapshot=target.asset.current_index_version,
+                    created_at=now,
+                )
+            )
+        db.add_all(sources)
         db.commit()
         db.refresh(note)
         note_dto = _to_note_dtos(db, workspace_id, [note])[0]
@@ -348,6 +413,16 @@ def create_note(
     except NotesError:
         db.rollback()
         raise
+    except EvidenceContractError as error:
+        db.rollback()
+        raise NotesError(
+            "evidence_contract_invalid",
+            "A citation contains invalid evidence.",
+            500,
+        ) from error
+    except EvidenceTargetError as error:
+        db.rollback()
+        raise NotesError(error.code, error.message, error.status_code) from error
     except IntegrityError as error:
         db.rollback()
         raise NotesError("note_create_failed", "Note could not be created.", 409) from error
@@ -470,7 +545,7 @@ def update_tag(
 def delete_tag(db: Session, workspace_id: str, tag_id: str) -> None:
     try:
         tag = _get_tag(db, workspace_id, tag_id)
-        db.execute(delete(DocumentTag).where(DocumentTag.workspace_id == workspace_id, DocumentTag.tag_id == tag.id))
+        db.execute(delete(AssetTag).where(AssetTag.workspace_id == workspace_id, AssetTag.tag_id == tag.id))
         db.execute(delete(NoteTag).where(NoteTag.workspace_id == workspace_id, NoteTag.tag_id == tag.id))
         db.delete(tag)
         db.commit()
@@ -489,27 +564,27 @@ def _validate_tag_ids(db: Session, workspace_id: str, tag_ids: list[str]) -> lis
     return normalized_ids
 
 
-def replace_document_tags(
+def replace_asset_tags(
     db: Session,
     workspace_id: str,
-    document_id: str,
+    asset_id: str,
     tag_ids: list[str],
 ) -> TagBindingsResponse:
     try:
-        document = _get_document(db, workspace_id, document_id)
+        asset = _get_asset(db, workspace_id, asset_id)
         normalized_ids = _validate_tag_ids(db, workspace_id, tag_ids)
         db.execute(
-            delete(DocumentTag).where(
-                DocumentTag.workspace_id == workspace_id,
-                DocumentTag.document_id == document.id,
+            delete(AssetTag).where(
+                AssetTag.workspace_id == workspace_id,
+                AssetTag.asset_id == asset.id,
             )
         )
         now = _now()
         db.add_all(
             [
-                DocumentTag(
+                AssetTag(
                     workspace_id=workspace_id,
-                    document_id=document.id,
+                    asset_id=asset.id,
                     tag_id=tag_id,
                     created_at=now,
                 )
@@ -517,13 +592,13 @@ def replace_document_tags(
             ]
         )
         db.commit()
-        return _binding_response(db, workspace_id, document_id=document.id, tag_ids=normalized_ids)
+        return _binding_response(db, workspace_id, asset_id=asset.id, tag_ids=normalized_ids)
     except NotesError:
         db.rollback()
         raise
     except IntegrityError as error:
         db.rollback()
-        raise NotesError("document_tags_update_failed", "Document tags could not be updated.", 409) from error
+        raise NotesError("asset_tags_update_failed", "Asset tags could not be updated.", 409) from error
 
 
 def replace_note_tags(

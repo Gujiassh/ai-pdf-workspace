@@ -18,11 +18,16 @@
 - `implementation-progress.md`：当前实施进度、下一步与阶段状态
 - `../research/product-strategy-2026-07.md`：`555.txt` 战略调研、风险判断与 skill 结论
 - `../research/user-task-validation-2026-07.md`：第一用户复杂 PDF 任务验证协议、指标和立项门禁
-- `evidence-contract-rfc.md`：`pdf_page/pdf_region` Evidence 合同 Draft、迁移选项和待批准决策
+- `evidence-contract-rfc.md`：已批准的 Evidence v1 合同、迁移裁决和不可破坏不变量
 - `evidence-migration-impact.md`：Evidence 合同迁移、回滚、历史回放、删除/重索引和备份恢复影响设计
+- `multimodal-workspace-interaction-design.md`：PDF + 图片工作区信息架构、交互状态和响应式设计
+- `multimodal-asset-target-design.md`：Asset/Representation/ContentUnit/Embedding、PDF/Image locator 和迁移目标
+- `multimodal-api-data-contract-draft.md`：字段级目标表、DTO、endpoint 切换和旧数据机械映射
+- `modality-extension-contract.md`：后续音频、视频和结构化文件接入时保持核心模型与主链不变的扩展协议
 - `../../specs/v2/retrieval-quality/`：已完成的 V2-A 检索质量需求、计划和任务
 - `../../specs/v2/deployment-baseline/`：已完成的阶段 9 部署、观测、恢复和入口基线
-- `../../specs/v3/evidence-contract/`：当前进行中的用户验证与 Evidence 合同设计；不包含实施授权
+- `../../specs/v3/evidence-contract/`：用户验证与早期 Evidence 合同发现记录
+- `../../specs/v3/multimodal-workspace/`：当前 PDF + 图片 V3 需求、计划和任务；合同已批准，Phase 1 已落地，后续按阶段验收启用能力
 
 建议阅读顺序：
 
@@ -36,4 +41,4 @@
 8. `implementation-roadmap.md`
 9. `implementation-progress.md`
 
-当前开发应优先阅读 `implementation-progress.md`、`implementation-roadmap.md` 和产品/系统 SSoT。下一阶段先做用户验证和 Evidence 合同设计；V1、V2-A 与阶段 9 规格均是已完成历史基线。
+当前开发应优先阅读 `implementation-progress.md`、`implementation-roadmap.md`、两个 multimodal 目标设计和产品/系统 SSoT。真实用户验证延期为 Beta 门禁；V3 Phase 1-3 与 M401-M402 已完成，当前进入 M403 恢复语义和 M403A 容量验收。

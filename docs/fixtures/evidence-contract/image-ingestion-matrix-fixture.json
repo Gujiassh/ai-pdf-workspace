@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 1,
+  "coordinateStatus": "approved-image-orientation-fixture-v1",
+  "coordinateSpace": "image_normalized_top_left_v1",
+  "generator": {
+    "name": "generate_image_ingestion_matrix_fixture.py",
+    "pillowVersion": "12.3.0"
+  },
+  "cases": [
+    {
+      "filename": "image-ingestion-matrix/control.png",
+      "declaredMimeType": "image/png",
+      "detectedFormat": "PNG",
+      "sourceSha256": "2531c765117732e44b32865349a3f56c65276f7e3016bf265474f7a6d461a34e",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 1,
+      "normalizedWidthPixels": 48,
+      "normalizedHeightPixels": 32,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "b375ce75ccca7936576246b176a91fd1930304ba17b81064253f19b8d2f738f3",
+      "normalizedPixelSha256": "028633b77a31d7aafbd66c908c040a32c104593caf6085c50e45068ff3fd3209",
+      "markerBoxPixels": [
+        5,
+        7,
+        17,
+        15
+      ],
+      "markerRegion": {
+        "x": 0.104167,
+        "y": 0.21875,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/control.webp",
+      "declaredMimeType": "image/webp",
+      "detectedFormat": "WEBP",
+      "sourceSha256": "d104e28b9f40908f535248b19552cabe366bc253b72ee3c9c58a20a6afec980d",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 1,
+      "normalizedWidthPixels": 48,
+      "normalizedHeightPixels": 32,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "b375ce75ccca7936576246b176a91fd1930304ba17b81064253f19b8d2f738f3",
+      "normalizedPixelSha256": "028633b77a31d7aafbd66c908c040a32c104593caf6085c50e45068ff3fd3209",
+      "markerBoxPixels": [
+        5,
+        7,
+        17,
+        15
+      ],
+      "markerRegion": {
+        "x": 0.104167,
+        "y": 0.21875,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/orientation-1.jpg",
+      "declaredMimeType": "image/jpeg",
+      "detectedFormat": "JPEG",
+      "sourceSha256": "b118d0c47d2dfff3cc8de49649072fb0a74622dc4c50f4221f188a897ab67ac1",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 1,
+      "normalizedWidthPixels": 48,
+      "normalizedHeightPixels": 32,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "6887d805e7516d5210994e8e7c654c2e735569a0b9bb41f7608c850e0307fcb0",
+      "normalizedPixelSha256": "11a5cfa359fd3f50612cfd457d16770778cf8ddb93710bb9c85456f531fea38c",
+      "markerBoxPixels": [
+        5,
+        7,
+        17,
+        15
+      ],
+      "markerRegion": {
+        "x": 0.104167,
+        "y": 0.21875,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/orientation-2.jpg",
+      "declaredMimeType": "image/jpeg",
+      "detectedFormat": "JPEG",
+      "sourceSha256": "368bfd4f545693f7b878ad33904933a723f2d6dc7a488b26febb710c21bdb8f4",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 2,
+      "normalizedWidthPixels": 48,
+      "normalizedHeightPixels": 32,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "77c2c5e2fae241bd06871dbebbb7e511d2613228077f649188beb3313252bd36",
+      "normalizedPixelSha256": "ec0c9de506564f94c2637b97873d3aeb9c422d18fe6f61147824bbb7428e4f61",
+      "markerBoxPixels": [
+        31,
+        7,
+        43,
+        15
+      ],
+      "markerRegion": {
+        "x": 0.645833,
+        "y": 0.21875,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/orientation-3.jpg",
+      "declaredMimeType": "image/jpeg",
+      "detectedFormat": "JPEG",
+      "sourceSha256": "f97c190478711b27e0c2386d58e9b75cddceb63c0b69fb3868edc03fc34f1a70",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 3,
+      "normalizedWidthPixels": 48,
+      "normalizedHeightPixels": 32,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "fa9b6c16a09af40dd051a350f587d3b1848cbe054d9bf6494ec95fcb236badd9",
+      "normalizedPixelSha256": "27c0dc7c518686b0974effa2bfa84e33893b808e8e7125ce49e77ef0f1849c74",
+      "markerBoxPixels": [
+        31,
+        17,
+        43,
+        25
+      ],
+      "markerRegion": {
+        "x": 0.645833,
+        "y": 0.53125,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/orientation-4.jpg",
+      "declaredMimeType": "image/jpeg",
+      "detectedFormat": "JPEG",
+      "sourceSha256": "169eb1a6bd6bfc485d6ea3623ec62b88c0efcd7aad3224cda7be40cfd8736f19",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 4,
+      "normalizedWidthPixels": 48,
+      "normalizedHeightPixels": 32,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "e991b29c07e72a04a455e5871be3aab488d2d22474681c992731887cb8d12cbb",
+      "normalizedPixelSha256": "6a283d0732383ad64f092dcebe2624902513208ecb88d4e7b825c04acf78a24b",
+      "markerBoxPixels": [
+        5,
+        17,
+        17,
+        25
+      ],
+      "markerRegion": {
+        "x": 0.104167,
+        "y": 0.53125,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/orientation-5.jpg",
+      "declaredMimeType": "image/jpeg",
+      "detectedFormat": "JPEG",
+      "sourceSha256": "7ff346aea490e8b2c667e2e2010e1a7ac5803e71a71971ed2fb7ef87b00781d3",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 5,
+      "normalizedWidthPixels": 32,
+      "normalizedHeightPixels": 48,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "58c02aa3f65d2c1319f27fae9898e4a5e29879ea40ddd92430037f96b68ef258",
+      "normalizedPixelSha256": "16f3902dc57bb19d64ccb770fbef8aab96c2f47b71eebfcbcf3b1e4f11cc600a",
+      "markerBoxPixels": [
+        7,
+        5,
+        15,
+        17
+      ],
+      "markerRegion": {
+        "x": 0.21875,
+        "y": 0.104167,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/orientation-6.jpg",
+      "declaredMimeType": "image/jpeg",
+      "detectedFormat": "JPEG",
+      "sourceSha256": "73e9eee92f08e0bc7707dc699867d0bc48b3279a0f71948b2fb75a3506d4767a",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 6,
+      "normalizedWidthPixels": 32,
+      "normalizedHeightPixels": 48,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "afd4a8a6d4165832dcc5aeeaefc9400001d4538e6b47b3ade8c6e61fbf8feccb",
+      "normalizedPixelSha256": "5842a7fb97517f38a5748994566bcfd6c2192a0e1ebee606b70d0e69d1e9575d",
+      "markerBoxPixels": [
+        17,
+        5,
+        25,
+        17
+      ],
+      "markerRegion": {
+        "x": 0.53125,
+        "y": 0.104167,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/orientation-7.jpg",
+      "declaredMimeType": "image/jpeg",
+      "detectedFormat": "JPEG",
+      "sourceSha256": "b821565d2eb3766a31471c2539f4e9f648e55db9970b41661d8383ba7a9e161b",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 7,
+      "normalizedWidthPixels": 32,
+      "normalizedHeightPixels": 48,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "c2c8b739e2c9698ff08ae2de0fd0a53ab1e21b7abbf01b1edd1b42b89136dd56",
+      "normalizedPixelSha256": "ea972aa5fe47f9bde979a69fa7088e1a533ae791bd99b7121eba1526721e4d8b",
+      "markerBoxPixels": [
+        17,
+        31,
+        25,
+        43
+      ],
+      "markerRegion": {
+        "x": 0.53125,
+        "y": 0.645833,
+        "width": 0.25,
+        "height": 0.25
+      }
+    },
+    {
+      "filename": "image-ingestion-matrix/orientation-8.jpg",
+      "declaredMimeType": "image/jpeg",
+      "detectedFormat": "JPEG",
+      "sourceSha256": "8f816f7b42e80a94dbb6a13d3502ead1a2359b3638506f5c3c582eab1d0e69a3",
+      "sourceWidthPixels": 48,
+      "sourceHeightPixels": 32,
+      "exifOrientation": 8,
+      "normalizedWidthPixels": 32,
+      "normalizedHeightPixels": 48,
+      "orientationApplied": true,
+      "normalizedObjectSha256": "1bfeb1d484e91bbc4fe6b3b8dd7d2a35693441a36f5a6809659cfaeffa6e6339",
+      "normalizedPixelSha256": "a1e7b3aab551116f4b65f043044ae8fff5f3cb87e24df73fdb7b5f13eb336dc6",
+      "markerBoxPixels": [
+        7,
+        31,
+        15,
+        43
+      ],
+      "markerRegion": {
+        "x": 0.21875,
+        "y": 0.645833,
+        "width": 0.25,
+        "height": 0.25
+      }
+    }
+  ]
+}

@@ -12,7 +12,7 @@ export type WorkspaceSummaryDto = {
   generationProvider: string;
   generationModel: string;
   role: string;
-  documentCount: number;
+  assetCount: number;
   noteCount: number;
   threadCount: number;
   createdAt: string;

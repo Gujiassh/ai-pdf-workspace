@@ -87,3 +87,26 @@ def delete_object_if_exists(object_key: str) -> None:
             if error.code in {"NoSuchBucket", "NoSuchKey", "NoSuchObject"}:
                 return
             raise
+
+
+def delete_objects_with_prefix(prefix: str) -> None:
+    client = build_storage_client()
+    try:
+        with observe_storage_operation("list"):
+            object_keys = [
+                item.object_name
+                for item in client.list_objects(
+                    settings.minio_bucket,
+                    prefix=prefix,
+                    recursive=True,
+                )
+                if item.object_name
+            ]
+    except S3Error as error:
+        if error.code in {"NoSuchBucket", "NoSuchKey", "NoSuchObject"}:
+            return
+        raise
+
+    for object_key in object_keys:
+        with observe_storage_operation("delete"):
+            client.remove_object(settings.minio_bucket, object_key)

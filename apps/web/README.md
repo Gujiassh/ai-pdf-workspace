@@ -1,4 +1,4 @@
-# Web App (AI PDF Workspace 前端交互原型)
+# Web App (Citeframe 前端)
 
 本模块是基于 Next.js App Router 构建的高阶 PDF 研究协同工作台前端应用。
 
@@ -64,4 +64,4 @@ pnpm exec playwright install chromium
 PLAYWRIGHT_START_WEB=1 pnpm e2e
 ```
 
-默认 Playwright smoke 会验证未登录入口；设置 `PLAYWRIGHT_E2E_EMAIL`、`PLAYWRIGHT_E2E_PASSWORD` 后会额外验证登录、创建 Workspace 和 settings 持久化。再设置 `PLAYWRIGHT_E2E_PDF_PATH`，并准备可用的 API、数据库、MinIO、Worker 和模型 provider，才会执行 PDF canvas、OCR 选区、流式问答和编辑分支回归。
+默认 Playwright smoke 会验证未登录入口；设置 `PLAYWRIGHT_E2E_EMAIL`、`PLAYWRIGHT_E2E_PASSWORD` 后会额外验证登录、创建 Workspace 和 settings 持久化。再设置 `PLAYWRIGHT_E2E_PDF_PATH`，并准备可用的 API、数据库、MinIO、Worker 和模型 provider，才会执行 PDF canvas、OCR 选区、流式问答和编辑分支回归。设置 `PLAYWRIGHT_E2E_IMAGE_WORKSPACE_ID` 与 `PLAYWRIGHT_E2E_IMAGE_ASSET_ID` 后，还会对该 ready Image Asset 执行 current generation 409 恢复、单指触控平移和 Escape 只取消框选草稿的回归。

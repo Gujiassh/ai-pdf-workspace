@@ -1,10 +1,19 @@
+import type {
+  EvidenceLocator,
+  EvidenceTargetRequest,
+  SourceVersions,
+} from "@/lib/evidence/types";
+
 export type NoteSourceDto = {
   id: string;
   messageCitationId: string | null;
-  documentId: string | null;
-  documentTitle: string | null;
-  pageNumber: number | null;
-  excerpt: string | null;
+  assetId: string;
+  assetKind: string;
+  assetTitle: string;
+  sourceAvailable: boolean;
+  excerpt: string;
+  locator: EvidenceLocator;
+  sourceVersions: SourceVersions;
   createdAt: string;
 };
 
@@ -20,27 +29,15 @@ export type NoteDto = {
   tagIds: string[];
 };
 
-export type NoteListResponseDto = {
-  items: NoteDto[];
-  nextCursor: string | null;
-};
-
+export type NoteListResponseDto = { items: NoteDto[]; nextCursor: string | null };
 export type CreateNoteRequestDto = {
   title?: string | null;
   bodyMd: string;
   sourceCitationIds?: string[];
+  evidenceTargets?: EvidenceTargetRequest[];
 };
-
-export type CreateNoteResponseDto = {
-  note: NoteDto;
-  sources: NoteSourceDto[];
-};
-
-export type UpdateNoteRequestDto = {
-  title?: string | null;
-  bodyMd?: string;
-  isPinned?: boolean;
-};
+export type CreateNoteResponseDto = { note: NoteDto; sources: NoteSourceDto[] };
+export type UpdateNoteRequestDto = { title?: string | null; bodyMd?: string; isPinned?: boolean };
 
 export type TagDto = {
   id: string;
@@ -49,25 +46,11 @@ export type TagDto = {
   slug: string;
   color: string | null;
   createdAt: string;
-  documentIds?: string[];
+  assetIds?: string[];
   noteIds?: string[];
 };
 
-export type TagListResponseDto = {
-  items: TagDto[];
-  nextCursor: string | null;
-};
-
-export type CreateTagRequestDto = {
-  name: string;
-  slug?: string;
-  color?: string | null;
-};
-
-export type CreateTagResponseDto = {
-  tag: TagDto;
-};
-
-export type TagBindingsRequestDto = {
-  tagIds: string[];
-};
+export type TagListResponseDto = { items: TagDto[]; nextCursor: string | null };
+export type CreateTagRequestDto = { name: string; slug?: string; color?: string | null };
+export type CreateTagResponseDto = { tag: TagDto };
+export type TagBindingsRequestDto = { tagIds: string[] };

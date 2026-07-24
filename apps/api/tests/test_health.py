@@ -44,6 +44,7 @@ def test_readiness_returns_dependency_status_and_503_when_unavailable(monkeypatc
         "readiness_checks",
         lambda: {
             "database": "ok",
+            "modalityCatalog": "ok",
             "objectStorage": "failed",
             "embeddingProvider": "ok",
             "generationProvider": "ok",
@@ -59,6 +60,7 @@ def test_readiness_returns_dependency_status_and_503_when_unavailable(monkeypatc
         "service": "api",
         "checks": {
             "database": "ok",
+            "modalityCatalog": "ok",
             "objectStorage": "failed",
             "embeddingProvider": "ok",
             "generationProvider": "ok",

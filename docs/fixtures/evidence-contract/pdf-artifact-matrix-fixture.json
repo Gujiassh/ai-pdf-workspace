@@ -1,0 +1,492 @@
+{
+  "schemaVersion": 1,
+  "coordinateBasis": "pdf_crop_box_normalized_top_left_v1",
+  "cropBox": [
+    36.0,
+    72.0,
+    576.0,
+    738.0
+  ],
+  "pages": [
+    {
+      "label": "table-rotation-0",
+      "pageNumber": 1,
+      "artifactKind": "pdf_table",
+      "artifactText": "| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |",
+      "pixelClass": "table",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 0,
+      "displayWidthPoints": 540.0,
+      "displayHeightPoints": 666.0,
+      "sourceRegion": {
+        "x": 0.133333,
+        "y": 0.375375,
+        "width": 0.733333,
+        "height": 0.18018
+      },
+      "regions": [
+        {
+          "x": 0.133333,
+          "y": 0.375375,
+          "width": 0.733333,
+          "height": 0.18018
+        }
+      ]
+    },
+    {
+      "label": "table-rotation-90",
+      "pageNumber": 2,
+      "artifactKind": "pdf_table",
+      "artifactText": "| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |",
+      "pixelClass": "table",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 90,
+      "displayWidthPoints": 666.0,
+      "displayHeightPoints": 540.0,
+      "sourceRegion": {
+        "x": 0.444444,
+        "y": 0.133333,
+        "width": 0.18018,
+        "height": 0.733333
+      },
+      "regions": [
+        {
+          "x": 0.444444,
+          "y": 0.133333,
+          "width": 0.18018,
+          "height": 0.733333
+        }
+      ]
+    },
+    {
+      "label": "table-rotation-180",
+      "pageNumber": 3,
+      "artifactKind": "pdf_table",
+      "artifactText": "| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |",
+      "pixelClass": "table",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 180,
+      "displayWidthPoints": 540.0,
+      "displayHeightPoints": 666.0,
+      "sourceRegion": {
+        "x": 0.133333,
+        "y": 0.444444,
+        "width": 0.733333,
+        "height": 0.18018
+      },
+      "regions": [
+        {
+          "x": 0.133333,
+          "y": 0.444444,
+          "width": 0.733333,
+          "height": 0.18018
+        }
+      ]
+    },
+    {
+      "label": "table-rotation-270",
+      "pageNumber": 4,
+      "artifactKind": "pdf_table",
+      "artifactText": "| Model | Score |\n| --- | --- |\n| Atlas | 91.4 |",
+      "pixelClass": "table",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 270,
+      "displayWidthPoints": 666.0,
+      "displayHeightPoints": 540.0,
+      "sourceRegion": {
+        "x": 0.375375,
+        "y": 0.133333,
+        "width": 0.18018,
+        "height": 0.733333
+      },
+      "regions": [
+        {
+          "x": 0.375375,
+          "y": 0.133333,
+          "width": 0.18018,
+          "height": 0.733333
+        }
+      ]
+    },
+    {
+      "label": "raster-rotation-0",
+      "pageNumber": 5,
+      "artifactKind": "pdf_figure",
+      "artifactText": "Figure 1. Raster result evidence.",
+      "pixelClass": "raster",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 0,
+      "displayWidthPoints": 540.0,
+      "displayHeightPoints": 666.0,
+      "sourceRegion": {
+        "x": 0.166667,
+        "y": 0.345345,
+        "width": 0.666667,
+        "height": 0.27027
+      },
+      "regions": [
+        {
+          "x": 0.166667,
+          "y": 0.345345,
+          "width": 0.666667,
+          "height": 0.27027
+        },
+        {
+          "x": 0.166667,
+          "y": 0.645908,
+          "width": 0.294352,
+          "height": 0.022694
+        }
+      ]
+    },
+    {
+      "label": "raster-rotation-90",
+      "pageNumber": 6,
+      "artifactKind": "pdf_figure",
+      "artifactText": "Figure 91. Raster result evidence.",
+      "pixelClass": "raster",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 90,
+      "displayWidthPoints": 666.0,
+      "displayHeightPoints": 540.0,
+      "sourceRegion": {
+        "x": 0.384384,
+        "y": 0.166667,
+        "width": 0.27027,
+        "height": 0.666667
+      },
+      "regions": [
+        {
+          "x": 0.384384,
+          "y": 0.166667,
+          "width": 0.27027,
+          "height": 0.666667
+        },
+        {
+          "x": 0.331398,
+          "y": 0.166667,
+          "width": 0.022694,
+          "height": 0.305678
+        }
+      ]
+    },
+    {
+      "label": "raster-rotation-180",
+      "pageNumber": 7,
+      "artifactKind": "pdf_figure",
+      "artifactText": "Figure 181. Raster result evidence.",
+      "pixelClass": "raster",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 180,
+      "displayWidthPoints": 540.0,
+      "displayHeightPoints": 666.0,
+      "sourceRegion": {
+        "x": 0.166667,
+        "y": 0.384384,
+        "width": 0.666667,
+        "height": 0.27027
+      },
+      "regions": [
+        {
+          "x": 0.166667,
+          "y": 0.384384,
+          "width": 0.666667,
+          "height": 0.27027
+        },
+        {
+          "x": 0.51633,
+          "y": 0.331398,
+          "width": 0.317004,
+          "height": 0.022694
+        }
+      ]
+    },
+    {
+      "label": "raster-rotation-270",
+      "pageNumber": 8,
+      "artifactKind": "pdf_figure",
+      "artifactText": "Figure 271. Raster result evidence.",
+      "pixelClass": "raster",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 270,
+      "displayWidthPoints": 666.0,
+      "displayHeightPoints": 540.0,
+      "sourceRegion": {
+        "x": 0.345345,
+        "y": 0.166667,
+        "width": 0.27027,
+        "height": 0.666667
+      },
+      "regions": [
+        {
+          "x": 0.345345,
+          "y": 0.166667,
+          "width": 0.27027,
+          "height": 0.666667
+        },
+        {
+          "x": 0.645908,
+          "y": 0.51633,
+          "width": 0.022694,
+          "height": 0.317004
+        }
+      ]
+    },
+    {
+      "label": "vector-rotation-0",
+      "pageNumber": 9,
+      "artifactKind": "pdf_figure",
+      "artifactText": "Chart 1. Vector trend evidence.",
+      "pixelClass": "vector",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 0,
+      "displayWidthPoints": 540.0,
+      "displayHeightPoints": 666.0,
+      "sourceRegion": {
+        "x": 0.168519,
+        "y": 0.358859,
+        "width": 0.674074,
+        "height": 0.234234
+      },
+      "regions": [
+        {
+          "x": 0.168519,
+          "y": 0.358859,
+          "width": 0.674074,
+          "height": 0.234234
+        },
+        {
+          "x": 0.17037,
+          "y": 0.621884,
+          "width": 0.281926,
+          "height": 0.022694
+        }
+      ]
+    },
+    {
+      "label": "vector-rotation-90",
+      "pageNumber": 10,
+      "artifactKind": "pdf_figure",
+      "artifactText": "Chart 91. Vector trend evidence.",
+      "pixelClass": "vector",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 90,
+      "displayWidthPoints": 666.0,
+      "displayHeightPoints": 540.0,
+      "sourceRegion": {
+        "x": 0.406907,
+        "y": 0.168519,
+        "width": 0.234234,
+        "height": 0.674074
+      },
+      "regions": [
+        {
+          "x": 0.406907,
+          "y": 0.168519,
+          "width": 0.234234,
+          "height": 0.674074
+        },
+        {
+          "x": 0.355422,
+          "y": 0.17037,
+          "width": 0.022694,
+          "height": 0.293252
+        }
+      ]
+    },
+    {
+      "label": "vector-rotation-180",
+      "pageNumber": 11,
+      "artifactKind": "pdf_figure",
+      "artifactText": "Chart 181. Vector trend evidence.",
+      "pixelClass": "vector",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 180,
+      "displayWidthPoints": 540.0,
+      "displayHeightPoints": 666.0,
+      "sourceRegion": {
+        "x": 0.157407,
+        "y": 0.406907,
+        "width": 0.674074,
+        "height": 0.234234
+      },
+      "regions": [
+        {
+          "x": 0.157407,
+          "y": 0.406907,
+          "width": 0.674074,
+          "height": 0.234234
+        },
+        {
+          "x": 0.525052,
+          "y": 0.355422,
+          "width": 0.304578,
+          "height": 0.022694
+        }
+      ]
+    },
+    {
+      "label": "vector-rotation-270",
+      "pageNumber": 12,
+      "artifactKind": "pdf_figure",
+      "artifactText": "Chart 271. Vector trend evidence.",
+      "pixelClass": "vector",
+      "mediaBoxPoints": [
+        0.0,
+        0.0,
+        612.0,
+        792.0
+      ],
+      "cropBoxPoints": [
+        36.0,
+        72.0,
+        576.0,
+        738.0
+      ],
+      "rotationDegrees": 270,
+      "displayWidthPoints": 666.0,
+      "displayHeightPoints": 540.0,
+      "sourceRegion": {
+        "x": 0.358859,
+        "y": 0.157407,
+        "width": 0.234234,
+        "height": 0.674074
+      },
+      "regions": [
+        {
+          "x": 0.358859,
+          "y": 0.157407,
+          "width": 0.234234,
+          "height": 0.674074
+        },
+        {
+          "x": 0.621884,
+          "y": 0.525052,
+          "width": 0.022694,
+          "height": 0.304578
+        }
+      ]
+    }
+  ]
+}

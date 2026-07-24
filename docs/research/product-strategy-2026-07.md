@@ -9,7 +9,7 @@
 
 ## 核心结论
 
-当前页面不需要再次推翻。Chat 是主任务，PDF 是按需证据与精读层，这个交互主次已经符合用户实际工作流。
+Chat-first 主次不推翻，但资产管理、证据范围和右侧 Viewer 需要按 PDF + 图片重新设计。Chat 继续是主任务，右侧从 PDF 阅读器演进为按 locator 打开的通用 Evidence Viewer。
 
 需要改变的是产品定位：从宽泛的个人学习、知识整理和面试展示，收敛为帮助 AI/软件工程师与技术研究者基于多份论文、技术规范和评测报告形成可核验、可复用的技术结论。
 
@@ -20,26 +20,26 @@
 - 产品风险：中高。尚无证据证明第一用户会为区域级证据核验持续回访。
 - 工程连续性：中等偏强。现有 Workspace、Chat、citation、note、Hybrid 与 Viewer 为多模态 PDF 提供了可靠基线。
 - 最大假设：用户会反复使用“得到答案 -> 核验证据 -> 沉淀结论”，而不是技术上能否解析视频。
-- 最小产品验证：至少 5 名第一用户完成至少 20 个真实复杂 PDF 任务，对比手工与产品流程的任务耗时、核验率、支持率和转笔记率；无参与者的问题集只能作为内部质量预评测。
+- 最小产品验证：至少 5 名第一用户完成至少 20 个真实复杂资产任务，对比手工与产品流程的任务耗时、核验率、支持率和转笔记率；该验证延期为 Beta 门禁，不再阻塞内部工程实现，也不能被内部题库替代。
 
 ## 战略裁决
 
 ### Now
 
-- 完成并冻结阶段 9 可复现基线。
-- 建立用户任务和产品指标基线。
-- 完成索引重建与解析版本前置能力。
-- 只设计 Evidence 合同，不实施持久化/API 迁移。
+- V3 范围固定为多模态 PDF + 独立图片。
+- 完成资产栏、Chat 证据范围和 Evidence Viewer 的重新设计。
+- 批准 Asset/Representation/ContentUnit/Embedding、locator、API 与迁移合同。
+- 真实用户任务验证延期为 Beta 门禁。
 
 ### Next
 
-- 只做多模态 PDF 的纵向闭环。
-- 顺序为布局/OCR bbox、表格、图片/图表、`pdf_region` citation、Viewer 精确高亮和分层评测。
+- 先迁移统一 Asset 基础，再完成多模态 PDF 和独立图片纵向闭环。
+- 顺序为 Asset 合同迁移、布局/OCR bbox、表格/图表、`pdf_region`、独立图片 OCR/caption、`image_region` 和 Evidence Viewer 精确高亮。
 - 视觉向量和 reranker 只有在评测证明 caption/text/现有 RRF 不足时才进入。
 
 ### Later
 
-- 独立图片、Audio、Video 分别立项和验收。
+- Audio、Video 分别立项和验收。
 - Omnilabel 作为独立 discovery/edition/integration，先解决用户、权限、数据连接、结构化查询和质量分析语义。
 
 ## 目标架构与当前合同
@@ -51,6 +51,7 @@
 - 数据迁移与回滚
 - Citation API 版本和 locator 联合类型
 - bbox 坐标原点、单位、页面尺寸、旋转、CropBox 和多区域语义
+- 图片方向归一化、像素几何和区域坐标语义
 - 历史聊天/笔记来源回放
 - 重索引不改变旧 citation 快照
 - 源删除后的快照语义
@@ -60,4 +61,4 @@
 
 当前已安装 skills 足够覆盖产品定位、风险预演、路线规划、架构边界和阶段 9 部署。没有发现一个具体能力缺口值得去 GitHub 随机安装新的 system-design skill。
 
-真实缺口是项目领域知识和证据：多模态 PDF 解析方案、区域定位合同、真实复杂 PDF fixture 和多模态 RAG 评测集。进入 Next 时应定向研究 Docling、MinerU、PaddleOCR、PyMuPDF 等实现与公开评测；Evidence 合同稳定后，可用 `skill-creator` 把本项目的合同/评审清单固化为 repo-specific skill。
+真实缺口是项目领域知识和证据：多模态 PDF/图片解析方案、区域定位合同、真实复杂 fixture 和多模态 RAG 评测集。实施时应定向研究 Docling、MinerU、PaddleOCR、PyMuPDF 等实现与公开评测；Evidence 合同稳定后，可用 `skill-creator` 把本项目的合同/评审清单固化为 repo-specific skill。

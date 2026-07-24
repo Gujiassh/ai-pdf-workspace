@@ -1,0 +1,48 @@
+{
+  "phase": "before",
+  "viewport": "mobile",
+  "results": [
+    {
+      "citationId": "c5aff0a0-1ab0-5392-a859-7ad528e45e8c",
+      "kind": "pdf",
+      "pixels": {
+        "width": 293,
+        "height": 379,
+        "nonWhite": 8,
+        "colors": 9,
+        "pixelSha256": "739f2af209f92a95f7387e1a202d27a03b12508792ec2d38e0910d759fc56af3"
+      },
+      "regionCount": 1,
+      "regionGeometry": [
+        {
+          "x": 0.119987,
+          "y": 0.179997,
+          "width": 0.5,
+          "height": 0.299967
+        }
+      ],
+      "screenshotPath": "docs/evals/artifacts/m403-v1/before-mobile-pdf-history.png"
+    },
+    {
+      "citationId": "bfeb85b6-cebf-58e5-a57e-66706a679002",
+      "kind": "image",
+      "pixels": {
+        "width": 640,
+        "height": 480,
+        "nonWhite": 95,
+        "colors": 4,
+        "pixelSha256": "ea169f70944819e409bc30bb89eccf66f0028f0b48d67ebb0bfaf331158d41c4"
+      },
+      "regionCount": 1,
+      "regionGeometry": [
+        {
+          "x": 0.149973,
+          "y": 0.199951,
+          "width": 0.5,
+          "height": 0.449951
+        }
+      ],
+      "screenshotPath": "docs/evals/artifacts/m403-v1/before-mobile-image-history.png"
+    }
+  ]
+}

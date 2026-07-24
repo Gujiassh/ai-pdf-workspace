@@ -1,0 +1,241 @@
+{
+  "schemaVersion": "m402-worker-execution-v1",
+  "goldenSchemaVersion": "multimodal-golden-v1",
+  "testFile": "apps/worker/tests/test_multimodal_golden_execution.py",
+  "testFileSha256": "e6237a76d04a45d71d525121aa3b78f018f2b556b93c1ed98899ad31c61f0f60",
+  "testNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+  "cases": [
+    {
+      "caseId": "retrieval-pdf-rotation",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": true,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "retrieval-pdf-scan",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": true,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "retrieval-pdf-table",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": true,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "retrieval-pdf-chart",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": true,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "retrieval-image-chart",
+      "layer": "retrieval",
+      "modality": "image",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": true,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "retrieval-image-caption",
+      "layer": "retrieval",
+      "modality": "image",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": true,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "retrieval-mixed-trend",
+      "layer": "retrieval",
+      "modality": "mixed",
+      "targetCount": 2,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": true,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "evidence-pdf-cropbox",
+      "layer": "evidence",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "evidence-pdf-table-cell",
+      "layer": "evidence",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "evidence-pdf-multi-region",
+      "layer": "evidence",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "evidence-pdf-raster-rotation",
+      "layer": "evidence",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "evidence-image-chart",
+      "layer": "evidence",
+      "modality": "image",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "evidence-image-caption",
+      "layer": "evidence",
+      "modality": "image",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "evidence-mixed",
+      "layer": "evidence",
+      "modality": "mixed",
+      "targetCount": 2,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": null,
+      "generationMode": null,
+      "passed": true
+    },
+    {
+      "caseId": "answer-pdf-table",
+      "layer": "answer",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": true,
+      "generationMode": "scripted",
+      "passed": true
+    },
+    {
+      "caseId": "answer-pdf-chart",
+      "layer": "answer",
+      "modality": "pdf",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": true,
+      "generationMode": "scripted",
+      "passed": true
+    },
+    {
+      "caseId": "answer-image-trend",
+      "layer": "answer",
+      "modality": "image",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": true,
+      "generationMode": "scripted",
+      "passed": true
+    },
+    {
+      "caseId": "answer-image-constraint",
+      "layer": "answer",
+      "modality": "image",
+      "targetCount": 1,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": true,
+      "generationMode": "scripted",
+      "passed": true
+    },
+    {
+      "caseId": "answer-mixed-compare",
+      "layer": "answer",
+      "modality": "mixed",
+      "targetCount": 2,
+      "adapterExecutionPassed": true,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": true,
+      "generationMode": "scripted",
+      "passed": true
+    },
+    {
+      "caseId": "answer-refuse-pdf",
+      "layer": "answer",
+      "modality": "pdf",
+      "targetCount": 0,
+      "adapterExecutionPassed": null,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": true,
+      "generationMode": "scripted",
+      "passed": true
+    },
+    {
+      "caseId": "answer-refuse-mixed",
+      "layer": "answer",
+      "modality": "mixed",
+      "targetCount": 0,
+      "adapterExecutionPassed": null,
+      "retrievalExecutionPassed": null,
+      "chatOrchestrationPassed": true,
+      "generationMode": "scripted",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

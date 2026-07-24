@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     generation_timeout_seconds: float = Field(default=120.0, gt=0)
     generation_max_output_tokens: int = Field(default=1200, ge=64, le=8192)
 
+    image_caption_provider: str = Field(default="openai", pattern="^openai$")
+    image_caption_model: str = "gpt-5.5"
+    image_caption_version: str = "image-caption-v1"
+    image_caption_detail: Literal["low", "high", "original", "auto"] = "high"
+    image_caption_timeout_seconds: float = Field(default=120.0, gt=0)
+    image_caption_max_output_tokens: int = Field(default=320, ge=64, le=2048)
+
     openai_api_key: str | None = Field(
         default=None,
         validation_alias=AliasChoices("AI_PDF_OPENAI_API_KEY", "OPENAI_API_KEY"),

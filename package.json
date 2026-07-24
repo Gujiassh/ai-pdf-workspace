@@ -1,12 +1,12 @@
 {
-  "name": "ai-pdf-workspace",
+  "name": "citeframe",
   "private": true,
   "packageManager": "pnpm@10.33.4",
   "scripts": {
     "dev": "pnpm dev:web",
-    "dev:web": "pnpm --filter @ai-pdf-workspace/web dev",
-    "build:web": "pnpm --filter @ai-pdf-workspace/web build",
-    "lint:web": "pnpm --filter @ai-pdf-workspace/web lint",
+    "dev:web": "pnpm --filter @citeframe/web dev",
+    "build:web": "pnpm --filter @citeframe/web build",
+    "lint:web": "pnpm --filter @citeframe/web lint",
     "dev:api": "uv run --project apps/api uvicorn ai_pdf_api.main:app --reload --host 0.0.0.0 --port 8000",
     "dev:worker": "uv run --project apps/worker python -m ai_pdf_worker.main"
   }

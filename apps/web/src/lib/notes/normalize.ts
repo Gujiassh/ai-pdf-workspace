@@ -1,6 +1,6 @@
-import type { Document, Note, Tag } from "@/lib/workspace-context";
+import type { Asset, Note, Tag } from "@/lib/workspace-context";
 
-import type { NoteDto, NoteSourceDto, TagDto } from "./types";
+import type { NoteDto, TagDto } from "./types";
 
 export function toUiTag(tag: TagDto): Tag {
   return {
@@ -12,24 +12,24 @@ export function toUiTag(tag: TagDto): Tag {
 }
 
 export function toUiNote(note: NoteDto, tagsById: Map<string, Tag>): Note {
-  const source = note.sources.find(
-    (item: NoteSourceDto) => item.documentId && item.pageNumber !== null,
-  );
+  const source = note.sources[0];
   return {
     id: note.id,
     workspaceId: note.workspaceId,
     title: note.title?.trim() || "Untitled note",
     content: note.bodyMd,
-    source:
-      source?.documentId && source.pageNumber !== null
-        ? {
-            messageCitationId: source.messageCitationId ?? undefined,
-            documentId: source.documentId,
-            documentName: source.documentTitle ?? "Document",
-            pageNumber: source.pageNumber,
-            snippet: source.excerpt ?? "",
-          }
-        : undefined,
+    source: source
+      ? {
+          messageCitationId: source.messageCitationId ?? undefined,
+          assetId: source.assetId,
+          assetKind: source.assetKind,
+          assetTitle: source.assetTitle,
+          sourceAvailable: source.sourceAvailable,
+          excerpt: source.excerpt,
+          locator: source.locator,
+          sourceVersions: source.sourceVersions,
+        }
+      : undefined,
     tags: note.tagIds
       .map((tagId) => tagsById.get(tagId)?.name)
       .filter((name): name is string => Boolean(name)),
@@ -37,17 +37,17 @@ export function toUiNote(note: NoteDto, tagsById: Map<string, Tag>): Note {
   };
 }
 
-export function applyDocumentTags(documents: Document[], tags: TagDto[]): Document[] {
-  const tagNamesByDocumentId = new Map<string, string[]>();
+export function applyAssetTags(assets: Asset[], tags: TagDto[]): Asset[] {
+  const tagNamesByAssetId = new Map<string, string[]>();
   for (const tag of tags) {
-    for (const documentId of tag.documentIds ?? []) {
-      const names = tagNamesByDocumentId.get(documentId) ?? [];
+    for (const assetId of tag.assetIds ?? []) {
+      const names = tagNamesByAssetId.get(assetId) ?? [];
       names.push(tag.name);
-      tagNamesByDocumentId.set(documentId, names);
+      tagNamesByAssetId.set(assetId, names);
     }
   }
-  return documents.map((document) => ({
-    ...document,
-    tags: tagNamesByDocumentId.get(document.id) ?? [],
+  return assets.map((asset) => ({
+    ...asset,
+    tags: tagNamesByAssetId.get(asset.id) ?? [],
   }));
 }

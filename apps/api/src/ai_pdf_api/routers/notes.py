@@ -28,7 +28,7 @@ from ai_pdf_api.services.notes import (
     get_tag,
     list_notes,
     list_tags,
-    replace_document_tags,
+    replace_asset_tags,
     replace_note_tags,
     update_note,
     update_tag,
@@ -183,17 +183,17 @@ def delete_workspace_tag(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/documents/{document_id}/tags", response_model=TagBindingsResponse)
-def replace_workspace_document_tags(
+@router.post("/assets/{asset_id}/tags", response_model=TagBindingsResponse)
+def replace_workspace_asset_tags(
     workspace_id: str,
-    document_id: str,
+    asset_id: str,
     payload: TagBindingsRequest,
     user_id: str = Depends(require_user_id),
     db: Session = Depends(get_db),
 ) -> TagBindingsResponse:
     get_accessible_workspace(db, user_id, workspace_id)
     try:
-        return replace_document_tags(db, workspace_id, document_id, payload.tagIds)
+        return replace_asset_tags(db, workspace_id, asset_id, payload.tagIds)
     except NotesError as error:
         raise _http_error(error) from error
 

@@ -1,0 +1,432 @@
+{
+  "schemaVersion": "multimodal-execution-report-v1",
+  "goldenSchemaVersion": "multimodal-golden-v1",
+  "liveRunId": "2102749caedc",
+  "summary": {
+    "caseCount": 21,
+    "engineeringCaseCount": 21,
+    "fullStackEvidenceCaseCount": 7,
+    "desktopTargetCount": 8,
+    "mobileTargetCount": 8,
+    "screenshotCount": 16,
+    "minimumApprovedCoverageRatio": 0.29433319693255966,
+    "desktopRealBffResponseCount": 28,
+    "mobileRealBffResponseCount": 28,
+    "scriptedAnswerCaseCount": 7,
+    "realModelAnswerCaseCount": 7,
+    "engineeringExecutionPassed": true,
+    "fullStackEvidencePassed": true,
+    "realModelQualityPassed": true,
+    "releaseGatePassed": true
+  },
+  "cases": [
+    {
+      "caseId": "retrieval-pdf-rotation",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "status": "passed"
+    },
+    {
+      "caseId": "retrieval-pdf-scan",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "status": "passed"
+    },
+    {
+      "caseId": "retrieval-pdf-table",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "status": "passed"
+    },
+    {
+      "caseId": "retrieval-pdf-chart",
+      "layer": "retrieval",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "status": "passed"
+    },
+    {
+      "caseId": "retrieval-image-chart",
+      "layer": "retrieval",
+      "modality": "image",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "status": "passed"
+    },
+    {
+      "caseId": "retrieval-image-caption",
+      "layer": "retrieval",
+      "modality": "image",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "status": "passed"
+    },
+    {
+      "caseId": "retrieval-mixed-trend",
+      "layer": "retrieval",
+      "modality": "mixed",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "status": "passed"
+    },
+    {
+      "caseId": "evidence-pdf-cropbox",
+      "layer": "evidence",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "fullStackEvidence": {
+        "desktopScreenshots": [
+          "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-cropbox-pdf-coordinate.png"
+        ],
+        "mobileScreenshots": [
+          "docs/evals/artifacts/m402-v1/mobile-evidence-pdf-cropbox-pdf-coordinate.png"
+        ],
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "evidence-pdf-table-cell",
+      "layer": "evidence",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "fullStackEvidence": {
+        "desktopScreenshots": [
+          "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-table-cell-pdf-coordinate.png"
+        ],
+        "mobileScreenshots": [
+          "docs/evals/artifacts/m402-v1/mobile-evidence-pdf-table-cell-pdf-coordinate.png"
+        ],
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "evidence-pdf-multi-region",
+      "layer": "evidence",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "fullStackEvidence": {
+        "desktopScreenshots": [
+          "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-multi-region-pdf-coordinate.png"
+        ],
+        "mobileScreenshots": [
+          "docs/evals/artifacts/m402-v1/mobile-evidence-pdf-multi-region-pdf-coordinate.png"
+        ],
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "evidence-pdf-raster-rotation",
+      "layer": "evidence",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "fullStackEvidence": {
+        "desktopScreenshots": [
+          "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-raster-rotation-pdf-artifact-matrix.png"
+        ],
+        "mobileScreenshots": [
+          "docs/evals/artifacts/m402-v1/mobile-evidence-pdf-raster-rotation-pdf-artifact-matrix.png"
+        ],
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "evidence-image-chart",
+      "layer": "evidence",
+      "modality": "image",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "fullStackEvidence": {
+        "desktopScreenshots": [
+          "docs/evals/artifacts/m402-v1/desktop-evidence-image-chart-image-coordinate.png"
+        ],
+        "mobileScreenshots": [
+          "docs/evals/artifacts/m402-v1/mobile-evidence-image-chart-image-coordinate.png"
+        ],
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "evidence-image-caption",
+      "layer": "evidence",
+      "modality": "image",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "fullStackEvidence": {
+        "desktopScreenshots": [
+          "docs/evals/artifacts/m402-v1/desktop-evidence-image-caption-image-coordinate.png"
+        ],
+        "mobileScreenshots": [
+          "docs/evals/artifacts/m402-v1/mobile-evidence-image-caption-image-coordinate.png"
+        ],
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "evidence-mixed",
+      "layer": "evidence",
+      "modality": "mixed",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "fullStackEvidence": {
+        "desktopScreenshots": [
+          "docs/evals/artifacts/m402-v1/desktop-evidence-mixed-pdf-artifact-matrix.png",
+          "docs/evals/artifacts/m402-v1/desktop-evidence-mixed-image-coordinate.png"
+        ],
+        "mobileScreenshots": [
+          "docs/evals/artifacts/m402-v1/mobile-evidence-mixed-pdf-artifact-matrix.png",
+          "docs/evals/artifacts/m402-v1/mobile-evidence-mixed-image-coordinate.png"
+        ],
+        "status": "passed"
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "answer-pdf-table",
+      "layer": "answer",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "realModel": {
+        "status": "passed",
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "output": "Atlas has a score of **91.4**.",
+        "matchedAnswerPoints": [
+          "Atlas has a score of 91.4."
+        ],
+        "refusalMatched": false
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "answer-pdf-chart",
+      "layer": "answer",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "realModel": {
+        "status": "passed",
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "output": "The PDF fixture says: \u201cTrend rises after the third point.\u201d",
+        "matchedAnswerPoints": [
+          "The trend rises after the third point."
+        ],
+        "refusalMatched": false
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "answer-image-trend",
+      "layer": "answer",
+      "modality": "image",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "realModel": {
+        "status": "passed",
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "output": "The image says the sustained latency drop begins at **Release 4**.",
+        "matchedAnswerPoints": [
+          "Release 4 begins the sustained drop."
+        ],
+        "refusalMatched": false
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "answer-image-constraint",
+      "layer": "answer",
+      "modality": "image",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "realModel": {
+        "status": "passed",
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "output": "The image instructs the reader to verify the **chart and caption together** as evidence that **Release 4 begins the sustained drop**.",
+        "matchedAnswerPoints": [
+          "Verify the chart and caption together."
+        ],
+        "refusalMatched": false
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "answer-mixed-compare",
+      "layer": "answer",
+      "modality": "mixed",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "realModel": {
+        "status": "passed",
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "output": "The selected assets describe opposite changes.\n\nThe PDF evidence says: \u201cFigure 1. Trend rises after the third point.\u201d  \nThe image observation says latency \u201cfalls after the third release\u201d and that \u201cRelease 4 begins the sustained drop.\u201d\n\nSo, the PDF chart describes a rise after the third point, while the image observation describes a sustained drop beginning after the third release.",
+        "matchedAnswerPoints": [
+          "The PDF trend rises after the third point.",
+          "The image says Release 4 begins a sustained drop."
+        ],
+        "refusalMatched": false
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "answer-refuse-pdf",
+      "layer": "answer",
+      "modality": "pdf",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "realModel": {
+        "status": "passed",
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "output": "The selected assets do not contain supporting evidence for Atlas energy consumption. They only report `Atlas` with a `Score` of `91.4`.",
+        "matchedAnswerPoints": [],
+        "refusalMatched": true
+      },
+      "status": "passed"
+    },
+    {
+      "caseId": "answer-refuse-mixed",
+      "layer": "answer",
+      "modality": "mixed",
+      "engineeringExecution": "passed",
+      "workerTestNode": "apps/worker/tests/test_multimodal_golden_execution.py::test_m402_worker_executes_every_golden_evidence_target",
+      "realModel": {
+        "status": "passed",
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "output": "The selected assets do not contain supporting evidence identifying which production customer approved the release.",
+        "matchedAnswerPoints": [],
+        "refusalMatched": true
+      },
+      "status": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/evals/artifacts/m402-v1/desktop-evidence-image-caption-image-coordinate.png",
+      "sha256": "4ce919625fe0f8b593e0c503cce650e2a7d498135dcc9689db636ab45c08e77e",
+      "byteSize": 27756
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/desktop-evidence-image-chart-image-coordinate.png",
+      "sha256": "5300e0298cae909c77c152e85e08af86e010ef9c9cd236439929e2b59cd78961",
+      "byteSize": 27867
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/desktop-evidence-mixed-image-coordinate.png",
+      "sha256": "5300e0298cae909c77c152e85e08af86e010ef9c9cd236439929e2b59cd78961",
+      "byteSize": 27867
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/desktop-evidence-mixed-pdf-artifact-matrix.png",
+      "sha256": "389b2851c6fab0ebce64dadb7ca717eb9575d4bf60b0c44e90bc8d214e2ba47a",
+      "byteSize": 22066
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-cropbox-pdf-coordinate.png",
+      "sha256": "a40e96f06112196692f6f7778971879885087db840ecf959c92557bff4e48658",
+      "byteSize": 20815
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-multi-region-pdf-coordinate.png",
+      "sha256": "3d2ba3f2bf3181439598c917a7bd0e9ea20985784a6d776c31d8d875f4913146",
+      "byteSize": 26703
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-raster-rotation-pdf-artifact-matrix.png",
+      "sha256": "b4f18c30b4d26989548d6423a9a32812c2a9cac40e42f4f51994245b8a4647b9",
+      "byteSize": 22996
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/desktop-evidence-pdf-table-cell-pdf-coordinate.png",
+      "sha256": "e3adb8847a4083811aebf185c2de82f04872031c2d083e809a70bac44f2162c1",
+      "byteSize": 21018
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/mobile-evidence-image-caption-image-coordinate.png",
+      "sha256": "3cd34b35254630255e63e2b3602262ad4ebbb853107bde9a05d1e08edab393f3",
+      "byteSize": 21153
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/mobile-evidence-image-chart-image-coordinate.png",
+      "sha256": "3f2a46debdc13c2e1d1f5ee529e89e49f3afccdc5ddb55caea545d3249e7d8e9",
+      "byteSize": 21518
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/mobile-evidence-mixed-image-coordinate.png",
+      "sha256": "af0f118593b3142ff2f3f92f5c55d9a32e0842d4f2f0209cd3af350cc20d7757",
+      "byteSize": 21126
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/mobile-evidence-mixed-pdf-artifact-matrix.png",
+      "sha256": "a8dbc07e35b1633ca73afaa895b9dc97273fbc8d8974c64a592e653af2ac1a4c",
+      "byteSize": 17857
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/mobile-evidence-pdf-cropbox-pdf-coordinate.png",
+      "sha256": "ad9f7e2a301bd223304e3a0eeafeda25350dd1e094b6853303db9a1dee9fbc19",
+      "byteSize": 19464
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/mobile-evidence-pdf-multi-region-pdf-coordinate.png",
+      "sha256": "f6f1ec9a521c8d443dfbe21923df5be802930e1e2121d2253429e176faa18c13",
+      "byteSize": 20473
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/mobile-evidence-pdf-raster-rotation-pdf-artifact-matrix.png",
+      "sha256": "468e7979aebd7dd2ea9937942cbad069727fb2c4b69c6590e973e8a64d60a30c",
+      "byteSize": 18232
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/mobile-evidence-pdf-table-cell-pdf-coordinate.png",
+      "sha256": "9b012afbbb6b0fd94b6456346a59d9e696bb7cd56446f3c14a319b4b5c35fd1c",
+      "byteSize": 17186
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/playwright-desktop.json",
+      "sha256": "04db527f73d2d409db7e80a4f02e00c638092c57350e6a80f508c26f870fb889",
+      "byteSize": 16890
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/playwright-mobile.json",
+      "sha256": "0a073524f63b09addfdcf72276e9075c49d9cb15b853e80786de87fda457b214",
+      "byteSize": 16883
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/real-model-execution.json",
+      "sha256": "89429abe8a8f282855457ee0694aa4e361030302389fdb87e0e28db0964d2b4e",
+      "byteSize": 15741
+    },
+    {
+      "path": "docs/evals/artifacts/m402-v1/worker-execution.json",
+      "sha256": "8b0870f8944ccb25d0b3832aadee91d74d0a22a834bb8a7c24d5b39fec7b364f",
+      "byteSize": 6716
+    },
+    {
+      "path": "docs/evals/multimodal-answer-oracle-v1.json",
+      "sha256": "04ff81587b5b75730875d94036d0028087039040de2d7573286c0ec5086d8f83",
+      "byteSize": 4854
+    }
+  ],
+  "pending": []
+}

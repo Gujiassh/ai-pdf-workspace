@@ -1,0 +1,31 @@
+version: "2.4"
+
+services:
+  postgres:
+    cpus: 3.0
+    mem_limit: 6g
+    shm_size: 3g
+    command:
+      - postgres
+      - -c
+      - shared_buffers=1536MB
+      - -c
+      - effective_cache_size=4GB
+      - -c
+      - maintenance_work_mem=2GB
+      - -c
+      - work_mem=16MB
+      - -c
+      - hnsw.iterative_scan=strict_order
+      - -c
+      - hnsw.ef_search=400
+      - -c
+      - hnsw.max_scan_tuples=200000
+
+  migration:
+    cpus: 1.0
+    mem_limit: 2g
+
+  api:
+    cpus: 1.0
+    mem_limit: 2g

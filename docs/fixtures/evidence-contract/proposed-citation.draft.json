@@ -3,8 +3,9 @@
   "id": "cit_fixture_proposed",
   "messageId": "msg_fixture",
   "citationIndex": 0,
-  "documentId": "doc_fixture",
-  "documentTitle": "Synthetic Evidence Fixture",
+  "assetId": "asset_pdf_fixture",
+  "assetKind": "pdf",
+  "assetTitle": "Synthetic Evidence Fixture",
   "excerpt": "Trend rises after the third point.",
   "locator": {
     "kind": "pdf_region",
@@ -24,7 +25,8 @@
   },
   "sourceVersions": {
     "parserVersion": "fixture-parser-v1",
-    "representationVersion": "fixture-representation-v1",
+    "processingGeneration": 1,
+    "representationId": "rep_pdf_layout_fixture_v1",
     "indexVersion": 1
   }
 }

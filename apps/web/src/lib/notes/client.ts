@@ -163,15 +163,15 @@ async function replaceBindings(
   }
 }
 
-export function setDocumentTags(
+export function setAssetTags(
   workspaceId: string,
-  documentId: string,
+  assetId: string,
   tagIds: string[],
 ): Promise<void> {
   return replaceBindings(
-    `/api/workspaces/${workspacePath(workspaceId)}/documents/${encodeURIComponent(documentId)}/tags`,
+    `/api/workspaces/${workspacePath(workspaceId)}/assets/${encodeURIComponent(assetId)}/tags`,
     { tagIds },
-    "Failed to update document tags.",
+    "Failed to update asset tags.",
   );
 }
 

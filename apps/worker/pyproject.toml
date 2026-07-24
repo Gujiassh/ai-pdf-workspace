@@ -1,11 +1,13 @@
 [project]
 name = "ai-pdf-worker"
 version = "0.1.0"
-description = "Background worker for AI PDF Workspace"
+description = "Background worker for Citeframe"
 requires-python = ">=3.12"
 dependencies = [
   "ai-pdf-api",
   "numpy>=1.26.0",
+  "pillow>=12.3.0",
+  "pypdf>=5.8.0",
   "pymupdf>=1.28.0",
   "rapidocr-onnxruntime>=1.4.4",
 ]

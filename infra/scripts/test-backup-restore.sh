@@ -63,6 +63,7 @@ case "\$*" in
   *" ps -q worker") printf 'restore-test-worker\\n' ;;
   *" ps -q web") printf 'restore-test-web\\n' ;;
   *" ps -q caddy") printf 'restore-test-caddy\\n' ;;
+  *" exec -T postgres psql "*"-c SELECT 1") printf '1\\n' ;;
   *" exec -T postgres psql "*) printf '${database_object_count}\\n' ;;
   *" exec -T redis redis-cli DBSIZE") printf '${redis_key_count}\\n' ;;
 esac

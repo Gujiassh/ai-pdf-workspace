@@ -6,6 +6,7 @@ import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 
 import type { Citation } from "@/lib/chat/types";
+import { getLocatorSummary } from "@/lib/evidence/types";
 
 type MarkdownNode = {
   type: string;
@@ -160,7 +161,8 @@ export function ChatMarkdown({ content, citations, onCitationClick }: ChatMarkdo
                   type="button"
                   data-citation-index={citation.citationIndex}
                   onClick={() => onCitationClick(citation)}
-                  aria-label={`Open ${citation.documentName}, page ${citation.pageNumber}`}
+                  disabled={!citation.sourceAvailable}
+                  aria-label={`Open ${citation.assetTitle}, ${getLocatorSummary(citation.locator)}`}
                   className="mx-0.5 inline-flex min-w-[1.5rem] items-center justify-center rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 align-baseline text-[10px] font-bold leading-4 text-amber-800 transition hover:border-amber-400 hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-500 dark:border-amber-900/80 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:border-amber-600 dark:hover:bg-amber-950"
                 >
                   {children}

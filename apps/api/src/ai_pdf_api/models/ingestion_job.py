@@ -12,7 +12,7 @@ class IngestionJob(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     workspace_id: Mapped[str] = mapped_column(String(36), ForeignKey("workspaces.id"), index=True)
-    document_id: Mapped[str] = mapped_column(String(36), ForeignKey("documents.id"), index=True)
+    asset_id: Mapped[str] = mapped_column(String(36), ForeignKey("assets.id"), index=True)
     job_type: Mapped[str] = mapped_column(String(32))
     status: Mapped[str] = mapped_column(String(32), default="queued")
     attempt_count: Mapped[int] = mapped_column(Integer, default=1)

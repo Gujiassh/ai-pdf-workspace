@@ -29,7 +29,7 @@ const themeInitScript = `(() => {
 })();`;
 
 export const metadata: Metadata = {
-  title: "AI PDF Workspace",
+  title: "Citeframe",
   description: "A multi-workspace text PDF knowledge workspace.",
 };
 

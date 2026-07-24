@@ -125,6 +125,7 @@ if compose ps -q caddy web api worker redis | grep -q .; then
 fi
 compose up -d postgres minio redis
 wait_for_service_health postgres
+wait_for_postgres_sql
 wait_for_service_health minio
 wait_for_service_health redis
 

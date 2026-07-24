@@ -1,7 +1,7 @@
 # Qwen3-Embedding-0.6B local install check
 
 Date: 2026-07-02
-Project: AI PDF Workspace
+Project: Citeframe
 
 ## Result
 
@@ -63,7 +63,7 @@ Run a local embedding smoke test against the default runtime:
 
 ```bash
 curl -sS http://127.0.0.1:11434/api/embed \
-  -d '{"model":"qwen3-embedding:0.6b","input":"AI PDF Workspace local embedding smoke test"}'
+  -d '{"model":"qwen3-embedding:0.6b","input":"Citeframe local embedding smoke test"}'
 ```
 
 ## Verification outcome

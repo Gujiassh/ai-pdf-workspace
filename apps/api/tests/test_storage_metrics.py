@@ -37,3 +37,38 @@ def test_storage_stream_records_cancelled_outcome(monkeypatch) -> None:
 
     assert cancelled._value.get() == before_cancelled + 1
     assert success._value.get() == before_success
+
+
+def test_delete_objects_with_prefix_lists_and_removes_every_matching_object(monkeypatch) -> None:
+    class Item:
+        def __init__(self, object_name: str) -> None:
+            self.object_name = object_name
+
+    class PrefixClient:
+        def __init__(self) -> None:
+            self.removed: list[str] = []
+
+        def list_objects(self, bucket: str, *, prefix: str, recursive: bool):
+            assert bucket == storage.settings.minio_bucket
+            assert prefix == "workspaces/ws/assets/asset/"
+            assert recursive is True
+            return iter(
+                (
+                    Item("workspaces/ws/assets/asset/original.png"),
+                    Item("workspaces/ws/assets/asset/representations/1/image-oriented.png"),
+                )
+            )
+
+        def remove_object(self, bucket: str, object_key: str) -> None:
+            assert bucket == storage.settings.minio_bucket
+            self.removed.append(object_key)
+
+    client = PrefixClient()
+    monkeypatch.setattr(storage, "build_storage_client", lambda: client)
+
+    storage.delete_objects_with_prefix("workspaces/ws/assets/asset/")
+
+    assert client.removed == [
+        "workspaces/ws/assets/asset/original.png",
+        "workspaces/ws/assets/asset/representations/1/image-oriented.png",
+    ]

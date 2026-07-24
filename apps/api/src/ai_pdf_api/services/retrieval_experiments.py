@@ -10,9 +10,13 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ai_pdf_api.models import Document, DocumentChunk, DocumentPage
+from ai_pdf_api.models import Asset, ContentUnit, PdfLocatorDetail
 from ai_pdf_api.services.providers import EmbeddingProvider
-from ai_pdf_api.services.retrieval import retrieve_chunks
+from ai_pdf_api.services.retrieval import (
+    TEXT_CHANNEL,
+    retrieval_scope_statement,
+    retrieve_chunks,
+)
 from ai_pdf_api.services.retrieval_eval import (
     EvaluationCase,
     PageKey,
@@ -27,20 +31,20 @@ _LATIN_WORD = re.compile(r"[A-Za-z0-9]+")
 
 @dataclass(frozen=True)
 class Candidate:
-    document_id: str
+    asset_id: str
     source_filename: str
     page_number: int
     score: float
 
     @property
     def page_key(self) -> PageKey:
-        return self.document_id, self.page_number
+        return self.asset_id, self.page_number
 
 
 @dataclass(frozen=True)
 class LexicalRecord:
-    chunk_id: str
-    document_id: str
+    content_unit_id: str
+    asset_id: str
     source_filename: str
     page_number: int
     tokens: tuple[str, ...]
@@ -60,30 +64,29 @@ class LexicalCorpus:
         self.average_document_length = sum(len(record.tokens) for record in records) / len(records)
 
     @classmethod
-    def from_database(cls, db: Session, workspace_id: str) -> LexicalCorpus:
+    def from_database(
+        cls,
+        db: Session,
+        workspace_id: str,
+        *,
+        asset_ids: list[str] | None = None,
+    ) -> LexicalCorpus:
+        scope = retrieval_scope_statement(workspace_id, asset_ids, TEXT_CHANNEL)
         rows = db.execute(
-            select(DocumentChunk, Document, DocumentPage)
-            .join(Document, Document.id == DocumentChunk.document_id)
-            .join(DocumentPage, DocumentPage.id == DocumentChunk.page_id)
-            .where(
-                DocumentChunk.workspace_id == workspace_id,
-                Document.workspace_id == workspace_id,
-                DocumentPage.workspace_id == workspace_id,
-                DocumentChunk.index_version == Document.current_index_version,
-                Document.status == "ready",
-                Document.deleted_at.is_(None),
-            )
+            scope.add_columns(PdfLocatorDetail)
+            .join(PdfLocatorDetail, PdfLocatorDetail.locator_id == ContentUnit.source_locator_id)
+            .where(Asset.asset_kind == "pdf")
         ).all()
         return cls(
             [
                 LexicalRecord(
-                    chunk_id=chunk.id,
-                    document_id=document.id,
-                    source_filename=document.source_filename,
-                    page_number=page.page_number,
-                    tokens=tuple(_tokenize(chunk.chunk_text)),
+                    content_unit_id=unit.id,
+                    asset_id=asset.id,
+                    source_filename=asset.source_filename,
+                    page_number=detail.page_number,
+                    tokens=tuple(_tokenize(unit.text_content)),
                 )
-                for chunk, document, page in rows
+                for unit, asset, _locator, _representation, detail in rows
             ]
         )
 
@@ -93,7 +96,7 @@ class LexicalCorpus:
         query_tokens = Counter(_tokenize(query))
         if not query_tokens:
             return []
-        document_count = len(self.records)
+        record_count = len(self.records)
         scored: list[tuple[float, LexicalRecord]] = []
         for record, term_frequencies in zip(self.records, self.term_frequencies, strict=True):
             document_length = len(record.tokens)
@@ -105,7 +108,7 @@ class LexicalCorpus:
                 if term_frequency == 0:
                     continue
                 document_frequency = self.document_frequency[token]
-                idf = math.log(1.0 + (document_count - document_frequency + 0.5) / (document_frequency + 0.5))
+                idf = math.log(1.0 + (record_count - document_frequency + 0.5) / (document_frequency + 0.5))
                 denominator = term_frequency + 1.2 * (
                     1.0 - 0.75 + 0.75 * document_length / self.average_document_length
                 )
@@ -113,11 +116,11 @@ class LexicalCorpus:
             if score > 0:
                 scored.append((score, record))
 
-        scored.sort(key=lambda item: (-item[0], item[1].chunk_id))
+        scored.sort(key=lambda item: (-item[0], item[1].content_unit_id))
         pages: dict[PageKey, Candidate] = {}
         for score, record in scored:
             candidate = Candidate(
-                document_id=record.document_id,
+                asset_id=record.asset_id,
                 source_filename=record.source_filename,
                 page_number=record.page_number,
                 score=score,
@@ -125,7 +128,7 @@ class LexicalCorpus:
             previous = pages.get(candidate.page_key)
             if previous is None or candidate.score > previous.score:
                 pages[candidate.page_key] = candidate
-        return sorted(pages.values(), key=lambda item: (-item.score, item.document_id, item.page_number))[:limit]
+        return sorted(pages.values(), key=lambda item: (-item.score, item.asset_id, item.page_number))[:limit]
 
 
 def rrf_merge(
@@ -147,7 +150,7 @@ def rrf_merge(
         candidates.setdefault(candidate.page_key, candidate)
     return [
         Candidate(
-            document_id=candidates[key].document_id,
+            asset_id=candidates[key].asset_id,
             source_filename=candidates[key].source_filename,
             page_number=candidates[key].page_number,
             score=scores[key],
@@ -167,17 +170,20 @@ def compare_strategies(
 ) -> dict[str, Any]:
     if candidate_k < top_k:
         raise ValueError("candidate_k must be greater than or equal to top_k")
-    documents = db.scalars(
-        select(Document).where(
-            Document.workspace_id == workspace_id,
-            Document.status == "ready",
-            Document.deleted_at.is_(None),
+    assets = db.scalars(
+        select(Asset).where(
+            Asset.workspace_id == workspace_id,
+            Asset.status == "ready",
+            Asset.deleted_at.is_(None),
         )
     ).all()
-    documents_by_filename: dict[str, list[Document]] = {}
-    for document in documents:
-        documents_by_filename.setdefault(document.source_filename, []).append(document)
-    corpus = LexicalCorpus.from_database(db, workspace_id)
+    assets_by_filename: dict[str, list[Asset]] = {}
+    for asset in assets:
+        if asset.asset_kind != "pdf":
+            continue
+        assets_by_filename.setdefault(asset.source_filename, []).append(asset)
+    pdf_asset_ids = [asset.id for asset in assets if asset.asset_kind == "pdf"]
+    corpus = LexicalCorpus.from_database(db, workspace_id, asset_ids=pdf_asset_ids)
     strategy_results: dict[str, list[dict[str, Any]]] = {"dense": [], "lexical": [], "rrf": []}
     strategy_metrics: dict[str, list[dict[str, float]]] = {key: [] for key in strategy_results}
     strategy_latencies: dict[str, list[float]] = {key: [] for key in strategy_results}
@@ -185,10 +191,10 @@ def compare_strategies(
     for case in cases:
         relevant_keys: set[PageKey] = set()
         for label in case.relevant:
-            matches = documents_by_filename.get(label.source_filename, [])
+            matches = assets_by_filename.get(label.source_filename, [])
             if len(matches) != 1:
                 raise ValueError(
-                    f"Expected exactly one ready document named {label.source_filename!r}; found {len(matches)}."
+                    f"Expected exactly one ready asset named {label.source_filename!r}; found {len(matches)}."
                 )
             relevant_keys.update((matches[0].id, page) for page in label.pages)
 
@@ -198,15 +204,16 @@ def compare_strategies(
             db,
             workspace_id,
             query_embedding,
+            asset_ids=pdf_asset_ids,
             embedding_provider=provider,
             limit=candidate_k,
         )
         dense_candidates = _dedupe_candidates(
             [
                 Candidate(
-                    document_id=item.document.id,
-                    source_filename=item.document.source_filename,
-                    page_number=item.page.page_number,
+                    asset_id=item.asset.id,
+                    source_filename=item.asset.source_filename,
+                    page_number=_pdf_page_number(db, item),
                     score=1.0 - float(item.distance),
                 )
                 for item in dense_chunks
@@ -277,6 +284,13 @@ def _dedupe_candidates(candidates: list[Candidate]) -> list[Candidate]:
         if previous is None or candidate.score > previous.score:
             pages[candidate.page_key] = candidate
     return list(pages.values())
+
+
+def _pdf_page_number(db: Session, item) -> int:
+    detail = db.get(PdfLocatorDetail, item.locator.id)
+    if detail is None:
+        raise ValueError("PDF retrieval evaluation received a non-PDF candidate")
+    return detail.page_number
 
 
 def _tokenize(text: str) -> list[str]:

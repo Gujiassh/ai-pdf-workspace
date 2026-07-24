@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ai_pdf_api.db.session import get_db
 from ai_pdf_api.models import IngestionJob
 from ai_pdf_api.routers.deps import get_accessible_workspace, require_user_id
-from ai_pdf_api.routers.documents import to_job_status
+from ai_pdf_api.routers.assets import to_job_status
 from ai_pdf_api.schemas.job import JobDetailResponse
 
 router = APIRouter(prefix="/v1/workspaces/{workspace_id}/jobs", tags=["jobs"])

@@ -1,13 +1,18 @@
 from pydantic import BaseModel, Field
 
+from ai_pdf_api.schemas.chat import EvidenceLocatorDto, EvidenceTargetRequest, SourceVersions
+
 
 class NoteSourceDto(BaseModel):
     id: str
     messageCitationId: str | None
-    documentId: str | None
-    documentTitle: str | None
-    pageNumber: int | None
-    excerpt: str | None
+    assetId: str
+    assetKind: str
+    assetTitle: str
+    sourceAvailable: bool
+    excerpt: str
+    locator: EvidenceLocatorDto
+    sourceVersions: SourceVersions
     createdAt: str
 
 
@@ -42,6 +47,7 @@ class CreateNoteRequest(BaseModel):
     title: str | None = Field(default=None, max_length=255)
     bodyMd: str = Field(min_length=1, max_length=200_000)
     sourceCitationIds: list[str] = Field(default_factory=list, max_length=100)
+    evidenceTargets: list[EvidenceTargetRequest] = Field(default_factory=list, max_length=8)
 
 
 class CreateNoteResponse(BaseModel):
@@ -78,7 +84,7 @@ class TagDto(BaseModel):
     slug: str
     color: str | None
     createdAt: str
-    documentIds: list[str] = Field(default_factory=list)
+    assetIds: list[str] = Field(default_factory=list)
     noteIds: list[str] = Field(default_factory=list)
 
 
@@ -96,7 +102,7 @@ class TagBindingsRequest(BaseModel):
 
 
 class TagBindingsResponse(BaseModel):
-    documentId: str | None = None
+    assetId: str | None = None
     noteId: str | None = None
     tagIds: list[str]
     tags: list[TagDto]

@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowUp, Library, MessageCircleQuestion, X } from "lucide-react";
 
 import { isNearChatBottom } from "@/lib/chat-scroll";
+import type { InputEvidence } from "@/lib/chat/types";
+import { getLocatorSummary } from "@/lib/evidence/types";
 import { useTranslation } from "@/lib/i18n-context";
 import { Citation, useWorkspace } from "@/lib/workspace-context";
 
@@ -13,13 +15,14 @@ export function ChatPanel() {
   const {
     currentWorkspace,
     activeThread,
-    documents,
+    assets,
+    selectedAssetIds,
     selectionText,
     setSelectionText,
     sendMessage,
     createNote,
-    openDocument,
-    setActivePdfPage,
+    openEvidence,
+    clearAssetScope,
     setActiveTab,
   } = useWorkspace();
 
@@ -34,9 +37,9 @@ export function ChatPanel() {
   const shouldFollowMessagesRef = useRef(true);
   const activeThreadIdRef = useRef<string | null>(null);
 
-  const workspaceDocuments = documents.filter((document) => document.workspaceId === currentWorkspace?.id);
-  const readyDocumentCount = workspaceDocuments.filter((document) => document.status === "ready").length;
-  const docsReady = readyDocumentCount > 0;
+  const workspaceAssets = assets.filter((asset) => asset.workspaceId === currentWorkspace?.id);
+  const readyAssetCount = workspaceAssets.filter((asset) => asset.status === "ready").length;
+  const assetsReady = readyAssetCount > 0;
 
   const handleMessagesScroll = () => {
     const container = messagesContainerRef.current;
@@ -104,17 +107,26 @@ export function ChatPanel() {
   };
 
   const handleCitationClick = (citation: Citation) => {
-    if (!citation.documentId) {
+    if (!citation.sourceAvailable) {
       return;
     }
-    openDocument(citation.documentId);
-    setActivePdfPage(citation.pageNumber);
+    openEvidence(citation);
+  };
+
+  const handleInputEvidenceClick = (evidence: InputEvidence) => {
+    if (evidence.sourceAvailable) {
+      openEvidence(evidence);
+    }
   };
 
   const openQuickNoteEditor = (citation: Citation) => {
     setShowNoteEditorId(citation.id);
-    setQuickNoteTitle(t("chat.noteTitleTemplate").replace("{doc}", citation.documentName).replace("{page}", String(citation.pageNumber)));
-    setQuickNoteContent(t("chat.noteContentTemplate").replace("{snippet}", citation.snippet));
+    setQuickNoteTitle(
+      t("chat.noteTitleTemplate")
+        .replace("{doc}", citation.assetTitle)
+        .replace("{locator}", getLocatorSummary(citation.locator)),
+    );
+    setQuickNoteContent(t("chat.noteContentTemplate").replace("{snippet}", citation.excerpt));
   };
 
   const handleSaveQuickNote = async (citation: Citation) => {
@@ -122,11 +134,16 @@ export function ChatPanel() {
 
     try {
       await createNote(quickNoteTitle, quickNoteContent, {
-        messageCitationId: citation.id,
-        documentId: citation.documentId,
-        documentName: citation.documentName,
-        pageNumber: citation.pageNumber,
-        snippet: citation.snippet,
+        source: {
+          messageCitationId: citation.id,
+          assetId: citation.assetId,
+          assetKind: citation.assetKind,
+          assetTitle: citation.assetTitle,
+          sourceAvailable: citation.sourceAvailable,
+          excerpt: citation.excerpt,
+          locator: citation.locator,
+          sourceVersions: citation.sourceVersions,
+        },
       });
       setShowNoteEditorId(null);
       setQuickNoteTitle("");
@@ -147,9 +164,24 @@ export function ChatPanel() {
             </h2>
             <div className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
               <Library className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-              <span>{readyDocumentCount} {t("workspace.readyDocuments")}</span>
+              <span>{readyAssetCount} {t("workspace.readyAssets")}</span>
               <span aria-hidden="true">·</span>
-              <span className="truncate">{t("chat.scopeAll")}</span>
+              <span className="truncate">
+                {selectedAssetIds.length > 0
+                  ? t("chat.scopeSelected").replace("{count}", String(selectedAssetIds.length))
+                  : t("chat.scopeAll")}
+              </span>
+              {selectedAssetIds.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearAssetScope}
+                  title={t("chat.clearScope")}
+                  aria-label={t("chat.clearScope")}
+                  className="flex h-5 w-5 items-center justify-center rounded text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-900 dark:hover:text-white"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -175,6 +207,7 @@ export function ChatPanel() {
                 key={message.id}
                 msg={message}
                 onCitationClick={handleCitationClick}
+                onInputEvidenceClick={handleInputEvidenceClick}
                 onQuickNoteOpen={openQuickNoteEditor}
                 showNoteEditorId={showNoteEditorId}
                 setShowNoteEditorId={setShowNoteEditorId}
@@ -227,9 +260,9 @@ export function ChatPanel() {
                   void submitMessage();
                 }
               }}
-              disabled={!docsReady || loading || !activeThread}
+              disabled={!assetsReady || loading || !activeThread}
               placeholder={
-                !docsReady
+                !assetsReady
                   ? t("chat.inputPlaceholderNoDocs")
                   : !activeThread
                     ? t("chat.inputPlaceholderEmpty")
@@ -240,7 +273,7 @@ export function ChatPanel() {
             />
             <button
               type="submit"
-              disabled={!input.trim() || loading || !activeThread || !docsReady}
+              disabled={!input.trim() || loading || !activeThread || !assetsReady}
               title={t("chat.send")}
               aria-label={t("chat.send")}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950 text-white transition hover:bg-zinc-800 active:scale-95 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-700"

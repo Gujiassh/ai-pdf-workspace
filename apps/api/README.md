@@ -34,7 +34,7 @@ uv run alembic revision --autogenerate -m "描述这次改表做了什么"
 运行后端测试：
 
 ```bash
-cd /home/cc/code/ai-pdf-workspace
+cd /home/cc/code/citeframe
 uv run --project apps/api pytest apps/api/tests
 ```
 

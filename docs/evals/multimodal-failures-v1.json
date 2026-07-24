@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "multimodal-failures-v1",
+  "taxonomy": [
+    {"id": "asset_parse", "definition": "The source asset is rejected incorrectly or does not produce the approved representations and content units."},
+    {"id": "retrieval_candidate", "definition": "A relevant current candidate is absent or an out-of-scope, stale, or damaged candidate enters retrieval."},
+    {"id": "rrf_ranking", "definition": "Candidate fusion, semantic deduplication, or limit handling produces the wrong stable ordering."},
+    {"id": "answer_support", "definition": "A generated answer claim is not supported by its retrieved and cited evidence."},
+    {"id": "evidence_localization", "definition": "The locator points to the wrong page, image, coordinate space, or region."},
+    {"id": "table_structure", "definition": "Rows, columns, cells, or table text are lost, merged, duplicated, or associated incorrectly."},
+    {"id": "visual_semantics", "definition": "A chart, figure, image, OCR region, or caption loses or invents meaning."},
+    {"id": "false_answer", "definition": "The system answers when the approved asset scope contains no supporting evidence."},
+    {"id": "viewer_rendering", "definition": "Viewer navigation, overlay, pixel alignment, zoom, pan, or responsive behavior is wrong."},
+    {"id": "workflow", "definition": "The ask, verify, continue, or note workflow loses accepted state or behaves inconsistently."}
+  ],
+  "samples": [
+    {
+      "id": "failure-pdf-token-mismatch",
+      "title": "PDF artifact text must not bind to a partial parser token stream",
+      "category": "asset_parse",
+      "layer": "retrieval",
+      "modalities": ["pdf"],
+      "status": "regression_locked",
+      "observedEvidence": "A partial word mapping can assign character offsets and embeddings to the wrong artifact text.",
+      "expectedGuard": "Reject the mapping unless the complete non-whitespace token stream agrees.",
+      "reproduction": {
+        "testFile": "apps/worker/tests/test_pdf.py",
+        "testName": "test_page_word_mapping_rejects_any_non_whitespace_parser_mismatch"
+      }
+    },
+    {
+      "id": "failure-stale-cross-asset-candidate",
+      "title": "Old generation and cross-Asset chains must not enter mixed retrieval",
+      "category": "retrieval_candidate",
+      "layer": "retrieval",
+      "modalities": ["pdf", "image"],
+      "status": "regression_locked",
+      "observedEvidence": "Scope filtering after ranking can admit stale generations or Evidence locators owned by another Asset.",
+      "expectedGuard": "Apply Workspace, selected Asset, current generation/index, signature, Representation, locator, and embedding constraints before ranking.",
+      "reproduction": {
+        "testFile": "apps/api/tests/test_multimodal_retrieval.py",
+        "testName": "test_mixed_text_channel_is_stable_and_filters_invalid_candidate_chains"
+      }
+    },
+    {
+      "id": "failure-duplicate-page-starvation",
+      "title": "Duplicate PDF page chunks must not starve Image evidence",
+      "category": "rrf_ranking",
+      "layer": "retrieval",
+      "modalities": ["pdf", "image"],
+      "status": "regression_locked",
+      "observedEvidence": "Applying the candidate limit before semantic location deduplication can fill the window with chunks from one PDF page.",
+      "expectedGuard": "Count unique Evidence locations before the candidate limit and preserve stable PDF/Image fusion order.",
+      "reproduction": {
+        "testFile": "apps/api/tests/test_multimodal_retrieval.py",
+        "testName": "test_candidate_limits_count_unique_evidence_locations_before_fusion"
+      }
+    },
+    {
+      "id": "failure-rotated-cropbox-space",
+      "title": "Rotated PDF regions must remain in rendered CropBox space",
+      "category": "evidence_localization",
+      "layer": "evidence",
+      "modalities": ["pdf"],
+      "status": "regression_locked",
+      "observedEvidence": "Using unrotated MediaBox coordinates or subtracting the CropBox origin twice moves overlays away from source pixels.",
+      "expectedGuard": "Normalize native layout through the page rotation matrix into the displayed CropBox and compare against the approved manifest.",
+      "reproduction": {
+        "testFile": "apps/worker/tests/test_pdf.py",
+        "testName": "test_approved_regions_are_normalized_in_rotated_display_space"
+      }
+    },
+    {
+      "id": "failure-table-state-pollution",
+      "title": "Table detection must not corrupt rotated or cropped page state",
+      "category": "table_structure",
+      "layer": "evidence",
+      "modalities": ["pdf"],
+      "status": "regression_locked",
+      "observedEvidence": "Running table detection on the shared page can mutate its effective CropBox or rotation and invalidate later artifact geometry.",
+      "expectedGuard": "Detect tables on an isolated unrotated page while preserving the approved display-space regions.",
+      "reproduction": {
+        "testFile": "apps/worker/tests/test_pdf.py",
+        "testName": "test_artifact_matrix_combines_rotation_cropbox_and_spatial_text_mapping"
+      }
+    },
+    {
+      "id": "failure-unlabelled-decoration-caption",
+      "title": "Decorative or unlabelled graphics must not become semantic figures",
+      "category": "visual_semantics",
+      "layer": "answer",
+      "modalities": ["pdf"],
+      "status": "regression_locked",
+      "observedEvidence": "Nearest-body-text heuristics can turn a decorative image into a captioned figure and create unsupported answer evidence.",
+      "expectedGuard": "Require an explicit caption marker and reject decorations and unlabelled images.",
+      "reproduction": {
+        "testFile": "apps/worker/tests/test_pdf.py",
+        "testName": "test_pdf_figure_detection_requires_an_explicit_caption_marker"
+      }
+    }
+  ]
+}

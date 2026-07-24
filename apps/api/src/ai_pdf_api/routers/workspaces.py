@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ai_pdf_api.core.settings import settings
 from ai_pdf_api.db.session import get_db
-from ai_pdf_api.models import ChatThread, Document, Note, User, Workspace, WorkspaceMembership
+from ai_pdf_api.models import ChatThread, Asset, Note, User, Workspace, WorkspaceMembership
 from ai_pdf_api.routers.deps import base_workspace_query_for_user, get_accessible_workspace, require_user_id
 from ai_pdf_api.schemas.workspace import (
     CreateWorkspaceRequest,
@@ -42,13 +42,13 @@ def count_threads_for_workspaces(db: Session, workspace_ids: list[str]) -> dict[
     return {workspace_id: count for workspace_id, count in rows}
 
 
-def count_documents_for_workspaces(db: Session, workspace_ids: list[str]) -> dict[str, int]:
+def count_assets_for_workspaces(db: Session, workspace_ids: list[str]) -> dict[str, int]:
     if not workspace_ids:
         return {}
     rows = db.execute(
-        select(Document.workspace_id, func.count(Document.id))
-        .where(Document.workspace_id.in_(workspace_ids), Document.deleted_at.is_(None))
-        .group_by(Document.workspace_id),
+        select(Asset.workspace_id, func.count(Asset.id))
+        .where(Asset.workspace_id.in_(workspace_ids), Asset.deleted_at.is_(None))
+        .group_by(Asset.workspace_id),
     ).all()
     return {workspace_id: count for workspace_id, count in rows}
 
@@ -67,7 +67,7 @@ def count_notes_for_workspaces(db: Session, workspace_ids: list[str]) -> dict[st
 def to_workspace_summary(
     workspace: Workspace,
     role: str,
-    document_count: int = 0,
+    asset_count: int = 0,
     thread_count: int = 0,
     note_count: int = 0,
 ) -> WorkspaceSummary:
@@ -85,7 +85,7 @@ def to_workspace_summary(
         generationProvider=settings.generation_provider,
         generationModel=settings.generation_model,
         role=role,
-        documentCount=document_count,
+        assetCount=asset_count,
         noteCount=note_count,
         threadCount=thread_count,
         createdAt=workspace.created_at.astimezone(UTC).isoformat(),
@@ -103,7 +103,7 @@ def list_workspaces(
         base_workspace_query_for_user(user_id).order_by(Workspace.updated_at.desc(), Workspace.created_at.desc()),
     ).all()
     workspace_ids = [workspace.id for workspace, _role in rows]
-    counts = count_documents_for_workspaces(db, workspace_ids)
+    counts = count_assets_for_workspaces(db, workspace_ids)
     note_counts = count_notes_for_workspaces(db, workspace_ids)
     thread_counts = count_threads_for_workspaces(db, workspace_ids)
     items = [
@@ -156,11 +156,11 @@ def get_workspace(
 ) -> WorkspaceDetailResponse:
     require_existing_user(user_id, db)
     workspace, role = get_accessible_workspace(db, user_id, workspace_id)
-    document_count = count_documents_for_workspaces(db, [workspace.id]).get(workspace.id, 0)
+    asset_count = count_assets_for_workspaces(db, [workspace.id]).get(workspace.id, 0)
     note_count = count_notes_for_workspaces(db, [workspace.id]).get(workspace.id, 0)
     thread_count = count_threads_for_workspaces(db, [workspace.id]).get(workspace.id, 0)
     return WorkspaceDetailResponse(
-        workspace=to_workspace_summary(workspace, role, document_count, thread_count, note_count)
+        workspace=to_workspace_summary(workspace, role, asset_count, thread_count, note_count)
     )
 
 
@@ -191,7 +191,7 @@ def update_workspace_settings(
         workspace=to_workspace_summary(
             workspace,
             role,
-            count_documents_for_workspaces(db, [workspace.id]).get(workspace.id, 0),
+            count_assets_for_workspaces(db, [workspace.id]).get(workspace.id, 0),
             count_threads_for_workspaces(db, [workspace.id]).get(workspace.id, 0),
             count_notes_for_workspaces(db, [workspace.id]).get(workspace.id, 0),
         )

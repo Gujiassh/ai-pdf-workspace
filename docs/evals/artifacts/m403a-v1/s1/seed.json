@@ -1,0 +1,452 @@
+{
+  "bySignature": [
+    {
+      "count": 8000,
+      "title": "s1-visible-image-caption"
+    },
+    {
+      "count": 12000,
+      "title": "s1-visible-image-ocr"
+    },
+    {
+      "count": 12000,
+      "title": "s1-visible-pdf-figure"
+    },
+    {
+      "count": 12000,
+      "title": "s1-visible-pdf-ocr-region"
+    },
+    {
+      "count": 12000,
+      "title": "s1-visible-pdf-page-layout"
+    },
+    {
+      "count": 12000,
+      "title": "s1-visible-pdf-table"
+    },
+    {
+      "count": 20000,
+      "title": "s1-visible-pdf-text-legacy"
+    },
+    {
+      "count": 12000,
+      "title": "s1-visible-pdf-text-ocr"
+    }
+  ],
+  "checkpointSeconds": 12.504,
+  "checks": {
+    "cohortSignatureDistribution": true,
+    "denseEligible": true,
+    "duplicateProfiles": true,
+    "eightProductionSignatures": true,
+    "embeddingCount": true,
+    "lexicalCurrentChain": true,
+    "physicalContentUnits": true,
+    "poisonCoverage": true,
+    "textDistribution": true
+  },
+  "cohortSignatureProfileCounts": [
+    {
+      "cohort": "old_generation",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "image-caption"
+    },
+    {
+      "cohort": "old_generation",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "image-ocr"
+    },
+    {
+      "cohort": "old_generation",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-figure"
+    },
+    {
+      "cohort": "old_generation",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-ocr-region"
+    },
+    {
+      "cohort": "old_generation",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-table"
+    },
+    {
+      "cohort": "old_generation",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-text-ocr"
+    },
+    {
+      "cohort": "old_generation",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-page-layout"
+    },
+    {
+      "cohort": "old_generation",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-text-legacy"
+    },
+    {
+      "cohort": "old_index",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "image-caption"
+    },
+    {
+      "cohort": "old_index",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "image-ocr"
+    },
+    {
+      "cohort": "old_index",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-figure"
+    },
+    {
+      "cohort": "old_index",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-ocr-region"
+    },
+    {
+      "cohort": "old_index",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-table"
+    },
+    {
+      "cohort": "old_index",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-text-ocr"
+    },
+    {
+      "cohort": "old_index",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-page-layout"
+    },
+    {
+      "cohort": "old_index",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-text-legacy"
+    },
+    {
+      "cohort": "outside",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "image-caption"
+    },
+    {
+      "cohort": "outside",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "image-ocr"
+    },
+    {
+      "cohort": "outside",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-figure"
+    },
+    {
+      "cohort": "outside",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-ocr-region"
+    },
+    {
+      "cohort": "outside",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-table"
+    },
+    {
+      "cohort": "outside",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-text-ocr"
+    },
+    {
+      "cohort": "outside",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-page-layout"
+    },
+    {
+      "cohort": "outside",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-text-legacy"
+    },
+    {
+      "cohort": "visible",
+      "count": 2667,
+      "profile": "D1",
+      "signature": "image-caption"
+    },
+    {
+      "cohort": "visible",
+      "count": 2666,
+      "profile": "D64",
+      "signature": "image-caption"
+    },
+    {
+      "cohort": "visible",
+      "count": 2667,
+      "profile": "D8",
+      "signature": "image-caption"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D1",
+      "signature": "image-ocr"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D64",
+      "signature": "image-ocr"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D8",
+      "signature": "image-ocr"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D1",
+      "signature": "pdf-figure"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D64",
+      "signature": "pdf-figure"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D8",
+      "signature": "pdf-figure"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D1",
+      "signature": "pdf-ocr-region"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D64",
+      "signature": "pdf-ocr-region"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D8",
+      "signature": "pdf-ocr-region"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D1",
+      "signature": "pdf-table"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D64",
+      "signature": "pdf-table"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D8",
+      "signature": "pdf-table"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D1",
+      "signature": "pdf-text-ocr"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D64",
+      "signature": "pdf-text-ocr"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D8",
+      "signature": "pdf-text-ocr"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D1",
+      "signature": "pdf-page-layout"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D64",
+      "signature": "pdf-page-layout"
+    },
+    {
+      "cohort": "visible",
+      "count": 4000,
+      "profile": "D8",
+      "signature": "pdf-page-layout"
+    },
+    {
+      "cohort": "visible",
+      "count": 6667,
+      "profile": "D1",
+      "signature": "pdf-text-legacy"
+    },
+    {
+      "cohort": "visible",
+      "count": 6666,
+      "profile": "D64",
+      "signature": "pdf-text-legacy"
+    },
+    {
+      "cohort": "visible",
+      "count": 6667,
+      "profile": "D8",
+      "signature": "pdf-text-legacy"
+    },
+    {
+      "cohort": "wrong_provider",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "image-caption"
+    },
+    {
+      "cohort": "wrong_provider",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "image-ocr"
+    },
+    {
+      "cohort": "wrong_provider",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-figure"
+    },
+    {
+      "cohort": "wrong_provider",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-ocr-region"
+    },
+    {
+      "cohort": "wrong_provider",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-table"
+    },
+    {
+      "cohort": "wrong_provider",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-text-ocr"
+    },
+    {
+      "cohort": "wrong_provider",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-page-layout"
+    },
+    {
+      "cohort": "wrong_provider",
+      "count": 1250,
+      "profile": "D8",
+      "signature": "pdf-text-legacy"
+    }
+  ],
+  "counts": {
+    "contentUnits": 140000,
+    "denseEligible": 100000,
+    "embeddings": 140000,
+    "lexicalCurrentChain": 110000,
+    "locators": 43051
+  },
+  "datasetChecksum": "f8da94f1e5df8aef837d830d510ea6200980aed5db632abf153152868ced1dc6",
+  "indexBuildSeconds": {
+    "ftsGin": 0.658,
+    "hnsw": 32.156,
+    "trigramGist": 3.682
+  },
+  "loadAndIndexSeconds": 99.062,
+  "loadSeconds": 48.418,
+  "persistedFingerprint": "e2798802a9229ef0c29dfaeec4db4a0dff8c7ebc203cd3467df577c097812279",
+  "physicalContentUnits": 140000,
+  "poisonCounts": {
+    "old_generation": {
+      "annNearestRows": 32,
+      "lexicalTokenRows": 96
+    },
+    "old_index": {
+      "annNearestRows": 32,
+      "lexicalTokenRows": 96
+    },
+    "outside": {
+      "annNearestRows": 32,
+      "lexicalTokenRows": 96
+    },
+    "visible": {
+      "annNearestRows": 8,
+      "lexicalTokenRows": 1026
+    },
+    "wrong_provider": {
+      "annNearestRows": 32,
+      "lexicalTokenRows": 0
+    }
+  },
+  "profileCounts": {
+    "D1": {
+      "locations": 33334,
+      "rows": 33334
+    },
+    "D64": {
+      "locations": 525,
+      "rows": 33332
+    },
+    "D8": {
+      "locations": 4168,
+      "rows": 33334
+    }
+  },
+  "scale": "s1",
+  "schemaVersion": "m403a-seed-v2",
+  "textDistribution": {
+    "average": 640.0,
+    "maximum": 1200,
+    "minimum": 500,
+    "p50": 500,
+    "p95": 1200,
+    "rareTokenRows": 1314
+  },
+  "vacuumSeconds": 1.643,
+  "visibleContentUnits": 100000,
+  "wrongProviderContentUnits": 10000
+}

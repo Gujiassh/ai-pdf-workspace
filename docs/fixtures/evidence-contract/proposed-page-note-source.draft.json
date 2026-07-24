@@ -1,0 +1,21 @@
+{
+  "contractStatus": "draft-not-approved",
+  "id": "ns_fixture_migrated_page",
+  "messageCitationId": "cit_fixture_migrated_page",
+  "assetId": "asset_pdf_fixture",
+  "assetKind": "pdf",
+  "assetTitle": "Synthetic Evidence Fixture",
+  "excerpt": "Trend rises after the third point.",
+  "locator": {
+    "kind": "pdf_page",
+    "version": 1,
+    "pageNumber": 7
+  },
+  "sourceVersions": {
+    "parserVersion": "legacy-current",
+    "processingGeneration": 1,
+    "representationId": "rep_pdf_legacy_fixture_v1",
+    "indexVersion": 1
+  },
+  "createdAt": "2026-07-16T00:00:00Z"
+}

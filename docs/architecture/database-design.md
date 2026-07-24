@@ -1,1170 +1,431 @@
 # 数据库设计
 
-## 1. 文档定位
+## 1. 当前状态
 
-这份文档回答三件事：
+- 数据库：PostgreSQL + pgvector + pg_trgm
+- Alembic head：`f2a4c6e8b0d1`
+- 运行时领域模型：Asset/Evidence
+- 已移除表：`documents`、`document_pages`、`document_chunks`、`document_tags`
+- 当前真实摄取：PDF 文本层与扫描 PDF OCR fallback
+- 已实现但尚未开放摄取：图片 `image_oriented/image_ocr/image_caption` Representation、方向后 geometry、`image_ocr_region/image_caption` ContentUnit、`image_region` locator、text embedding、Citation/NoteSource 历史快照与 Image Viewer；混合检索闭环待 M305
 
-1. 为什么数据库要这样设计
-2. 每张表负责什么
-3. 表和表之间如何关联
+`c9d1e2f3a4b5` 是不可原地 downgrade 的一次性 Asset 迁移；`d0e2f4a6b8c1` 在其上增加 user-message 输入 Evidence。回到旧 Document 模型只能恢复迁移前的 PostgreSQL/MinIO 同批备份。
 
-当前数据库设计覆盖 `文本 PDF 主链`，也承接 Worker 的 OCR fallback 结果：
+## 2. 设计原则
 
-- 文本层 PDF 直接提取文本
-- 无文本层扫描 PDF 的 OCR 文本复用 `document_pages.extracted_text` 和 `document_chunks`
-- 不做图表、表格、图片的多模态理解
-- 不做 visual chunk 和 region-level citation
+1. `workspace_id` 是所有业务查询的首要隔离键。
+2. Asset 是用户文件身份；Representation 是某次处理产物；ContentUnit 是可检索内容；Embedding 是指定空间和模型下的向量。
+3. EvidenceLocator 是不可变定位身份，模态细节放在类型化 detail 表，不放任意 JSON。
+4. Citation 和 NoteSource 保存生成时快照，不能通过当前 Asset 或当前索引反推历史含义。
+5. 运行时 UI 状态不进入持久化模型。
+6. 新模态通过封闭代码注册表与数据库类型目录共同启用；目录和部署注册表不一致时 readiness 失败。
+7. 不使用文件名、列表顺序、名称当 ID 或“第一个非空字段”推断数据语义。
 
-## 2. 设计结论
+## 3. 表分组
 
-V1 采用 `Postgres + pgvector`，并把数据库分成 5 组表：
-
-1. 鉴权与身份
-2. Workspace 与配置
-3. 文档与索引
-4. 聊天与引用
-5. 笔记与标签
-
-设计原则是：
-
-- `workspace_id` 是最重要的业务隔离键
-- PDF 文件不存数据库，只在数据库里存元数据和对象存储路径
-- 检索热路径尽量少 join
-- 历史聊天和引用必须可回放，不能因为重建索引就失真
-- V1 优先明确约束和可维护性，不做过度抽象
-
-## 3. 为什么这样设计
-
-### 3.1 为什么用 Postgres 而不是“数据库 + 独立向量库”
-
-因为当前系统里，向量和业务数据是强耦合的。
-
-一个 chunk 不只是一个向量，它还绑定：
-
-- 属于哪个 Workspace
-- 属于哪个文档
-- 来自哪一页
-- 是第几个 chunk
-- 是哪次索引版本生成的
-- 被哪些 citation 引用过
-
-在这种场景下，V1 用 `Postgres + pgvector` 更合理：
-
-- 事务简单
-- 查询链短
-- 文档、聊天、引用、索引状态可以放在一套数据库里统一维护
-- 本地部署简单，面试和学习也更容易解释
-
-### 3.2 为什么所有核心表都要带 `workspace_id`
-
-因为产品的顶层边界不是“文档”，而是 `Workspace`。
-
-数据库设计必须保证：
-
-- 任意查询都能先按 `workspace_id` 收口
-- 任意聊天、笔记、标签都不能串到别的 Workspace
-- 后续做缓存、限流、对象存储路径时，也能统一用 `workspace_id`
-
-所以除了纯全局身份表，其他业务核心表都必须显式保存 `workspace_id`。
-
-### 3.3 为什么 `document_pages` 和 `document_chunks` 要拆开
-
-因为页面和 chunk 是两种不同层级：
-
-- `document_pages` 负责页面级信息
-- `document_chunks` 负责检索级信息
-
-这样设计的好处：
-
-- Viewer 更容易按页取数据
-- chunk 可以稳定挂到某一页上
-- citation 可以先定位页，再定位 chunk
-- 后续如果要调整 chunk 策略，不需要破坏页面层
-
-### 3.4 为什么 embedding 直接放在 `document_chunks`
-
-V1 里，一个 chunk 只保留一份“当前在线索引”用的 embedding。
-
-这样做是为了：
-
-- 检索热路径不多一次 join
-- 文档索引逻辑简单
-- 任务重建时替换当前在线 chunk 集合即可
-
-不单独拆 `chunk_embeddings` 表，是一个刻意的 V1 简化。
-
-### 3.5 为什么 `message_citations` 要单独建表
-
-因为 citation 不是聊天文本的一部分，而是“回答引用了哪些文档片段”的结构化证据。
-
-单独建表的好处：
-
-- 回答展示时可以稳定渲染引用列表
-- 后续点 citation 跳页更直接
-- note 可以直接引用某条 citation
-- 即使文档后续重建索引，历史回答仍可以靠快照字段保持可读
-
-### 3.6 为什么 `notes` 和 `note_sources` 要拆开
-
-因为：
-
-- 笔记本身是用户写的内容
-- 笔记来源是“这条笔记基于哪些引用或片段形成”
-
-把来源单独建表，可以支持：
-
-- 自由笔记没有来源
-- 一条笔记引用多条 citation
-- 后续扩展为“直接绑定某页/某 chunk”而不改 notes 主表
-
-### 3.7 为什么标签关系不用一个泛型 `tag_bindings`
-
-当前 V1 只需要给两类对象打标签：
-
-- 文档
-- 笔记
-
-这里我选择：
-
-- `document_tags`
-- `note_tags`
-
-而不是一个 `tag_bindings(target_type, target_id)`。
-
-原因：
-
-- 外键关系更强
-- 查询更直接
-- 不需要靠字符串类型做约束
-- 数据完整性更好
-
-这是用“更明确的表”换“少一点魔法”。
-
-## 4. 数据库分组
-
-### 4.1 鉴权与身份
+### 3.1 身份与 Workspace
 
 - `users`
-- `accounts`
-- `sessions`
-- `verification_tokens`
-
-说明：
-
-这一组建议直接交给 `Auth.js + Postgres Adapter` 管理。
-
-数据库设计上不把产品业务字段塞进这些表。它们只负责：
-
-- 用户是谁
-- 如何登录
-- Web 会话是什么
-
-### 4.2 Workspace 与配置
-
 - `workspaces`
 - `workspace_memberships`
-- `workspace_prompt_versions`
 
-### 4.3 文档与索引
+### 3.2 模态类型目录
 
-- `documents`
-- `document_pages`
-- `document_chunks`
+- `asset_types`
+- `representation_types`
+- `content_unit_types`
+- `locator_types`
+- `embedding_spaces`
+
+### 3.3 Asset 与处理产物
+
+- `assets`
+- `asset_representations`
+- `pdf_pages`
+- `image_representation_geometry`
+- `content_units`
+- `content_unit_embeddings`
 - `ingestion_jobs`
 
-### 4.4 聊天与引用
+### 3.4 Evidence
+
+- `evidence_locators`
+- `pdf_locator_details`
+- `image_locator_details`
+- `spatial_locator_regions`
+
+### 3.5 Chat 与范围快照
 
 - `chat_threads`
 - `chat_messages`
+- `message_retrieval_scopes`
+- `message_retrieval_scope_assets`
 - `message_citations`
 
-### 4.5 笔记与标签
+### 3.6 Notes 与 Tags
 
 - `notes`
 - `note_sources`
 - `tags`
-- `document_tags`
+- `asset_tags`
 - `note_tags`
 
-## 5. 每张表负责什么
+## 4. 稳定内核
 
-## 5.1 鉴权与身份
+### 4.1 `assets`
 
-### `users`
+Asset 表示 Workspace 中一个用户文件的稳定身份。
 
-负责什么：
+关键字段：
 
-- 系统里的用户主体
-
-为什么要有：
-
-- 任何 Workspace、文档、聊天、笔记都要能追溯“是谁创建/修改的”
-
-建议核心字段：
-
-- `id uuid pk`
-- `email`
-- `name`
-- `avatar_url`
-- `created_at`
-- `updated_at`
-
-### `accounts`
-
-负责什么：
-
-- 第三方登录账户映射，例如 GitHub / Google
-
-为什么要有：
-
-- Web 登录不应该自己重造 OAuth 数据结构
-
-### `sessions`
-
-负责什么：
-
-- Web 会话
-
-为什么要有：
-
-- Next.js 会话鉴权要有持久化会话表
-
-### `verification_tokens`
-
-负责什么：
-
-- 邮箱登录或验证码校验场景的短期令牌
-
-为什么要有：
-
-- 这是 Auth.js 数据模型的一部分，交给框架管理最稳
-
-## 5.2 Workspace 与配置
-
-### `workspaces`
-
-负责什么：
-
-- 表示一个独立知识空间
-
-为什么要有：
-
-- 它是系统最顶层的业务隔离单元
-
-建议核心字段：
-
-- `id uuid pk`
-- `name`
-- `description`
-- `system_prompt`，当前 Workspace 生效的系统提示词
-- `retrieval_top_k`，当前聊天检索召回数量，范围 `1..20`
-- `chunk_size`，新 ingest 任务的单 chunk 最大字符数，范围 `200..4000`
-- `created_by_user_id`
-- `archived_at nullable`
-- `created_at`
-- `updated_at`
-
-关键约束：
-
-- 不软删除优先，先支持归档
-
-### `workspace_memberships`
-
-负责什么：
-
-- 用户与 Workspace 的成员关系
-
-为什么要有：
-
-- 鉴权判断的核心是“这个用户是不是这个 Workspace 的成员”
-
-建议核心字段：
-
-- `id uuid pk`
-- `workspace_id`
-- `user_id`
-- `role`，至少 `owner/member`
-- `created_at`
-
-关键约束：
-
-- `unique(workspace_id, user_id)`
-
-### `workspace_prompt_versions`
-
-负责什么：
-
-- 保存某个 Workspace 的 Prompt 配置历史
-
-为什么要有：
-
-- Prompt 是业务配置，不该只存当前值
-- 后续要支持回滚和版本对比
-
-建议核心字段：
-
-- `id uuid pk`
-- `workspace_id`
-- `version_no int`
-- `system_prompt text`
-- `answer_style jsonb nullable`
-- `is_current boolean`
-- `created_by_user_id`
-- `created_at`
-
-关键约束：
-
-- `unique(workspace_id, version_no)`
-- 每个 Workspace 只能有一个 `is_current = true`
-
-## 5.3 文档与索引
-
-### `documents`
-
-负责什么：
-
-- 一份 PDF 在系统里的主记录
-
-为什么要有：
-
-- 文件在 MinIO，但业务状态必须在数据库里
-- 文档列表、文档状态、删除/重试都靠它
-
-建议核心字段：
-
-- `id uuid pk`
+- `id`
 - `workspace_id`
 - `created_by_user_id`
+- `asset_kind -> asset_types.kind`
 - `title`
 - `source_filename`
 - `object_key`
 - `mime_type`
 - `byte_size`
-- `page_count nullable`
-- `status`，例如 `pending_upload/uploaded/parsing/chunking/embedding/ready/failed/deleting/deleted`
-- `current_index_version int default 1`
-- `latest_ingestion_job_id nullable`
-- `last_error_code nullable`
-- `last_error_message nullable`
-- `deleted_at nullable`
-- `created_at`
-- `updated_at`
+- `source_sha256`
+- `status`
+- `current_processing_generation`
+- `current_index_version`
+- `latest_ingestion_job_id`
+- `last_error_code / last_error_message`
+- `deleted_at`
+- `created_at / updated_at`
 
-为什么有 `current_index_version`：
+语义：
 
-- 文档重建索引后，当前在线 chunk 集合会切到新版本
-- V1 不长期保留历史 chunk 集合在线，但需要知道当前是哪一版
+- Asset 与文件扩展名解耦，`asset_kind` 来自 MIME 注册和字节签名校验。
+- 删除采用软删除身份 + 清理原对象/可重建内容；历史 Citation/NoteSource 仍通过 Asset ID 和自身快照回放。
+- `current_processing_generation` 标记当前处理代次，`current_index_version` 标记当前在线索引版本，两者不能混用。
 
-### `document_pages`
+### 4.2 `asset_representations`
 
-负责什么：
+Representation 表示某个 Asset 在一次 processing generation 中生成的可追溯表示。
 
-- 存每一页的文本级结果和页级元数据
+关键字段：
 
-为什么要有：
+- `asset_id`
+- `representation_kind -> representation_types.kind`
+- `processing_generation`
+- `generator_provider / generator_model / generator_version`
+- `object_key / content_sha256`
 
-- Viewer 需要页级信息
-- chunk 必须挂到页上
-- 后续页面内搜索也依赖这一层
+唯一约束：
 
-建议核心字段：
+```text
+unique(asset_id, representation_kind, processing_generation)
+```
 
-- `id uuid pk`
+历史迁移的 PDF 使用 `pdf_text_legacy` representation；新的处理不得覆盖旧代次身份。图片 M301 固定把方向归一化结果编码为无 EXIF canonical PNG，`object_key` 使用 `representations/{generation}/image-oriented.png`，`content_sha256` 只哈希该派生对象；原 Asset object 和 `source_sha256` 不变。M302 的 `image_ocr` 与 `image_caption` 是支持检索结论的 Evidence Representation，不替代 `image_oriented` 显示对象。
+
+### 4.3 `content_units`
+
+ContentUnit 是检索和生成引用的最小内容单元。
+
+关键字段：
+
+- `asset_id`
+- `representation_id`
+- `source_locator_id`
+- `unit_kind -> content_unit_types.kind`
+- `unit_order`
+- `text_content`
+- `search_vector`：由 `to_tsvector('simple', text_content)` 生成并持久化的 PostgreSQL `tsvector`
+- `token_count`
+- `char_start / char_end`
+- `index_version`
+
+`char_start / char_end` 仅用于能准确映射到页面文本单一连续跨度的 ContentUnit，并且必须成对为空或成对有值。`pdf_table` Markdown 和多段 `pdf_figure` caption 属于派生文本，其离散来源区间只在摄取期用于精确遮罩，持久化 offset 保持为空。图片 `image_ocr_region/image_caption` 的 offset 也固定为 `NULL/NULL`；权威来源由不可变 `source_locator_id`、类型化明细和有序 regions 表达。
+
+唯一约束：
+
+```text
+unique(asset_id, representation_id, source_locator_id, unit_order, index_version)
+```
+
+`source_locator_id` 是必填外键。检索结果不允许在返回 citation 时再靠页字段或 MIME 临时拼 locator。
+
+### 4.4 `content_unit_embeddings`
+
+Embedding 与 ContentUnit 分表，支持同一内容进入不同 embedding space、provider、model 和 version。
+
+关键字段：
+
 - `workspace_id`
-- `document_id`
-- `page_number int`
-- `extracted_text text`
-- `char_count int`
-- `ocr_blocks json`，扫描 PDF 的归一化文本框；原生文本 PDF 为空数组
-- `created_at`
-
-关键约束：
-
-- `unique(document_id, page_number)`
-
-### `document_chunks`
-
-负责什么：
-
-- 存真正用于检索的文本片段和向量
-
-为什么要有：
-
-- RAG 热路径直接查它
-- 它是检索核心表
-
-建议核心字段：
-
-- `id uuid pk`
-- `workspace_id`
-- `document_id`
-- `page_id`
-- `chunk_index int`
-- `chunk_text text`
-- `token_count int`
-- `char_start int nullable`
-- `char_end int nullable`
-- `index_version int`
+- `asset_id -> assets.id`
+- `content_unit_id`
+- `processing_generation`
+- `index_version`
+- `is_current`
+- `embedding_space -> embedding_spaces.kind`
+- `provider / model / version`
+- `dimensions`
 - `embedding vector(1024)`
-- `embedding_dimensions int`
-- `embedding_provider`
-- `embedding_model`
-- `embedding_version`
+
+唯一约束：
+
+```text
+unique(content_unit_id, embedding_space, provider, model, version)
+```
+
+当前生产只启用 `text` embedding space。`asset_id`、`processing_generation`、`index_version` 和 `is_current` 是 ANN 过滤所需的持久化投影：摄取成功切代时，旧投影在同一事务失活，目标 generation/index 的向量才标记为 current；失败事务不能留下半切代状态。`is_current` 只表达 generation/index 投影是否属于资产当前链，Asset 的 ready/deleted 状态仍由外层 scope 查询判定。
+
+HNSW 只建立在 `is_current` 行上，并且 Dense ANN candidate CTE 在 embedding 表内直接应用 Workspace、资产范围和 provider/model/version/dimensions 过滤；外层仍保留完整 Asset/Representation/Locator current-chain/type 校验作为 fail-closed 第二道边界。这样旧 generation 的重复向量不会占用 ANN 前缀，同时不改变结果去重、唯一位置补足或 RRF 语义。当前 cosine HNSW 使用 `ef_construction=512`。Owner 已批准增加 `binary_quantize(embedding)::bit(1024)` 的 current-only Hamming expression HNSW；两路候选按 embedding identity 去重后，必须使用原始向量 cosine distance 精确重排，binary distance 不得作为最终排名或 Evidence 语义。该索引只增加可重建的数据库索引，不增加持久化业务字段。lexical 路径使用 `content_units.search_vector` 的 FTS GIN 与 `text_content` 的 trigram GiST 索引。`search_vector` 是 generated stored column，禁止由应用写入，保留 `ts_rank_cd`、候选窗口和范围过滤语义不变。
+
+`f2a4c6e8b0d1` 还安装 statement-level trigger：只有 `is_current=true` 的 embedding projection 必须同时匹配 ContentUnit、Representation、Locator 与 Asset 的 Workspace、generation 和 index；inactive 历史行允许保留用于回滚/诊断。摄取的事务顺序固定为“写 inactive -> latest job CAS -> 切换 Asset current generation/index -> 激活目标 provider 投影”，避免 trigger 在切代中间拒绝合法新 generation。该迁移会 drop/recreate HNSW，部署必须安排维护窗口，不作零停机承诺。
+
+## 5. 模态类型目录
+
+类型目录不是动态插件市场，而是部署期闭集的数据库镜像。
+
+### 5.1 当前 Asset 类型
+
+- `pdf`
+- `image`
+
+### 5.2 当前 Representation 类型
+
+PDF：
+
+- `pdf_text_legacy`
+- `pdf_page_layout`
+- `pdf_ocr`
+- `pdf_table`
+- `pdf_figure`
+
+Image：
+
+- `image_oriented`
+- `image_ocr`
+- `image_caption`
+
+### 5.3 当前 ContentUnit 类型
+
+PDF：
+
+- `pdf_text_chunk`
+- `pdf_ocr_region`
+- `pdf_table`
+- `pdf_figure`
+
+Image：
+
+- `image_ocr_region`
+- `image_caption`
+
+### 5.4 当前 Locator 类型
+
+- `pdf_page -> spatial`
+- `pdf_region -> spatial`
+- `image_region -> spatial`
+
+每种类型都有 `contract_version`。修改既有 kind 的含义不是普通代码改动，必须新版本或新 kind，并同步迁移、schema、renderer 和 fixture。
+
+## 6. 模态表示表
+
+### 6.1 `pdf_pages`
+
+每行属于唯一 `(asset_id, representation_id, page_number)`。
+
+字段分为三组：
+
+- 页面身份：`asset_id / representation_id / page_number`
+- 页面几何：MediaBox、CropBox、rotation、display width/height
+- 当前文本能力：`extracted_text / char_count / legacy_ocr_blocks`
+
+`legacy_ocr_blocks` 只服务扫描 PDF 透明选区层；同一 OCR 输出同时写入类型化 `pdf_region` locator/region 与 `pdf_ocr_region` ContentUnit，不把新的 Evidence 合同塞入 legacy JSON。原生文本仍只保留一套 `pdf_text_chunk`，避免重复 embedding 和检索候选。
+
+### 6.2 `image_representation_geometry`
+
+以 `representation_id` 为主键，保存：
+
+- `asset_id`
+- `width_pixels`
+- `height_pixels`
+- `orientation_applied`
+
+图片区域坐标只针对已应用方向归一化的 `image_oriented` representation 解释，不能直接绑定原始 EXIF 坐标。`orientation_applied=true` 表示该 representation 已进入规范方向坐标系，包括缺少 EXIF 或 Orientation=1 的输入；读取当前 Asset detail 必须同时过滤 `image_oriented` 和 `current_processing_generation`，不能按 UUID 或“第一条”猜代次。locator 的 `representation_id_snapshot` 则指向支持该区域结论的 `image_ocr` 或 `image_caption`；Viewer 必须用同一 locator 的 `processing_generation_snapshot` 精确解析对应 `image_oriented`。
+
+## 7. Evidence Locator
+
+### 7.1 `evidence_locators`
+
+共享 header 保存：
+
+- `id`
+- `workspace_id`
+- `asset_id`
+- `locator_kind -> locator_types.kind`
+- `locator_version`
+- `processing_generation_snapshot`
+- `representation_id_snapshot`
 - `created_at`
 
-当前 `token_count` 是与模型无关的估算值：英文按词、中文按字符、标点按单元计数。真实 embedding provider 接入后，应按实际 tokenizer 重新计算并记录处理配置。
+header 不包含 PDF 页码或图片尺寸。共享内核不按 modality 分支解释空间细节。
 
-为什么这里同时保留 `vector(1024)` 和 `embedding_dimensions`：
+### 7.2 `pdf_locator_details`
 
-- 当前本地 `qwen3-embedding:0.6b` 是 `1024` 维
-- OpenAI 也可以在调用时收敛到 `1024` 维
-- V1 的在线向量列仍统一为 `1024` 维，便于只维护一套 pgvector 索引
-- 同时保留 `embedding_dimensions` 字段，是为了把“当时用的维度”作为元数据记录下来，避免后续 provider 或维度策略变化时丢失上下文
+保存：
 
-当前实现：迁移 `f4d9c0e7a2b1` 已启用 `vector` 扩展，并创建 `embedding`、`embedding_dimensions`、`embedding_provider`、`embedding_model`、`embedding_version` 字段和 HNSW cosine 索引；Worker 会在 embedding 成功后把文档推进到 `ready`。当前运行回归使用 Ollama `qwen3-embedding:0.6b` 的 1024 维向量，OpenAI embedding 仍可通过 provider 配置切换。
+- `locator_id`
+- `page_id nullable`
+- `page_number`
+- `coordinate_space nullable`
+- CropBox、rotation、display width/height 快照
 
-关键约束：
+`pdf_page` 只要求页码；`pdf_region` 还要求完整几何快照。删除当前 `pdf_pages` 后 `page_id` 可变为 null，但页码和几何快照保留。
 
-- `unique(document_id, page_id, chunk_index, index_version)`
-- V1 一个 chunk 只属于一个 page，不做跨页 chunk
+### 7.3 `image_locator_details`
 
-### `ingestion_jobs`
+保存：
 
-负责什么：
+- `locator_id`
+- `coordinate_space`
+- `width_pixels / height_pixels`
+- `orientation_applied`
 
-- 记录文档入库和重建索引等后台任务
+### 7.4 `spatial_locator_regions`
 
-为什么要有：
+一个 locator 可以有多个按 `region_order` 排序的区域。
 
-- Redis 队列不是最终真相源
-- API 和前端要看持久化任务状态
+约束：
 
-建议核心字段：
+- `unique(locator_id, region_order)`
+- 所有坐标归一化到 `[0,1]`
+- `width/height > 0`
+- 区域不得超出边界
 
-- `id uuid pk`
-- `workspace_id`
-- `document_id`
-- `job_type`，例如 `ingest/embed_chunks/delete_cleanup`；用户触发的 reindex 动作当前落为 `embed_chunks` job
-- `status`，例如 `queued/running/succeeded/failed/cancelled`
-- `attempt_count int`
-- `config_snapshot jsonb`
-- `error_code nullable`
-- `error_message nullable`
-- `requested_by_user_id`
-- `queued_at`
-- `started_at nullable`
-- `finished_at nullable`
-- `created_at`
+多区域顺序是合同的一部分，不能按面积或坐标重新排序。
 
-为什么要有 `config_snapshot`：
+## 8. Chat 与历史快照
 
-- 索引策略、embedding provider、chunk 参数在任务执行时可能变化
-- 任务要能回看“当时到底用什么配置跑的”
+### 8.1 `message_retrieval_scopes`
 
-## 5.4 聊天与引用
+每条用户消息最多一行 scope header：
 
-### `chat_threads`
-
-负责什么：
-
-- 一组连续对话的容器
-
-为什么要有：
-
-- 聊天历史不是一堆散消息，需要能按 thread 回看和续聊
-
-建议核心字段：
-
-- `id uuid pk`
-- `workspace_id`
-- `created_by_user_id`
-- `title nullable`
-- `active_message_id nullable`，当前展示分支的叶子消息
-- `archived_at nullable`
-- `last_message_at`
-- `created_at`
-- `updated_at`
-
-### `chat_messages`
-
-负责什么：
-
-- thread 里的每条消息
-
-为什么要有：
-
-- 用户消息和助手消息都要单独持久化
-- 后续引用、笔记来源、调试都依赖它
-
-建议核心字段：
-
-- `id uuid pk`
-- `workspace_id`
-- `thread_id`
-- `parent_message_id nullable`，指向当前消息的父节点；编辑问题通过它创建新分支
-- `role`，例如 `user/assistant`
-- `content text`
-- `status`，例如 `completed/failed`
-- `model_provider nullable`
-- `model_name nullable`
-- `prompt_version_id nullable`
-- `input_tokens nullable`
-- `output_tokens nullable`
-- `created_at`
-
-为什么要存模型信息：
-
-- 后续调试效果差异时要知道当时是哪套模型和 prompt 在工作
-
-消息展示约定：
-
-- 默认沿 `chat_threads.active_message_id` 反向追溯父节点，再正向展示当前分支
-- 用户问题和 assistant 答案是相邻的父子节点；旧分支仍保留在表中，但不混入默认展示路径
-
-### `message_citations`
-
-负责什么：
-
-- 记录某条助手消息引用了哪些文档片段
-
-为什么要有：
-
-- 这是 citation 能稳定渲染、跳页、转 note 的基础
-
-建议核心字段：
-
-- `id uuid pk`
-- `workspace_id`
 - `message_id`
-- `citation_index int`
-- `document_id nullable`
-- `chunk_id nullable`
-- `page_number_snapshot int`
-- `document_title_snapshot text`
-- `excerpt_snapshot text`
-- `index_version_snapshot int`
-- `created_at`
-
-为什么这里要有 snapshot 字段：
-
-- 文档后续可能重建索引
-- chunk 可能被替换
-- 文档甚至可能被删除
-- 但历史回答里的引用仍必须可读
-
-所以 `message_citations` 既保存关联，也保存快照。
-
-## 5.5 笔记与标签
-
-### `notes`
-
-负责什么：
-
-- 用户沉淀下来的知识记录
-
-为什么要有：
-
-- 产品不是一次性聊天工具，笔记是长期资产
-
-建议核心字段：
-
-- `id uuid pk`
 - `workspace_id`
-- `created_by_user_id`
-- `updated_by_user_id`
-- `title nullable`
-- `body_md`
-- `is_pinned boolean default false`
-- `archived_at nullable`
-- `created_at`
-- `updated_at`
+- `scope_mode IN ('all_ready', 'selected')`
 
-### `note_sources`
+### 8.2 `message_retrieval_scope_assets`
 
-负责什么：
+保存服务端解析后实际使用的 Asset：
 
-- 记录一条 note 的来源证据
+- `message_id`
+- `asset_id`
+- `asset_order`
+- `asset_kind_snapshot`
+- `asset_title_snapshot`
 
-为什么要有：
+约束：
 
-- note 可以是自由写的，也可以基于一条或多条 citation 生成
-- 来源不该塞回 notes 主表
+- 主键 `(message_id, asset_id)` 防重复
+- `unique(message_id, asset_order)` 保留确定顺序
 
-建议核心字段：
+前端选择状态不是历史真相；历史重放必须读取消息范围快照。
 
-- `id uuid pk`
-- `workspace_id`
-- `note_id`
-- `source_order int`
-- `message_citation_id nullable`
-- `document_id nullable`
-- `page_number_snapshot nullable`
-- `excerpt_snapshot nullable`
-- `created_at`
+### 8.3 `message_citations`
 
-当前 V1 设计：
+Citation 保存：
 
-- 优先支持 `citation -> note`
-- 自由笔记没有 source 记录
+- 消息内顺序：`message_id / citation_index`
+- Evidence 身份：`evidence_locator_id / asset_id`
+- 显示快照：`asset_kind_snapshot / asset_title_snapshot / excerpt_snapshot`
+- 版本快照：`processing_generation_snapshot / representation_id_snapshot / parser_version_snapshot / index_version_snapshot`
 
-为什么这里允许快照字段：
+Citation 不保存“当前 page/chunk”。重索引可以替换 ContentUnit，但不得更新历史 citation。图片 `representation_id_snapshot` 冻结 OCR/caption Evidence Representation；显示像素仍由相同 `processing_generation_snapshot` 下的 `image_oriented` 提供。
 
-- note 要长期可读
-- 就算原 chunk 或原 message 结构变了，来源摘要也不该丢
+## 9. Notes 与 Tags
 
-### `tags`
+### 9.1 `note_sources`
 
-负责什么：
+NoteSource 保存和 Citation 同形的 Asset/Evidence/版本快照，并可选关联 `message_citation_id`。
 
-- Workspace 内的标签定义
+约束：
 
-为什么要有：
+- `unique(note_id, message_citation_id)` 防止同一来源重复保存
+- `(note_id, source_order)` 索引支持稳定展示顺序
 
-- 标签是 Workspace 内的组织方式，不是全局系统标签
+Citation 后续删除或源 Asset 软删除时，NoteSource 自身仍可读；API 只把 `sourceAvailable` 置为 false。
 
-建议核心字段：
+### 9.2 `asset_tags` 与 `note_tags`
 
-- `id uuid pk`
-- `workspace_id`
-- `name`
-- `slug`
-- `color nullable`
-- `created_by_user_id`
-- `created_at`
+继续使用两张显式关系表，不使用泛型 `tag_bindings(target_type, target_id)`：
 
-关键约束：
+- 外键约束更强
+- Workspace 过滤直接
+- 删除和查询语义明确
 
-- `unique(workspace_id, slug)`
+## 10. Job 与删除语义
 
-### `document_tags`
+### 10.1 `ingestion_jobs`
 
-负责什么：
+关键字段：
 
-- 文档与标签的关系表
+- `asset_id`
+- `job_type`
+- `status`
+- `attempt_count`
+- `config_snapshot`
+- `error_code / error_message`
+- `requested_by_user_id`
+- `queued_at / started_at / finished_at`
 
-为什么要有：
+`config_snapshot` 冻结 chunk/embedding 等运行配置；Worker 不应在执行历史 job 时无条件读取最新 Workspace 配置。
 
-- 一份文档可以有多个标签
-- 一个标签也可以打到多份文档上
+### 10.2 删除
 
-建议核心字段：
+删除分两步：
 
-- `document_id`
-- `tag_id`
-- `created_at`
+1. API 将 Asset 置为 `deleting` 并创建 `delete_cleanup` job。
+2. Worker 删除 MinIO 原对象、当前 ContentUnit/Embedding 与 PDF page，随后设置 `deleted_at` 和 `status=deleted`。
 
-关键约束：
+Asset 身份、Representation、EvidenceLocator、Citation 与 NoteSource 快照保留。`pdf_locator_details.page_id` 在页面删除后可为 null；这正是历史页码快照与当前页面实体分离的原因。
 
-- `unique(document_id, tag_id)`
+## 11. Workspace 隔离
 
-### `note_tags`
+数据库外键不能单独证明两个资源属于同一 Workspace，因此 service/query 层必须同时约束：
 
-负责什么：
-
-- 笔记与标签的关系表
-
-为什么要有：
-
-- 笔记同样是多对多打标签
-
-建议核心字段：
-
-- `note_id`
-- `tag_id`
-- `created_at`
-
-关键约束：
-
-- `unique(note_id, tag_id)`
-
-## 6. 关键约束与索引策略
-
-### 6.1 关键约束
-
-1. 所有核心业务表必须带 `workspace_id`
-2. `document_pages.page_number` 在同一文档内唯一
-3. `document_chunks` 在同一 `document + page + chunk_index + index_version` 内唯一
-4. `workspace_memberships` 在同一 `workspace + user` 内唯一
-5. `workspace_prompt_versions` 在同一 Workspace 内只有一个当前版本
-6. `message_citations` 必须有快照字段，不能只靠外键引用
-7. `document_tags` 和 `note_tags` 都必须防重复绑定
-
-### 6.2 建议索引
-
-#### `workspace_memberships`
-
-- `unique(workspace_id, user_id)`
-- `index(user_id)`
-
-#### `documents`
-
-- `index(workspace_id, status, updated_at desc)`
-- `index(workspace_id, deleted_at)`
-
-#### `document_pages`
-
-- `unique(document_id, page_number)`
-
-#### `document_chunks`
-
-- `index(workspace_id, document_id, page_id)`
-- `index(document_id, index_version)`
-- `pgvector index on embedding`
-
-#### `ingestion_jobs`
-
-- `index(document_id, created_at desc)`
-- `index(workspace_id, status, created_at desc)`
-
-#### `chat_threads`
-
-- `index(workspace_id, last_message_at desc)`
-
-#### `chat_messages`
-
-- `index(thread_id, created_at)`
-- `index(workspace_id, created_at desc)`
-
-#### `message_citations`
-
-- `index(message_id, citation_index)`
-
-#### `tags`
-
-- `unique(workspace_id, slug)`
-
-## 7. 删除与历史保留策略
-
-### `workspaces`
-
-- 先归档，不做直接硬删除
-
-### `documents`
-
-- 先软删文档主记录
-- 异步任务清理 MinIO 文件与 chunk/page 数据
-
-### `chat_messages` / `message_citations`
-
-- 默认保留
-- 即使文档重建索引，citation 快照仍可读
-
-### `notes`
-
-- 支持归档，不建议直接硬删
-
-为什么这样做：
-
-- 知识工作流里“历史可回放”比“删得绝对干净”更重要
-- 真正的大文件清理由异步任务做，不在同步请求里处理
-
-## 8. 核心 ER 图
-
-先放两张图，避免把“当前已落地”与“V1 目标全景”混在一起：
-
-### 8.1 当前已落地真表 ER 图
-
-这张图只反映当前代码和本地数据库里已经真正落地的真表链路：
-
-- `users`
-- `workspaces`
-- `workspace_memberships`
-- `documents`
-- `document_pages`
-- `document_chunks`
-- `ingestion_jobs`
-- `chat_threads`
-- `chat_messages`
-- `message_citations`
-- `notes`
-- `note_sources`
-- `tags`
-- `document_tags`
-- `note_tags`
-
-对应文件：
-
-- `docs/architecture/database-er-current.mmd`
-
-```mermaid
----
-title: AI PDF Workspace Current Implemented ER
----
-erDiagram
-    USERS {
-        varchar id PK
-        varchar email
-        varchar name
-        varchar password_hash
-        varchar avatar_url
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    WORKSPACES {
-        varchar id PK
-        varchar name
-        text description
-        varchar created_by_user_id FK
-        timestamptz archived_at
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    WORKSPACE_MEMBERSHIPS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar user_id FK
-        varchar role
-        timestamptz created_at
-    }
-
-    DOCUMENTS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar created_by_user_id FK
-        varchar source_filename
-        varchar object_key
-        bigint byte_size
-        varchar status
-        timestamptz deleted_at
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    INGESTION_JOBS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar document_id FK
-        varchar job_type
-        varchar status
-        int attempt_count
-        timestamptz queued_at
-        timestamptz created_at
-    }
-
-    DOCUMENT_PAGES {
-        varchar id PK
-        varchar workspace_id FK
-        varchar document_id FK
-        int page_number
-        text extracted_text
-        int char_count
-        timestamptz created_at
-    }
-
-    DOCUMENT_CHUNKS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar document_id FK
-        varchar page_id FK
-        int chunk_index
-        text chunk_text
-        int token_count
-        int char_start
-        int char_end
-        int index_version
-        timestamptz created_at
-    }
-
-    CHAT_THREADS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar created_by_user_id FK
-        varchar title
-        timestamptz archived_at
-        timestamptz last_message_at
-        timestamptz created_at
-    }
-
-    CHAT_MESSAGES {
-        varchar id PK
-        varchar workspace_id FK
-        varchar thread_id FK
-        varchar role
-        text content
-        varchar status
-        timestamptz created_at
-    }
-
-    MESSAGE_CITATIONS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar message_id FK
-        varchar document_id FK
-        varchar chunk_id FK
-        int citation_index
-        int page_number_snapshot
-        varchar document_title_snapshot
-        text excerpt_snapshot
-    }
-
-    NOTES {
-        varchar id PK
-        varchar workspace_id FK
-        varchar created_by_user_id FK
-        varchar updated_by_user_id FK
-        varchar title
-        text body_md
-        boolean is_pinned
-        timestamptz archived_at
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    NOTE_SOURCES {
-        varchar id PK
-        varchar workspace_id FK
-        varchar note_id FK
-        varchar message_citation_id FK
-        varchar document_id FK
-        int source_order
-        int page_number_snapshot
-        text excerpt_snapshot
-    }
-
-    TAGS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar name
-        varchar slug
-        varchar color
-        varchar created_by_user_id FK
-        timestamptz created_at
-    }
-
-    DOCUMENT_TAGS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar document_id FK
-        varchar tag_id FK
-        timestamptz created_at
-    }
-
-    NOTE_TAGS {
-        varchar id PK
-        varchar workspace_id FK
-        varchar note_id FK
-        varchar tag_id FK
-        timestamptz created_at
-    }
-
-    USERS ||--o{ WORKSPACES : creates
-    USERS ||--o{ WORKSPACE_MEMBERSHIPS : joins
-    WORKSPACES ||--o{ WORKSPACE_MEMBERSHIPS : has
-    WORKSPACES ||--o{ DOCUMENTS : owns
-    USERS ||--o{ DOCUMENTS : uploads
-    DOCUMENTS ||--o{ INGESTION_JOBS : queued_as
-    DOCUMENTS ||--o{ DOCUMENT_PAGES : contains
-    DOCUMENTS ||--o{ DOCUMENT_CHUNKS : indexes
-    DOCUMENT_PAGES ||--o{ DOCUMENT_CHUNKS : splits_into
-    WORKSPACES ||--o{ INGESTION_JOBS : contains
-    WORKSPACES ||--o{ CHAT_THREADS : owns
-    USERS ||--o{ CHAT_THREADS : starts
-    CHAT_THREADS ||--o{ CHAT_MESSAGES : contains
-    CHAT_MESSAGES ||--o{ MESSAGE_CITATIONS : cites
-    DOCUMENTS ||--o{ MESSAGE_CITATIONS : sourced_from
-    DOCUMENT_CHUNKS ||--o{ MESSAGE_CITATIONS : sourced_from
-    WORKSPACES ||--o{ NOTES : owns
-    USERS ||--o{ NOTES : writes
-    NOTES ||--o{ NOTE_SOURCES : cites
-    MESSAGE_CITATIONS ||--o{ NOTE_SOURCES : source_for
-    WORKSPACES ||--o{ TAGS : defines
-    DOCUMENTS ||--o{ DOCUMENT_TAGS : tagged
-    TAGS ||--o{ DOCUMENT_TAGS : applied_to
-    NOTES ||--o{ NOTE_TAGS : tagged
-    TAGS ||--o{ NOTE_TAGS : applied_to
+```text
+child.workspace_id = :workspace_id
+asset.workspace_id = :workspace_id
+locator.workspace_id = :workspace_id
 ```
 
-### 8.2 V1 目标全景 ER 图
+Chat scope、Citation -> Note、Tag binding、Job 查询和 Viewer detail 都必须执行该检查。禁止仅凭全局 UUID 命中后返回资源。
 
-下面这张是 `产品核心 ER 图`。Auth.js 自带的 `accounts / sessions / verification_tokens` 属于框架表，不放进主图里。
+## 12. 迁移与恢复 oracle
 
-对应文件：
+Phase 1 已验证：
 
-- `docs/architecture/database-er.mmd`
-- `docs/architecture/database-er.svg`
+- legacy PDF -> Asset/Representation
+- legacy page/OCR -> PdfPage
+- legacy chunk/vector -> ContentUnit/Embedding
+- legacy citation/note source -> `pdf_page` locator + 不可变快照
+- document tag/job -> asset tag/job
+- 旧 Document 表不存在
+- PostgreSQL custom `pg_dump` -> 空库 `pg_restore --single-transaction` 后 Asset/Evidence/Citation/NoteSource payload 全等
 
-```mermaid
----
-title: AI PDF Workspace Core ER
----
-erDiagram
-    USERS {
-        uuid id PK
-        text email
-        text name
-        timestamptz created_at
-    }
+Phase 4 仍需完成：
 
-    WORKSPACES {
-        uuid id PK
-        text name
-        uuid created_by_user_id FK
-        timestamptz archived_at
-        timestamptz created_at
-    }
+- 销毁卷后的 PostgreSQL + MinIO 同批恢复
+- 图片与版本化 Representation 对象字节 SHA-256
+- `pdf_region/image_region` 数量、顺序、几何和 Viewer 像素定位
+- 历史页、区域、已删除源 citation 与 NoteSource 全链路回放
 
-    WORKSPACE_MEMBERSHIPS {
-        uuid id PK
-        uuid workspace_id FK
-        uuid user_id FK
-        text role
-        timestamptz created_at
-    }
+## 13. 变更门禁
 
-    WORKSPACE_PROMPT_VERSIONS {
-        uuid id PK
-        uuid workspace_id FK
-        int version_no
-        boolean is_current
-        uuid created_by_user_id FK
-        timestamptz created_at
-    }
+以下变化必须先获得明确合同批准：
 
-    DOCUMENTS {
-        uuid id PK
-        uuid workspace_id FK
-        uuid created_by_user_id FK
-        text object_key
-        text status
-        int current_index_version
-        timestamptz deleted_at
-    }
+- 修改持久化字段含义、save payload 或删除语义
+- 修改 locator kind/version/coordinate space
+- 修改 Citation/NoteSource 快照字段
+- 修改消息实际 Asset 范围的保存方式
+- 修改 Embedding space 或向量维度
+- 为新模态启用数据库目录、Worker adapter 或 Web renderer
 
-    DOCUMENT_PAGES {
-        uuid id PK
-        uuid workspace_id FK
-        uuid document_id FK
-        int page_number
-        int char_count
-    }
-
-    DOCUMENT_CHUNKS {
-        uuid id PK
-        uuid workspace_id FK
-        uuid document_id FK
-        uuid page_id FK
-        int chunk_index
-        int index_version
-        vector embedding
-        int embedding_dimensions
-    }
-
-    INGESTION_JOBS {
-        uuid id PK
-        uuid workspace_id FK
-        uuid document_id FK
-        text job_type
-        text status
-        int attempt_count
-    }
-
-    CHAT_THREADS {
-        uuid id PK
-        uuid workspace_id FK
-        uuid created_by_user_id FK
-        timestamptz last_message_at
-    }
-
-    CHAT_MESSAGES {
-        uuid id PK
-        uuid workspace_id FK
-        uuid thread_id FK
-        text role
-        text status
-        uuid prompt_version_id FK
-        timestamptz created_at
-    }
-
-    MESSAGE_CITATIONS {
-        uuid id PK
-        uuid workspace_id FK
-        uuid message_id FK
-        uuid document_id FK
-        uuid chunk_id FK
-        int citation_index
-        int page_number_snapshot
-    }
-
-    NOTES {
-        uuid id PK
-        uuid workspace_id FK
-        uuid created_by_user_id FK
-        boolean is_pinned
-        timestamptz archived_at
-    }
-
-    NOTE_SOURCES {
-        uuid id PK
-        uuid workspace_id FK
-        uuid note_id FK
-        uuid message_citation_id FK
-        int source_order
-    }
-
-    TAGS {
-        uuid id PK
-        uuid workspace_id FK
-        text slug
-    }
-
-    DOCUMENT_TAGS {
-        uuid document_id FK
-        uuid tag_id FK
-    }
-
-    NOTE_TAGS {
-        uuid note_id FK
-        uuid tag_id FK
-    }
-
-    USERS ||--o{ WORKSPACE_MEMBERSHIPS : joins
-    WORKSPACES ||--o{ WORKSPACE_MEMBERSHIPS : has
-    USERS ||--o{ WORKSPACES : creates
-    WORKSPACES ||--o{ WORKSPACE_PROMPT_VERSIONS : versions
-
-    WORKSPACES ||--o{ DOCUMENTS : owns
-    USERS ||--o{ DOCUMENTS : uploads
-    DOCUMENTS ||--o{ DOCUMENT_PAGES : has
-    DOCUMENT_PAGES ||--o{ DOCUMENT_CHUNKS : splits_into
-    DOCUMENTS ||--o{ INGESTION_JOBS : processed_by
-
-    WORKSPACES ||--o{ CHAT_THREADS : owns
-    USERS ||--o{ CHAT_THREADS : starts
-    CHAT_THREADS ||--o{ CHAT_MESSAGES : contains
-    WORKSPACE_PROMPT_VERSIONS ||--o{ CHAT_MESSAGES : used_by
-    CHAT_MESSAGES ||--o{ MESSAGE_CITATIONS : cites
-    DOCUMENTS ||--o{ MESSAGE_CITATIONS : sourced_from
-    DOCUMENT_CHUNKS ||--o{ MESSAGE_CITATIONS : sourced_from
-
-    WORKSPACES ||--o{ NOTES : owns
-    USERS ||--o{ NOTES : writes
-    NOTES ||--o{ NOTE_SOURCES : cites
-    MESSAGE_CITATIONS ||--o{ NOTE_SOURCES : source_for
-
-    WORKSPACES ||--o{ TAGS : defines
-    DOCUMENTS ||--o{ DOCUMENT_TAGS : tagged
-    TAGS ||--o{ DOCUMENT_TAGS : applied_to
-    NOTES ||--o{ NOTE_TAGS : tagged
-    TAGS ||--o{ NOTE_TAGS : applied_to
-```
-
-## 9. 当前数据库设计的边界
-
-这份数据库设计是给当前 `文本 PDF V1` 用的。扫描 PDF 的 OCR 结果直接作为普通页面文本落在现有表中，不新增 OCR 专用数据表。
-
-明确不包括：
-
-- 独立的扫描件 OCR 结果表
-- 图表 / 表格 / 图片区域表
-- 多模态 chunk
-- region-level citation
-- 多 embedding profile 并行在线索引
-
-如果后续要做这些，不应该在当前表上硬塞字段，而应该增加一层独立的页面理解与多模态索引设计。
-
-
-## 2026-07-15 实现补充
-
-当前代码使用 `workspaces.system_prompt / retrieval_top_k / chunk_size` 作为 Workspace 的正式配置，不使用前端 localStorage 作为数据源。迁移 `f7b8c9d0e1f2` 将旧 Workspace 回填为默认值；后续如果需要 Prompt 历史版本，再单独引入 `workspace_prompt_versions`，不能把当前字段悄悄改成只读缓存。
+批准后必须同步 Alembic、ORM、Pydantic schema、API fixtures、Worker/Web 调用方、单元测试、恢复 oracle 与本文件。

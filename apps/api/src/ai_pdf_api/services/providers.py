@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import logging
 import json
 from collections.abc import Iterator
-from typing import Protocol
+from typing import Protocol, TypeAlias
 from urllib.parse import urlsplit
 
 import httpx
@@ -35,14 +35,17 @@ class EmbeddingProvider(Protocol):
         ...
 
 
+GenerationMessage: TypeAlias = dict[str, object]
+
+
 class GenerationProvider(Protocol):
     provider: str
     model: str
 
-    def generate(self, messages: list[dict[str, str]]) -> str:
+    def generate(self, messages: list[GenerationMessage]) -> str:
         ...
 
-    def stream(self, messages: list[dict[str, str]]) -> Iterator[str]:
+    def stream(self, messages: list[GenerationMessage]) -> Iterator[str]:
         ...
 
 
@@ -220,7 +223,7 @@ class OpenAIGenerationProvider:
         self._max_output_tokens = max_output_tokens
         self._client = client
 
-    def generate(self, messages: list[dict[str, str]]) -> str:
+    def generate(self, messages: list[GenerationMessage]) -> str:
         with observe_provider_request(self.provider, "generation"):
             if not self._api_key:
                 raise ModelProviderError("generation_provider_not_configured", "OpenAI generation API key is not configured.")
@@ -253,7 +256,7 @@ class OpenAIGenerationProvider:
                     return "".join(parts).strip()
             raise ModelProviderError("generation_invalid_response", "Generation provider returned no answer text.")
 
-    def stream(self, messages: list[dict[str, str]]) -> Iterator[str]:
+    def stream(self, messages: list[GenerationMessage]) -> Iterator[str]:
         with observe_provider_request(self.provider, "generation_stream"):
             if not self._api_key:
                 raise ModelProviderError("generation_provider_not_configured", "OpenAI generation API key is not configured.")

@@ -17,7 +17,9 @@
 
 ## 2. 当前总状态
 
-当前项目状态：`V1、Chat-first 工作台、V2-A Hybrid/RRF 和阶段 9 可复现单机生产基线均已完成。当前进入用户任务验证与 Evidence 合同设计；现有 PDF/Citation/NoteSource 持久化和保存语义保持冻结，未批准前不实施 Asset/typed locator 迁移。`
+当前项目状态：`V1、Chat-first 工作台、V2-A Hybrid/RRF、阶段 9 可复现单机生产基线、V3 Phase 1-3 以及 Phase 4 M401-M403A 已完成；binary64/3N fresh S0/S1/S2 canonical 三档全通过，正式报告 releaseGatePassed=true。`
+
+M403A 的逐次优化假设、实验手段、通过/否决结果、指标和 artifact 统一记录在 `docs/evals/m403a-optimization-log.md`；后续不得只更新最终结论而遗漏失败实验与运行环境证据。
 
 说明：
 
@@ -27,22 +29,27 @@
 - 真实后端认证接口与 BFF session cookie 已接通
 - `users / workspaces / workspace_memberships` 最小真表链路已接通
 - 首页与工作区详情页的 workspace 可见范围、创建、归档已切到真实 BFF/API
-- API 侧已接入数据库结构版本步骤工具，当前数据库 head 为 `a8c9d0e1f2a3`
-- 文档、向量检索、Chat thread/message/citation、notes/tags 已进入真实链路
+- API 侧已接入数据库结构版本步骤工具，当前数据库 head 为 `f2a4c6e8b0d1`；embedding current-chain 元数据迁移、current-only partial HNSW 与 scope trigger 已落地
+- Asset、向量检索、Chat thread/message/citation、notes/tags 已进入真实链路
+- 生产运行时已移除 `/documents` 和 Document 业务模型，历史 PDF 数据已机械迁移到 Asset/Evidence 内核
 
 ## 3. 阶段进度
 
 | 阶段 | 内容 | 状态 (前端原型) | 状态 (真实对接) | 说明 |
 | --- | --- | --- | --- | --- |
 | 1 | 项目定位与架构总览 | 已完成 | 已完成 | 产品设计、系统架构、详细架构已落文档 |
-| 2 | 前端骨架与 BFF 接入 | 已完成 | 已完成 | Workspace、Documents、Chat、Notes、Tags、settings 的真实 BFF 已落地；feature hooks 负责数据域，Provider 只做组合与视图状态暴露 |
+| 2 | 前端骨架与 BFF 接入 | 已完成 | 已完成 | Workspace、Assets、Chat、Notes、Tags、settings 的真实 BFF 已落地；feature hooks 负责数据域，Provider 只做组合与视图状态暴露 |
 | 3 | 鉴权与 Workspace 隔离 | 已完成 | 已完成 | BFF session、membership 校验和 API 内部 token 边界已接通；业务 API 不再只信任可伪造的 `x-user-id` |
 | 4 | 对象存储与上传链路 | 已完成 | 已完成 | BFF/API 使用请求流和 spool 临时文件上传，保留 100 MB 限制并校验 upload-session 字节数；预签名直传仍是后续优化项 |
 | 5 | Worker 与任务状态机 | 已完成 | 已完成 | Worker 已消费 `ingest` / `embed_chunks` / `delete_cleanup`，具备 lease 回收、结构化日志、SIGTERM/SIGINT 优雅退出和 5 次有限退避；异步删除失败可由 owner 重新入队 |
-| 6 | PDF 原始阅读、文本解析与切块 | 已完成 | 已完成 | `document_pages` 与 `document_chunks` 已落真实表；文本 PDF 和扫描 PDF 的 OCR 结果都按页、按块持久化，扫描页额外保存归一化 OCR block 坐标并叠加透明可选层，原始文件通过文件流供 PDF.js 阅读，Viewer 不再用提取文本替代源页面 |
+| 6 | PDF 原始阅读、文本解析与切块 | 已完成 | 已完成 | `pdf_pages`、`content_units` 与 `content_unit_embeddings` 已落真实表；文本 PDF 和扫描 PDF 的 OCR 结果按页和 ContentUnit 持久化，原始文件通过文件流供 PDF.js 阅读 |
 | 7 | Embedding 与检索 | 已完成 | 已完成 | `vector(1024)`、HNSW、PostgreSQL FTS/pg_trgm、页级 RRF 和 Dense/Hybrid 显式策略已接通；40 条生产评测通过后默认使用 Hybrid |
-| 8 | Chat、citation、笔记与标签 | 已完成 | 已完成 | Chat thread/message/citation、真实 Responses API delta 流、消息父节点分支、编辑旧问题继续、notes、note_sources、tags、document_tags、note_tags 真表、API、BFF 和 citation -> note 已接通 |
+| 8 | Chat、citation、笔记与标签 | 已完成 | 已完成 | Chat `assetScope`、消息范围快照、不可变 locator/sourceVersions citation、notes、note_sources、tags、asset_tags、note_tags 真表、API、BFF 和 citation -> note 已接通 |
 | 9 | 部署、日志与观测 | 已完成 | 已完成 | 锁定镜像、迁移 gate、Prometheus、Worker 私网指标、同批备份销卷恢复、Caddy 安全入口和全业务 smoke 已通过 |
+| V3-1 | Asset/Evidence 基础迁移 | 已完成 | 已完成 | 不可逆迁移、封闭模态注册表、Asset API/Worker/Web、Chat scope、Evidence Viewer shell、历史快照 oracle 和 Critical 复审已完成；Image 仅注册合同，未启用摄取 |
+| V3-2 | 多模态 PDF Evidence | 已完成 | 已完成 | 页面几何、layout/OCR、表格/图表/页内图片、`pdf_page/pdf_region` Citation/NoteSource、Viewer 区域交互与失败 Chat 回放已通过两轮 Critical 复验 |
+| V3-3 | 独立图片闭环 | 已完成 | M301-M305 已通过最终 Critical | 图片归一化、OCR/caption、Evidence 历史快照、Viewer、区域 Chat/Note 与混合检索已完成；生产 Image 仍 disabled，等待 Phase 4 工程验收 |
+| V3-4 | 质量与发布验收 | M401-M403A 已完成 | M403A 已完成 | M403 恢复门与 M403A binary64/3N canonical 均通过；S2 9/9 Recall `1.00`、load/index `2062.742s`、并发 p95 `246.531ms`；生产 Image 保持 disabled，M403B 待单独批准 |
 
 ## 4. 已完成的设计文档
 
@@ -56,17 +63,28 @@
 
 ## 5. 当前建议实施顺序
 
-V1、V2-A 与阶段 9 已完成。后续按以下顺序推进：
+V1、V2-A、阶段 9、V3 Phase 1-3 与 Phase 4 M401-M403 已完成。后续按以下顺序推进：
 
-1. 第一用户真实复杂 PDF 任务验证与产品指标基线
-2. Evidence 合同 RFC/ADR 和持久化/API 迁移影响设计（只设计，批准前不实施）
-3. 索引重建、解析版本和黄金集基础设施
-4. 多模态 PDF：布局/OCR bbox、表格、图表/图片和区域 citation
-5. 独立图片、音频、视频或 Omnilabel 必须分别通过 discovery 门禁
+1. 经单独批准后执行 M403B，在同一发布中同步生产 Image 的 catalog/API/Worker/Web 合同并重跑上传、检索、Evidence 与恢复主链
+2. 真实用户验证作为 M404 Beta 门禁；数据不足时保持 `not_evaluable` 和内部预览
+3. M403B 形成稳定 Git 边界后，按已批准合同评审 V4 Evidence Research Workflow 的持久化/API 状态机，再进入实现
 
 ## 6. 当前正在做什么
 
-当前：`阶段 9 已完成；第一用户复杂 PDF 任务验证协议、严格 CSV 分析工具、Evidence 合同 Draft RFC 和设计阶段 spec/plan/tasks 已建立。下一步需要真实参与者、问题和 PDF；在合同获批前不实施迁移。`
+当前：`M403 加强后的正式销卷恢复报告与 M403A binary64/3N fresh canonical 均已通过。S0/S1/S2 三档全部 seed/query/resource/cleanup gate 通过，正式报告 releaseGatePassed=true；图片摄取继续 disabled，下一阶段是需单独批准的 M403B。`
+
+## 7. M403A 当前切片
+
+- current-chain 修复前的失败 canonical 保留为历史证据：S0/S1 通过，S2 `image-ocr:D1=0.8`；不能将失败报告改写为通过。
+- 根因已由保留库矩阵确认：旧 generation/index 与 current target 的向量重复，ANN CTE 只按 embedding metadata 取前缀，外层 current-chain 过滤后丢失 current target；提高 `ef_search`、`m` 或窗口不能稳定修复，完整 current-chain `EXISTS` 会导致 exact sort。
+- 已落地的修复边界：向 `content_unit_embeddings` 冗余 `asset_id`、`processing_generation`、`index_version`、`is_current`；`f2a4c6e8b0d1` 从 ContentUnit/Locator/Asset 回填并 fail closed，current-only partial HNSW 与 statement-level scope trigger 已安装。摄取先写 inactive 投影，latest CAS 通过并切换 Asset current generation 后再原子激活；Dense ANN 与 SQLite 路径都在同链条件下过滤，外层业务 scope 保留。
+- 状态机保护已补齐：失败回写、claim/stale recovery、retry/reindex、上传二进制和 finalize 都不会越过 latest/delete_cleanup CAS；上传在对象写入前重新锁定 pending Asset。migration 的 HNSW drop/recreate 需要维护窗口，当前无真实用户，不能宣称零停机。
+- 最小验收已完成：migration/model drift、摄取成功/失败回滚、current-only Dense/SQLite parity、selected/all-ready SQL、partial HNSW EXPLAIN 与 fresh S1 Recall/plan 全通过。最新完整 canonical 仍是历史 cosine-only 失败证据；双索引优化的逐次结果见 `docs/evals/m403a-optimization-log.md`。
+- ef512 两次有效 S2 均将 9/9 Recall 提升到 `1.00`，但 load/index 分别为 `3216.427s` 和 `2817.828s`；binary128 最干净 S2 的 load/index `2721.264s`、并发 p95 `424.622ms` 仍略超冻结门。最终 binary64/3N fresh S1 的 9/9 Recall、双 HNSW plan、性能和 cleanup 全通过；首次 S2 因共享盘异常在建图前已数学超门而中止并清零，不能计为产品失败。
+- binary64/3N fresh S2 全门通过：load/index `2255.299s`，9/9 Recall `1.00`，Dense/lexical/Hybrid p95 `32.745/23.391/55.745ms`，8 并发 p95 `291.122ms`、吞吐 `56.405 req/s`，数据库 `7.159 GiB`，零错误、零 drift、零 cleanup 残留。S2-only 仍为 `debugOnly`。
+- fresh S0/S1/S2 canonical 已设置 `releaseGatePassed=true`：S2 load/index `2062.742s`，9/9 Recall `1.00`，Dense/lexical/Hybrid p95 `32.237/41.663/54.373ms`，8 并发 p95 `246.531ms`、吞吐 `61.069 req/s`，数据库 `7.159 GiB`，零错误、零 drift、零 cleanup 残留。正式证据为 `docs/evals/artifacts/m403a-v2/`。
+- 最终 migration `f2a4 -> e1f3 -> f2a4`、Alembic drift、API `278 passed`、Worker `93 passed`、Ruff、compileall、runner 语法、artifact SHA-256、canonical oracle 与 diff check 均通过；临时 test output/cache 已清理，正式 artifact 保留。
+- M403A 已完成；生产 Image 继续 disabled，M403B/M404 不提前开放。
 
 收口结果：
 
@@ -77,15 +95,15 @@ V1、V2-A 与阶段 9 已完成。后续按以下顺序推进：
 - `apps/web`、`apps/api`、`apps/worker` 基础工程已初始化
 - Workspace 列表与详情的最小 API/BFF/页面链路已建立
 - `users / workspaces / workspace_memberships` 最小真表、查询、创建、归档链路已落地
-- API 侧已从启动时自动建表切换到显式数据库版本步骤；当前 head 版本为 `a8c9d0e1f2a3`
-- `documents / ingestion_jobs` 真表、迁移、列表、upload-session、二进制上传、finalize-upload、job 查询与删除链路已落地
-- `document_pages / document_chunks` 真表和迁移已落地；Worker 会领取 queued ingest job、回收超时任务，先提取文本层，必要时用 RapidOCR + ONNX Runtime 渲染页面并识别，再按页切块、批量调用 embedding provider、写入向量并推进 `chunked -> embedding -> ready`，同时支持 `embed_chunks` 回填已有 chunk。
+- API 侧已从启动时自动建表切换到显式数据库版本步骤；当前 head 版本为 `d0e2f4a6b8c1`
+- `assets / ingestion_jobs` 真表、迁移、列表、upload-session、二进制上传、finalize-upload、job 查询与删除链路已落地；Worker 通过 `IngestionAdapterRegistry` 按 `asset_kind` dispatch，API 共享 orchestrator 不再理解 PDF/OCR/page/bbox
+- `pdf_pages / content_units / content_unit_embeddings` 真表和迁移已落地；Worker 会领取 queued ingest job、回收超时任务，先提取文本层，必要时用 RapidOCR + ONNX Runtime 渲染页面并识别，再按页生成 ContentUnit、批量调用 embedding provider、写入向量并推进 `chunking -> embedding -> ready`，同时支持 `embed_chunks` 回填已有 ContentUnit。
 - 原始 PDF 文件流已接通 API/BFF；`PdfViewer` 使用 PDF.js canvas 作为主页面、text layer 支持原生 PDF 文本选取、扫描 PDF 使用透明 OCR block 层支持划词、annotation layer 支持 PDF 内置链接/批注，OCR 文本不覆盖源页面视觉内容
 - 2026-07-14 回归：真实 84 页扫描 PDF 的 API/BFF 文件流返回 `200 application/pdf`，浏览器确认 canvas 页面非空、84 页翻页、110% 缩放、目录跳页均可用；桌面端无横向溢出，移动端默认收起两侧面板且打开目录后仍无横向溢出。扫描页额外使用透明 OCR 文本层支持选取，不重排或覆盖源 PDF 的图片与排版
-- BFF 现已从登录 cookie session 中透传 `x-user-id` 和 `x-ai-pdf-internal-token` 到 FastAPI，按当前用户 membership 返回可见工作区并代理 documents 上传请求；FastAPI 不再只信任可伪造的用户 header
-- 主工作台的 Workspace、Documents、Chat、Notes、Tags 和 settings 已删除 localStorage/mock 数据流，改为按 workspace hydrate 真实列表；Notes 支持新建、编辑、归档删除和 citation 来源跳转，Tags 支持创建、删除、文档/笔记绑定和筛选；threads 继续使用真实表、API、BFF 和 hydrate/send/归档链路
+- BFF 现已从登录 cookie session 中透传 `x-user-id` 和 `x-ai-pdf-internal-token` 到 FastAPI，按当前用户 membership 返回可见工作区并代理 Asset 上传请求；FastAPI 不再只信任可伪造的用户 header
+- 主工作台的 Workspace、Assets、Chat、Notes、Tags 和 settings 已删除 localStorage/mock 数据流，改为按 workspace hydrate 真实列表；Notes 支持新建、编辑、归档删除和 citation 来源跳转，Tags 支持创建、删除、Asset/笔记绑定和筛选；threads 继续使用真实表、API、BFF 和 hydrate/send/归档链路
 - 已支持真实后端注册/登录与 BFF httpOnly cookie session（不自动注册，要求显式配置 `AI_PDF_SESSION_SECRET`）
-- 已补 FastAPI auth / workspace / documents / ingestion / provider / retrieval / chat / notes / health service 自动化测试；阶段 9 最终全量门禁为 API 82 tests、Worker 18 tests、Web 48 unit tests，并增加可选 Playwright smoke，真实回归验证了 Ollama 1024 维向量、扫描 PDF 84 页 OCR block、83 个扫描文档 chunk ready、Hybrid/RRF、Responses API 真实 delta SSE、消息分支编辑、citation 快照、notes/tags workspace 隔离、历史 Chat 会话切换保留和真实 BFF 页面读写
+- 已补 FastAPI auth / workspace / assets / ingestion / provider / retrieval / chat / notes / health service 自动化测试；真实回归验证了 Ollama 1024 维向量、扫描 PDF 84 页 OCR block、ContentUnit ready、Hybrid/RRF、Responses API 真实 delta SSE、消息分支编辑、citation 快照、notes/tags workspace 隔离、历史 Chat 会话切换保留和真实 BFF 页面读写
 - 2026-07-15 回归：修复旧聊天迁移按 UUID 排序导致的同时间问答倒序，新增 `e6a7b8c9d0f1` 重建历史父节点链；真实工作区确认问题始终显示在对应答案前，编辑旧问题后只显示新活动分支，旧分支仍保留。
 - 2026-07-15 回归：真实扫描页存在 23 个 OCR 可选块；选区文字通过“问 AI”进入当前 thread，Responses API 流先显示加载态再持续增量渲染，完成后 citations 和分支状态可刷新恢复。
 - 2026-07-15 回归：修复历史 Chat 会话切换时的状态覆盖。列表 hydrate 继续按 workspace 替换服务端线程列表，单线程详情 hydrate 改为只按 `(workspaceId, threadId)` 精确替换缓存项，保留其他会话消息；补齐 A/B 切换、切回和跨 workspace 同 ID 隔离测试。
@@ -106,25 +124,43 @@ V1、V2-A 与阶段 9 已完成。后续按以下顺序推进：
 - 2026-07-16 安全与业务验收：Caddy 成为唯一公开入口，本地显式 HTTP smoke 返回 200、HSTS、nosniff、frame deny 和 referrer policy；Web/API/Worker/Postgres/Redis/MinIO API 未发布宿主端口。恢复后异步删除返回 202，delete job succeeded，文档列表和 MinIO 对象均消失。
 - 2026-07-16 战略调整：保留 Chat-first 主画布和按需 PDF 证据层；第一用户收敛为基于论文、技术规范和评测报告做判断的 AI/软件工程师与技术研究者。下一阶段只设计并验证多模态 PDF Evidence；Asset/Representation/ContentUnit/EvidenceLocator 是目标域，不是已实施合同。Omnilabel 作为独立产品赌注，不作为普通格式扩展。
 - 2026-07-16 Evidence 设计启动：建立第一用户任务验证协议，按事实、比较、方法、表格、图表和无答案任务记录支持结论完成率、核验后耗时和区域定位缺口；建立 `pdf_page/pdf_region` Draft RFC，明确当前 Citation/NoteSource 冻结合同、CropBox/旋转/多区域坐标提案、持久化选项和 6 项待批准决策。当前没有数据库、API、SSE 或保存语义变更。
-- 2026-07-16 Evidence 设计夹具：新增不含机密数据的 8 页合成 PDF，覆盖 0/90/180/270 度旋转、CropBox、表格单元格、图表同页多区域和无文本层扫描页；生成器和 manifest 反向验证通过。当前 Citation/NoteSource fixture 严格通过现行 Pydantic schema，候选 `.draft.json` 只用于 payload 对照且明确未获批准。
+- 2026-07-16 Evidence 设计夹具：新增不含机密数据的合成 PDF，后续扩为 12 页，覆盖 0/90/180/270 度旋转、每个旋转与非对称 CropBox 的组合、表格、向量图表、页内栅格图片、同页多区域和无文本层扫描页；生成器和 manifest 反向验证通过。当前 Citation/NoteSource fixture 严格通过现行 Pydantic schema，候选 `.draft.json` 只用于 payload 对照。
 - 2026-07-17 用户验证工具：新增严格 18 列 CSV 校验和确定性 JSON 分析 CLI，按 manual/AI 工作流计算支持结论完成率、中位耗时、Citation 页码准确率与打开率、转笔记率、正确拒答率、无答案编造和区域缺口，并区分自动门禁的 `pass/fail/not_evaluable`。真实 PDF 数量、继续使用意愿和七日复用仍保留为人工证据。
+- 2026-07-17 V3 范围裁决：下一版本正式范围调整为多模态 PDF + 独立图片；Chat-first 主画布保留，左侧升级为类型化 Asset 列表和证据范围，右侧升级为通用 Evidence Viewer。Audio、Video、Omnilabel 不进入 V3；真实用户验证延期为 Beta 门禁。
+- 2026-07-17 V3 目标设计：新增 Asset/Representation/ContentUnit/Embedding、`pdf_page/pdf_region/image_region`、统一 locator 头、类型化扩展表、受控迁移和 PDF/Image renderer 设计；补充部署期封闭模态注册协议，后续 Audio/Video 只新增 adapter/locator/retrieval/renderer 模块，不迁移核心主链。该设计阶段仍冻结运行时变更，随后六项合同获批并进入 Phase 1。
+- 2026-07-17 V3 Phase 1：六项合同已批准并完成不可逆迁移，Alembic head 升级到 `c9d1e2f3a4b5`；数据库、API、Worker 和 Web 已统一使用 Asset/Evidence，`/documents` 与 Document 业务类型已移除。Chat 支持 `all_ready | selected` Asset 范围并保存消息范围快照，Citation/NoteSource 返回完整 locator/sourceVersions，Evidence Viewer 使用封闭 renderer 注册表。
+- 2026-07-17 V3 Phase 1 验收：API 103、Worker 18、Web 57 单测及 lint/tsc/build 通过；真实 PostgreSQL 完成 legacy -> V3 -> custom dump -> 空库 restore 的 payload 全等 oracle；浏览器捕获显式选中资产后的真实 `assetScope.selected` 请求，PDF 第 29 页定位、非空 canvas、分隔条键盘调宽和手机/平板无横向溢出通过。Critical 复审关闭 Image 提前开放、畸形 SSE terminal fail-open 和未知 locator version 三项 High：生产目录只启用 PDF，Image 在建 Asset 前拒绝，`done/error` 与 Evidence v1 均 fail-closed；开发库 catalog 与 registry 一致。
+- 2026-07-17 V3 Phase 2 M201/M203：新增 Worker PDF adapter，统一由 PyMuPDF + pypdf 输出 PDF.js 一致的 MediaBox/CropBox、旋转后 display geometry；API ingestion 只编排 job/generation/事务/embedding，PDF adapter/persister 独立处理解析、OCR、representation/page/locator/ContentUnit。原生页继续使用原有 `pdf_text_chunk + pdf_page`，扫描页在不复制检索文本的前提下使用 `pdf_ocr_region + pdf_region`；同页不同 region 不再被 RRF 合并。
+- 2026-07-17 Phase 2 M201/M203 Critical 修正与复审：修复旋转与非对称 CropBox 组合的 parser 交叉校验；将 PDF/Image coordinateSpace 在 API schema、codec、SSE 和 Viewer 固定为批准的 v1 值；共享 ingestion 改为 Worker 注册的通用 adapter dispatch；region 文本必须与 char range 精确一致。失败重处理 rollback、成功换代历史 Citation/NoteSource、spatial region dump/restore P0 oracle 通过，独立 Critical 复审关闭全部发现。
+- 2026-07-17 Phase 2 M202/M204/M205 初轮证据：12 页 fixture、正式上传/Chat、Viewer 框选/缩放/页码/移动端和全量门禁均曾通过；随后独立 Critical 对抗审查发现初轮 fixture 未组合覆盖 artifact × 旋转/非对称 CropBox，且存在 table 检测污染 page 状态、混合图表候选重复、装饰图片 caption 误判和字符范围空间错绑。因此 M202/M205 完成结论已撤回，初轮数字只保留为历史证据；M204 已实现但仍需补翻页清草稿与 locator/canvas 像素 oracle。
+- 2026-07-18 Phase 2 最终验收：新增 12 页 table/raster/vector × 四种旋转 × 非对称 CropBox matrix，并以实际像素验证 source region 最大误差 `0.001852`；修复 table 检测状态污染、严格 token 映射、caption/续注误判、传递重叠合并、artifact offset 语义、失败 Chat locator 清理和失败态 UI。真实上传摄取、retrieve -> SSE -> citation、Viewer 像素与翻页草稿链通过；最终 API 114、Worker 36、Web 62 与全部静态/数据库门禁通过，独立 Critical 复验 PASS。
+- 2026-07-18 品牌迁移：产品与仓库统一命名为 Citeframe；GitHub 远端改为 `Gujiassh/citeframe`，本地目录改为 `/home/cc/code/citeframe`，origin、`@citeframe/*` 私有 npm scope、Web/API 标题、canonical 文档和 `code--citeframe` workbench 历史同步完成。内部 `ai_pdf_api/ai_pdf_worker`、`AI_PDF_*`、数据库、bucket 和镜像标识保持不变。新路径 API/Web readiness 200，桌面与 390×844 Chromium 品牌烟测通过。
+- 2026-07-18 V3 Phase 3 M301：注册表 byte inspector 改为返回实际 canonical MIME，阻断 PNG/JPEG/WebP 交叉声明；PUT 对齐 upload-session Content-Type。新增 dormant Image adapter 与 Pillow 直接依赖，对静态单帧执行完整容器、两遍解码、64 MP、EXIF 1-8 校验，输出无 EXIF canonical PNG；WebP 严格验证 RIFF、唯一 bitstream/VP8X、chunk 顺序、reserved bits/bytes 及 ICCP/EXIF/XMP/alpha feature 一致性，合法 lossy/lossless RGB/RGBA 与对抗变异矩阵通过。`image_oriented` 与方向后 geometry 按 generation 保存。共享 ingestion 通过 generated-object manifest 统一上传派生对象，后续失败回收，删除覆盖原对象和全部派生对象；旧 generation 保留。10 个冻结格式/方向 fixture 的对象 SHA、像素 SHA、尺寸和区域公式通过，最终 API 135、Worker 73、compileall、diff check 与独立 Critical 复审 PASS；生产 Image 仍 disabled，Worker registry 仍仅 PDF。
+- 2026-07-18 V3 Phase 3 M302：RapidOCR 核心收敛为像素到中立文本区域，Image/PDF adapter 分别拥有格式解码与结果映射；真实 1200×800 fixture 识别 8 个有界区域。新增 Image-owned OpenAI Responses caption provider，使用 canonical PNG data URL、`input_image` 与冻结的 provider/model/version/detail/max tokens，不扩展 Chat 文本 provider 合同；无 API key 环境只验证官方请求结构和错误语义，不宣称真实 caption 内容质量。`image_ocr/image_caption` Representation、`image_ocr_region/image_caption` ContentUnit、`image_region` locator 与 text embedding 按 generation 持久化，sourceVersions 绑定实际证据 Representation，geometry 与落库 oriented geometry 对照，图片 offset 保持 NULL。真实 job 产出 3 个 unit/vector 并进入 ready，caption-only、配置漂移、OCR 失败、geometry mismatch 和回滚 oracle 通过。模态配置通过 registry hook 贡献，共享 Asset router 不新增 Image 摄取分支。最终 API 140、Worker 79、Web 62 与全部静态门禁通过；生产 Image 和 Worker adapter 注册仍 disabled。
+- 2026-07-18 V3 Phase 3 M303：共享 Evidence clone/serializer 增加 locator 与 Workspace/Asset/generation/Representation/typed detail 全链一致性校验，Image evidence 只接受 `image_ocr/image_caption`，拒绝把 `image_oriented` 当作结论来源；clone 在 typed detail/regions flush 后才返回，支持同事务 chained clone。Chat Citation 和 Citation -> NoteSource 无图片特判，损坏快照与 geometry fail closed。P0 oracle 在 generation 1 先创建并冻结 Citation/NoteSource，再切 generation 2，对两个 locator ID、完整 DTO、geometry、excerpt 与 sourceVersions 做前后全等；独立 Critical 复审 PASS。最终 API 150、Worker 79、Web 63 与全部静态门禁通过，生产 Image 仍 disabled。
+- 2026-07-18 V3 Phase 3 M304A：新增 frozen Evidence 与 current Asset 两条权限保护的 `image_oriented` 文件流；前者按 frozen generation 与 OCR/caption Representation 解析历史定向 PNG，后者重新抓取 Asset detail 并只使用该响应的 current generation，409、无效 geometry、`orientationApplied=false` 和自然尺寸漂移均 fail closed 且可重试。Critical 回查后补齐 Representation/geometry 的 Workspace/Asset 连接约束与交叉引用对抗测试，并让 Viewer 在 capture 阶段消费框选取消的 `Escape`，避免同一按键关闭证据面板。Image renderer 支持适应窗口、100%、10%-400% 缩放、鼠标/单指平移、双指缩放、区域 overlay、鼠标/键盘框选草稿；手机工具目标 44px，桌面 32px。真实 1200×800 fixture 验证 frozen/current 分派、2/0 overlay、4800×3200 表面、鼠标与键盘平移/框选；390×844 下 6 个控件均为 44×44，CDP 双指缩放 28% -> 69%，无横向溢出、页面错误或失败请求。仓库 Playwright 强制 generation 1 流返回 409，验证重试 refetch detail 后只请求 generation 2、单指滚动 `(200,100) -> (280,160)`，以及 Escape 清除键盘框选但 Viewer 保持打开；临时数据库与 MinIO 计数清理为 0。最终 API 154、Worker 79、Web 75、定向 Playwright 1 与 lint、tsc、Next build、compileall、Alembic current/check、JSON、diff check 通过；图片流测试拆出后主 Asset router 测试文件从 2114 行降至 1950 行，最终独立 Critical 复审 PASS，无剩余 finding。M304 整体仍 blocked：框选后的 Ask AI / Note 会改变 Chat 请求与 NoteSource 保存合同，当前未获批准；生产 Image 继续 disabled。
+
+- 2026-07-18 V3 Phase 3 M304B 后端：经明确批准后新增可扩展 `evidenceTargets` 和 user-message `inputEvidence` 快照，不复用 `selectionText` 或伪造 Citation。Image resolver 严格重新校验 Workspace、ready Asset、当前 generation、canonical geometry/SHA、同代 current-index OCR/caption locator；全部区域命中 OCR 才冻结 OCR，否则冻结唯一 caption，canonical oriented PNG 仅用于按十进制 floor/ceil 像素边界裁剪模型输入。Chat 可在普通检索为空时仅用显式区域回答，失败生成保留用户输入 Evidence；直接笔记创建 `messageCitationId=null` 的真实 NoteSource，混合来源保持旧 Citation 顺序且整体事务回滚。API `174/174`，PostgreSQL legacy -> head -> dump/restore oracle `1/1`，实际 Alembic head `d0e2f4a6b8c1` 和五项顺序/locator 约束通过。Web 框选动作、冻结输入重开 Viewer、真实 Playwright 与最终 Critical 复审仍待完成；生产 Image 保持 disabled。
+- 2026-07-19 V3 Phase 3 M304B 最终验收：Image Viewer 仅在 current generation 上将规范化框选提交为 `evidenceTargets`；Chat 请求被服务端接受后才切回主画布，失败保留框选；直接笔记持久化成功后切到 Notes。历史 user message 的 `inputEvidence` 与无 Citation NoteSource 都可按 frozen generation/Representation 重开同一区域。HTTP 接受后立即显示不可点击的输入 Evidence 锁定状态；SSE 中断且恢复 GET 同时失败时仍保留已持久化 user message 与锁定状态，只将 assistant 收敛为 failed。独立 Playwright 验证 422 保留、成功 SSE/hydrate、请求体白名单、自动显式 Asset scope、输入 Evidence 恢复、`messageCitationId=null` NoteSource 和两次 frozen Viewer 跳转。收口部署审查真实复现并修复 API 镜像 deploy lock 缺 Pillow，修复镜像 `sha256:0bcb53c0a4d9` 以 UID `10001` 成功导入 Pillow `12.3.0` 和应用模块，实际 `/health/live` 返回 200。Critical 初审还发现直接 Note 未读取 canonical 图片对象，以及 failed assistant 虽可在 service 续问却被 HTTP router 拒绝；修复后，Note 即使不生成 crop 也校验对象存在性、SHA、PNG 与自然尺寸，缺失/损坏对象时 Note、NoteSource、新 locator/detail/regions 全部零残留，真实 `/chat/stream` 可从 failed assistant 继续且仍拒绝 streaming parent。最终 API `178/178`、Worker `79/79`、Web `82/82`、Playwright `1/1`、lint、tsc、Next production build、compileall、Alembic current/check、PostgreSQL migration/dump/restore、JSON 与 diff check 通过；独立 Critical 复审 `PASS`，无剩余 finding。生产 Image 仍 disabled，下一步进入 M305。
+- 2026-07-19 V3 Phase 3 M305 最终验收：共享 retrieval 候选移除 PDF page/detail，由 locator codec 生成稳定语义 key；ModalityRegistry text channel 的 8 条精确四元签名覆盖当前 PDF/Image persister 产物且不形成笛卡尔积。Dense/lexical 在排序前应用 Workspace、Asset scope、current index/generation、Representation/locator/embedding 一致性，并在 limit 前补足唯一 locator；4 条额外同页 PDF chunk 下 SQLite/PostgreSQL 都保持 `[pdf,image,image]`。Evidence detail/regions 批量 fail-closed 校验把单次真实 Hybrid SQL 从 `63` 降到 `7`，缺失 detail、缺失 region、非法 geometry 均有拒绝回归；离线 LexicalCorpus 复用同一生产 scope。正式 40-case `assetId` 报告的 Hybrid Recall 增益 `0.0708`、citation hit 增益 `0.0750`，端到端 p95 增加 `69.3 ms`、比例 `1.650x`，并发 `0` error/`0` drift，默认 Hybrid 门禁通过。最终 API `190/190`、Worker `79/79`、Web `82/82`、PostgreSQL oracle `1/1`、Playwright `1/1`、lint、tsc、Next build、compileall、迁移/恢复与 diff check 通过；独立 Critical 复审关闭全部 finding。生产 Image 仍 disabled，进入 Phase 4 工程验收。
+- 2026-07-19 V3 Phase 4 M401：新增严格 `multimodal-golden-v1`、`multimodal-failures-v1` 与确定性 coverage report。黄金集将已有 40 条真实 PDF retrieval 数据作为 hash/case-count 冻结的 reference baseline，并以 3 个非机密确定性 source fixture 建立 21 个 PDF/Image/mixed 工程 case，retrieval/evidence/answer 各 7 个，覆盖 7 类任务与 2 个 no-answer。失败 taxonomy 固定 10 类，首批只收录 6 个有持久化回归测试的真实历史 failure。校验器对未知字段、规范路径/文件/source+manifest hash、坐标合同/几何、scope、typed locator、层级语义和覆盖门槛 fail closed；40-case baseline 复用现有严格 label loader，失败复现只接受 API/Worker pytest 中模块顶层、AST 可见的 `testFile + testName` 并生成结构化 argv，不接受自由命令或路径穿越。定向测试 `18/18`、API `208/208`、Worker `79/79`、Web `82/82`、compileall、lint/tsc/build、确定性报告与 diff check 通过；最终独立 Standard 复审 `PASS`。`coveragePassed` 只表示评测合同完整，不宣称模型回答质量或用户价值通过；生产 Image 继续 disabled。
+- 2026-07-19 V3 Phase 4 M402 最终验收：单一 Worker node 直接消费 21-case golden set，真实执行 19 个 PDF/Image Evidence target adapter/locator、7 个生产 Dense/lexical/RRF/scope retrieval case 和 7 个 scripted Chat 编排；无 `page.route` 真实 BFF Playwright 在 1440x1000 与 390x844 下分别完成 7 Evidence case/8 target，生成 16 张截图，最小 approved-area coverage `0.294333`。预调用工具经独立 Standard 对抗复审 `PASS` 后，按明确批准向当前 `openai / gpt-5.5` 配置且仅发送 7 条非机密合成 prompt；全部请求无 provider 错误且 citation target 全覆盖。严格完整输出 allowlist 初次接受 1 条，其余 6 条正确改写经人工逐条对照 Evidence 后加入冻结 oracle；raw output/messages 和 capture-time false diagnostics 保持原样，正式报告忽略自报判分并独立复算。最终报告登记 16 张截图、4 个 raw 和 answer oracle 共 21 个 SHA-256 artifact，21 case 全部 `passed`，`engineeringExecutionPassed=true`、`fullStackEvidencePassed=true`、`realModelQualityPassed=true`、`releaseGatePassed=true`、`pending=[]`。最终 API `226/226`、Worker `84/84`、Web `82/82` 与 lint、tsc、Next build、compileall、Alembic、报告确定性重放和 diff check 通过；生产 Image 继续 disabled。
 
 ## 7. 下一步
 
-下一步：`招募至少 5 名第一用户，以至少 20 个真实任务执行验证；依据结果评审 Evidence RFC，并继续完成迁移/回滚/历史回放影响设计。在明确批准持久化/Citation API 迁移前，不实施 Asset/typed locator。`
+下一步：`M403A 已完成。生产 Image 继续 disabled；经单独批准后进入 M403B，再形成稳定 Git 边界并评审 V4 运行时合同。`
 
 具体建议从这些内容开始：
 
-1. 以至少 5 名第一用户完成至少 20 个真实研究任务，建立任务耗时、核验率、支持率、转笔记率和周回访基线；无参与者的内部问题集只能做质量预评测。
-2. 使用已建立的合成 PDF 与旧/新 payload fixture 评审 `pdf_page / pdf_region` 坐标和回放语义，并补迁移/回滚影响设计。
-3. 在合同批准后再建立 `specs/v3/multimodal-pdf/`，从布局/OCR bbox 和区域高亮的最小纵向切片开始。
+1. 以 `specs/v3/multimodal-workspace/` 的 Phase 4 M403-M403A 为当前开发入口。
+2. 完成全栈/像素、恢复与大语料容量验收后再决定是否启用 Image 上传入口。
+3. Phase 3-4 工程验收后执行真实用户任务验证；结果未完成前只作为内部预览。
 
 ## 8. 当前不进入主线
 
 当前不进入主线：
 
-- 未批准合同前的多模态 PDF 持久化实现
-- 独立图片、音频、视频的一次性全模态接入
+- 音频、视频的一次性全模态接入
 - 把 Omnilabel 标注/预测/数据集分析当作文件格式扩展
 - 复杂 Agent 编排平台
 - 多模型策略路由
@@ -138,3 +174,40 @@ V1、V2-A 与阶段 9 已完成。后续按以下顺序推进：
 - `阶段进度`
 - `当前正在做什么`
 - `下一步`
+## 2026-07-20：V3 M403 初次销卷恢复与 Critical 重开
+
+- 新增 `m403_restore_acceptance.py`，以 UUIDv5 和固定时间种出 PDF/Image 两代、当前/旧 index、失败/删除 Asset、PDF/Image typed locator、all-ready/selected scope、MessageInputEvidence、四条 Citation、citation-backed/direct NoteSource 和历史对象语义。
+- 新增隔离 Compose 编排与 readiness-only provider stub；真实备份 PostgreSQL custom dump 与 MinIO closed mirror 后删除 project 容器、网络和 5 个卷，再恢复到新空卷。stub 只回答 `/api/tags` 健康检查，不执行 embedding，不作为模型质量证据。
+- 恢复前后 26 类数据库行/目录、9 个活跃对象 SHA-256、删除对象缺失状态、typed detail/regions、历史 generation 与 raster pixel oracle 严格全等，语义 SHA-256 均为 `1ccf86f3113a9d5a7be232d92080928758eb961779b59d38f5869f04c2f7719a`。
+- 初次无 route mock 的 Playwright 在桌面 1440x1000 和移动 390x844 重放历史 PDF/Image；Critical 复审确认旧 oracle 只比较非白/颜色计数与 overlay 数量，无法排除同统计量 generation 漂移，且最终 cleanup 没有进入 release gate。因此旧 `releaseGatePassed=true` 只保留为数据库/对象诊断证据，不能继续作为最终 M403 证明。
+- runner 已升级为完整 raster pixel SHA-256、规范化 overlay geometry、citation/viewport/phase/result cardinality 和最终容器/卷/网络零残留 gate，等待正式重跑。生产 Image 保持 disabled。
+- 加强后的 `citeframe-m403-release-v2` 已从空隔离部署完成正式重跑。9 个 MinIO 对象和 27 类表/目录计数及语义恢复前后严格全等，语义 SHA-256 均为 `6b2a8758100229641271e7ced81c238a8ee69d7066c1b5076de8af002a8079c3`；桌面/移动端 PDF/Image 完整 raster SHA-256、规范化 overlay geometry、citation/viewport/phase/result cardinality 全部通过，历史 Image 像素绑定 generation-1 冻结 SHA。最终 Compose down 与容器/卷/网络检查退出码均为 `0`、实际残留均为 `0`，正式报告 `releaseGatePassed=true`。独立 Critical 评审服务连续因外部 `503/429` 未返回，主控制器已复核正式 artifact 与 oracle；不将外部服务失败伪记为代码 finding。M403 完成，生产 Image 仍 disabled。
+
+## 2026-07-20：V3 M403A S1 diagnostic 与 oracle 加固
+
+- S1 首轮 HNSW build 因容器 `shm_size=1g` 小于 `maintenance_work_mem=2GB` 而失败；隔离 override 调整为 3 GiB，并增加防回归测试，项目总资源仍为 PostgreSQL 3C/6 GiB + runner 1C/2 GiB。
+- 修正后完成 100k Dense 可见、140k 物理 ContentUnit 和 150k 旧语料 embedding 的诊断运行：装载加索引 `130.309s`，HNSW `70.056s`，D8 4 轮/150 ranked rows，Latin GIN 命中，8 并发 32 次无错误/漂移，最终容器/卷/网络零残留。
+- 真实 warm plan 仍从 8 个 Asset/Representation 扫出 100k ContentUnit，再做 100k embedding FK probe 与 exact top-N sort；HNSW 未被选择，Dense 约 `943-956ms`，因此 diagnostic 报告正确为失败。Critical 裁决阻止正式三档执行，当前改为显式有界 ANN candidate stage 后再套用不变的 current-chain/type/scope eligibility。
+- M403A 语料/报告升级为 80% 500 字符 + 20% 1200 字符、实际 cohort x 8 signature/D1-D8-D64 持久化指纹、错误 provider-only ContentUnit、Dense/lexical 可见集合分报、最终 Evidence location Recall、all-ready/selected 计划、Docker inspect/cgroup 资源和带来源/公式成本。子集执行一律 `debugOnly`。
+- production Dense 改为先从匹配 embedding metadata 的表执行有界 `MATERIALIZED` HNSW candidate stage，再应用原有 Workspace/Asset/current-chain/type scope；S1 warm plan 已从 exact sort 改为 HNSW，Dense p95 从约 `943-956ms` 降到 `10.2ms`。
+- 初版 64 维全随机合成向量没有形成签名语义簇，S1 的目标签名独占门必然失败且最低 location Recall@10 仅 `0.80`。语料修正为 8 个正交签名中心加 56 维确定性 locator 扰动，D1/D8/D64 重复与全部噪声规模保持不变；新 S0/S1 diagnostic 的 8 类 Recall@10 均为 `1.00`，S1 全部子门禁通过、最终资源零残留。子集仍只作诊断，不构成发布证据。
+- 首次完整 S0/S1/S2 canonical 正确 fail closed：S1 因 `ef_search=100` 的近似图波动出现 `0.90` Recall，S2 最低 Recall `0.60`；S2 Latin lexical p95 `226.6ms`，连带 Hybrid `254.4ms`、8 并发 `893.4ms`/`11.67 req/s` 未达标。其他 HNSW/GIN、scope/current chain、Dense p95、buffer、6.92 GiB 容量、`1283.684s` 装载建索引和零残留门均通过。
+- 根据失败证据，将 Latin FTS 改为 ContentUnit-only `MATERIALIZED` 候选前缀，返回前仍执行完整 scope/current-chain/type 约束并按源匹配总数扩窗；单词查询跳过恒为 1 的全文 `ILIKE` 覆盖计算，首窗使用 `2 x limit`。HNSW 查询深度收敛到 `ef_search=400`，生产与验收配置一致。修正后 S1 diagnostic 再次 8 类 Recall `1.00` 且 HNSW/GIN 命中，Dense/lexical/Hybrid p95 为 `22.3/45.1/61.2ms`，8 并发 p95 `187.2ms`、吞吐 `57.0 req/s`，准备重新执行完整 canonical。
+- 第二次 canonical 在 S1 seed 后的 PostgreSQL restart 暴露基础设施缺口：后台 WAL checkpoint 未完成时，Compose 默认 10 秒 stop 超时会强杀数据库，随后 crash recovery 超过 60 秒 health 窗口。seed 现显式执行 `CHECKPOINT` 并把耗时计入 `loadAndIndexSeconds`；部署 PostgreSQL 增加 5 分钟 graceful stop，避免把未计入的后台刷盘成本转移到重启阶段或在生产重启中强杀数据库。
+- 第三次 canonical 在宿主连续大规模 I/O 后，S2 的 700k embedding insert 单条查询运行 `39m20s` 仍未进入 HNSW，已确定不可能满足 45 分钟总门限，因此主动中止并由 trap 清零资源。根因是 seed 先为约 215k locator 物化完整 1024 维临时 vector，再回读写入 700k 正式行；临时表现只保存 64 个有效 signal 分量，在最终 insert 时补 960 个零并 cast 为同一 `vector(1024)`。S0 真实运行确认 dataset checksum、持久化指纹、Recall 和所有语义门不变，load `7.6s`、显式 checkpoint `23.0s` 均计入。
+- 第四次 canonical 在宿主 I/O pressure 较高时，初始 S0 PostgreSQL init 用时约 66 秒，超过 runner 的通用 60 秒 health 窗口后被误判失败；数据库日志显示其随后正常 healthy，未发生数据或查询错误。M403A 的初始与冷重启 health/SQL wait 均显式设为 300 秒，该等待不计入 seed/query 性能数据；正式容量运行只在外部 I/O pressure 回落后启动。
+- 第五次 canonical 完整执行并清零全部 S0/S1/S2 容器、卷和网络。S0/S1 全部门通过；S2 的 HNSW/GIN plan、scope/current chain、D8/D64、buffer、Dense/lexical/Hybrid p95 `43.0/82.9/141.4ms`、数据库 `6.92 GiB` 和装载建索引 `1775.819s` 通过，但两个 D1 case 的 Recall@10 为 `0.80/0.90`，8 并发 p95 `1002.6ms`、吞吐 `11.62 req/s` 未达冻结阈值，因此 `releaseGatePassed=false`。S2 Latin warm plan 为每条查询额外启动 2 个 parallel worker，与 PostgreSQL 3C 和 8 个并发请求形成争抢；当前先在同一 S2 seed 上验证禁用 per-gather parallelism，并用 ANN window/`ef_search` 矩阵定位最小召回修复，不降低任何阈值。
+- 同一冻结 S2 corpus 的保留库矩阵排除了无效方向：ANN `2x` overfetch 在 `ef_search=400/800` 下不改善最低 Recall；`ef_search=800/1200` 仍失败；per-gather worker `0/1/2` 均不能同时满足 lexical p95、8 并发 p95 和吞吐。HNSW `ef_construction=96` 最低 Recall 仍为 `0.90`，`128` 首次让 8 类 Recall 全为 `1.00`；重建 `759.1s`、索引 `1803 MiB`，在冻结资源/时间/容量内，因此 production model、migration 与 capacity seed 统一固化 `128`。
+- 并发分解证明 Dense-only p95 `91.2ms`/`139.8 req/s`，Lexical-only p95 `918.3ms`/`15.37 req/s`，瓶颈完全在 Latin FTS 对匹配文本重复构造 `to_tsvector` 后执行同一 `ts_rank_cd` 排名。保留库诊断中 stored generated `search_vector` 让 GIN/排名复用同一列，保持 term coverage、`ts_rank_cd`、candidate limit、完整 scope/current chain 和 RRF 不变；两次运行均全门通过，第一次/第二次 8 并发 p95 `213.9/233.4ms`、吞吐 `66.18/62.08 req/s`。迁移 `106.8s`、数据库增加约 `148 MiB`。Owner 已批准并实现 `e1f3a5c7d9b2`，生产库已升级、`alembic check` 无新操作，定向 19、混合检索 9、API 全量 265 测试通过，待完整 canonical。
+- current-chain 修复后的 HNSW 图质量实验没有降低冻结阈值：`ef_construction=256` 的完整 canonical 将 S2 最低 Recall 从 `0.80` 提升到 `0.90`，`512` 的 fresh S1 达到全部 Recall `1.00`，但最新完整 S0/S1/S2 canonical 仍在 S2 `image-ocr:D1` 得到 `0.90`。该次 S2 Dense/lexical/Hybrid p95 为 `16.0/20.4/36.0ms`，8 并发 p95 `261.8ms`、吞吐 `63.09 req/s`，数据库 `7.07 GiB`，HNSW `1.67 GiB`，其余 gate 与最终零残留全部通过。正式 artifact 为 `docs/evals/artifacts/m403a-efconstruction512-failed/report.json`；M403A 保持未完成。
+- `m=24 + ef_construction=512` 的隔离 S1 diagnostic 已否决并从代码撤回：9 个 all-ready/selected Recall 均为 `1.00`，但 planner 不再选择 HNSW，Dense p95 `116.3ms`，8 并发 p95 `5188.0ms`、吞吐 `6.15 req/s`。该中间连接度不能同时满足计划与性能门，不进入 S2。
+- filtered HNSW 的 `relaxed_order` 也被 S2 debug 否决并撤回：HNSW 计划、性能和并发保持通过（Dense/lexical/Hybrid p95 `17.3/19.6/36.1ms`，并发 p95 `219.8ms`、吞吐 `68.98 req/s`），但 `image-ocr:D1` Recall 仍为 `0.90`。外层 `MATERIALIZED` CTE 的 distance 重排未补回缺失位置，生产与验收恢复 `strict_order`。
+- HNSW 连接度的二分诊断也已关闭：`m=20` 与 `m=18` 的 S1 全部 Recall 均为 `1.00`，普通 all-ready Dense 仍命中 HNSW，但 selected scope 都改走 `asset_id` 索引并做 exact sort，导致 `hnswPlan=false`。两者均在 S1 撤回，未进入 S2；默认 `m=16` 是当前同时满足 all-ready/selected HNSW plan 的已验证边界。
+- 串行 HNSW build 用于验证并行建图波动：S1 全部门通过，HNSW `116.4s`、总 load/index `186.3s`；但 S2 在 HNSW `85%` 时已耗时约 21 分钟，按最近 137 blocks/分钟计算，结合约 7 分钟 load，完成前即确定超过 45 分钟门限。runner 被主动中止并由 trap 清零容器、卷和网络，串行 build 配置已撤回；不能用牺牲容量门换取可能的 Recall 稳定性。
+- 最终迁移往返验证从 `f2a4c6e8b0d1` downgrade 到 `e1f3a5c7d9b2`，确认旧全量 HNSW `ef_construction=128`、current-chain 列和 trigger 均移除；再 upgrade 回 head，确认 current-only partial HNSW `ef_construction=512`、360/360 current、0 invalid 和 2 个 scope trigger。最终 API `277 passed, 1 warning`、Worker `93 passed`，Alembic check、compileall 与 diff check 通过。
+
+## 2026-07-20：M404 诚实的未评估自动化
+
+- 新增严格 `user-task-validation-manifest-v1`，结构化记录 participant/asset/task 资格；开发者自测、合成用户和模型代理不能计入真实目标用户，任务按 `(participant_id, task_id)` 去重，只有任务实际引用的真实复杂资产计数。
+- 只有 5 名真实目标用户、20 个合格任务完成、3 份复杂 PDF、2 张复杂图片及来源/版式多样性全部满足，质量门才进入 `pass/fail`；此前顶层和全部质量门都为 `not_evaluable`。
+- 自动报告始终固定 `userValueValidated=false`、`productStage=internal_preview`，因为 qualification evidence、继续使用意愿和七日复用仍需真实研究裁决。canonical 空报告 `docs/research/user-task-results-report.json` 由空 manifest + header-only CSV 生成，CLI 退出码为 `2`。

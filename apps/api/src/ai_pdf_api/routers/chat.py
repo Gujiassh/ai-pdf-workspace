@@ -9,14 +9,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ai_pdf_api.db.session import get_db
-from ai_pdf_api.models import ChatMessage, ChatThread, MessageCitation
+from ai_pdf_api.modalities.evidence import serialize_evidence_locator
+from ai_pdf_api.models import Asset, ChatMessage, ChatThread, MessageCitation, MessageInputEvidence
 from ai_pdf_api.routers.deps import get_accessible_workspace, require_user_id
 from ai_pdf_api.schemas.chat import (
     ChatStreamRequest,
     Citation,
     CreateThreadRequest,
     CreateThreadResponse,
+    InputEvidence,
     Message,
+    SourceVersions,
     ThreadListResponse,
     ThreadMessagesResponse,
     ThreadSummary,
@@ -37,20 +40,68 @@ def to_thread_summary(thread: ChatThread) -> ThreadSummary:
     )
 
 
-def to_citation(citation: MessageCitation) -> Citation:
+def to_citation(db: Session, citation: MessageCitation) -> Citation:
+    asset = db.get(Asset, citation.asset_id)
     return Citation(
         id=citation.id,
         messageId=citation.message_id,
         citationIndex=citation.citation_index,
-        documentId=citation.document_id,
-        documentTitle=citation.document_title_snapshot,
-        pageNumber=citation.page_number_snapshot,
-        chunkId=citation.chunk_id,
+        assetId=citation.asset_id,
+        assetKind=citation.asset_kind_snapshot,
+        assetTitle=citation.asset_title_snapshot,
+        sourceAvailable=asset is not None and asset.deleted_at is None,
         excerpt=citation.excerpt_snapshot,
+        locator=serialize_evidence_locator(
+            db,
+            citation.evidence_locator_id,
+            workspace_id=citation.workspace_id,
+            asset_id=citation.asset_id,
+            processing_generation=citation.processing_generation_snapshot,
+            representation_id=citation.representation_id_snapshot,
+        ),
+        sourceVersions=SourceVersions(
+            parserVersion=citation.parser_version_snapshot,
+            processingGeneration=citation.processing_generation_snapshot,
+            representationId=citation.representation_id_snapshot,
+            indexVersion=citation.index_version_snapshot,
+        ),
     )
 
 
-def to_message(message: ChatMessage, citations: list[MessageCitation]) -> Message:
+def to_input_evidence(db: Session, evidence: MessageInputEvidence) -> InputEvidence:
+    asset = db.get(Asset, evidence.asset_id)
+    return InputEvidence(
+        id=evidence.id,
+        messageId=evidence.message_id,
+        targetOrder=evidence.target_order,
+        assetId=evidence.asset_id,
+        assetKind=evidence.asset_kind_snapshot,
+        assetTitle=evidence.asset_title_snapshot,
+        sourceAvailable=asset is not None and asset.deleted_at is None,
+        excerpt=evidence.excerpt_snapshot,
+        locator=serialize_evidence_locator(
+            db,
+            evidence.evidence_locator_id,
+            workspace_id=evidence.workspace_id,
+            asset_id=evidence.asset_id,
+            processing_generation=evidence.processing_generation_snapshot,
+            representation_id=evidence.representation_id_snapshot,
+        ),
+        sourceVersions=SourceVersions(
+            parserVersion=evidence.parser_version_snapshot,
+            processingGeneration=evidence.processing_generation_snapshot,
+            representationId=evidence.representation_id_snapshot,
+            indexVersion=evidence.index_version_snapshot,
+        ),
+    )
+
+
+def to_message(
+    db: Session,
+    message: ChatMessage,
+    citations: list[MessageCitation],
+    input_evidence: list[MessageInputEvidence],
+) -> Message:
     return Message(
         id=message.id,
         workspaceId=message.workspace_id,
@@ -62,7 +113,8 @@ def to_message(message: ChatMessage, citations: list[MessageCitation]) -> Messag
         modelProvider=message.model_provider,
         modelName=message.model_name,
         createdAt=message.created_at.astimezone(UTC).isoformat(),
-        citations=[to_citation(citation) for citation in citations],
+        citations=[to_citation(db, citation) for citation in citations],
+        inputEvidence=[to_input_evidence(db, evidence) for evidence in input_evidence],
     )
 
 
@@ -152,9 +204,25 @@ def list_thread_messages(
     citation_by_message: dict[str, list[MessageCitation]] = {}
     for citation in citations:
         citation_by_message.setdefault(citation.message_id, []).append(citation)
+    input_rows = db.scalars(
+        select(MessageInputEvidence)
+        .where(MessageInputEvidence.message_id.in_([message.id for message in messages]))
+        .order_by(MessageInputEvidence.message_id, MessageInputEvidence.target_order)
+    ).all() if messages else []
+    input_by_message: dict[str, list[MessageInputEvidence]] = {}
+    for evidence in input_rows:
+        input_by_message.setdefault(evidence.message_id, []).append(evidence)
     return ThreadMessagesResponse(
         thread=to_thread_summary(thread),
-        messages=[to_message(message, citation_by_message.get(message.id, [])) for message in messages],
+        messages=[
+            to_message(
+                db,
+                message,
+                citation_by_message.get(message.id, []),
+                input_by_message.get(message.id, []),
+            )
+            for message in messages
+        ],
     )
 
 
@@ -175,7 +243,9 @@ def stream_chat(
             user_id=user_id,
             thread=thread,
             question=payload.question,
+            asset_scope=payload.assetScope,
             selection_text=payload.selectionText,
+            evidence_targets=payload.evidenceTargets,
             parent_message_id=parent_message_id,
             use_thread_active_parent=not bool(payload.editMessageId),
         )
@@ -199,7 +269,10 @@ def stream_chat(
                 yield _sse("delta", {"text": delta})
             completed = finalize_chat(db, prepared, "".join(answer_parts))
             stream_finalized = True
-            yield _sse("citations", {"items": [to_citation(citation).model_dump() for citation in completed.citations]})
+            yield _sse(
+                "citations",
+                {"items": [to_citation(db, citation).model_dump() for citation in completed.citations]},
+            )
             yield _sse("done", {"threadId": thread.id, "assistantMessageId": completed.assistant_message.id})
         except ModelProviderError as error:
             fail_chat(db, prepared, error.code, error.message)
@@ -248,9 +321,13 @@ def _resolve_parent_message_id(db: Session, thread: ChatThread, payload: ChatStr
             ChatMessage.id == parent_id,
             ChatMessage.thread_id == thread.id,
             ChatMessage.workspace_id == thread.workspace_id,
-            ChatMessage.status == "completed",
         )
     )
-    if parent is None:
+    parent_is_replayable_failure = (
+        parent is not None
+        and parent.role == "assistant"
+        and parent.status == "failed"
+    )
+    if parent is None or (parent.status != "completed" and not parent_is_replayable_failure):
         raise ChatError("invalid_parent_message", "The conversation parent is no longer available.", 422)
     return parent.id

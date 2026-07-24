@@ -3,8 +3,12 @@ import pytest
 from prometheus_client import generate_latest
 
 from ai_pdf_api.core.metrics import PROVIDER_REQUESTS
-
-from ai_pdf_api.services.providers import ModelProviderError, OpenAIEmbeddingProvider, OpenAIGenerationProvider
+from ai_pdf_api.modalities.image_caption import OpenAIImageCaptionProvider
+from ai_pdf_api.services.providers import (
+    ModelProviderError,
+    OpenAIEmbeddingProvider,
+    OpenAIGenerationProvider,
+)
 
 
 def test_openai_embedding_provider_batches_and_validates_dimensions() -> None:
@@ -80,7 +84,10 @@ def test_openai_embedding_provider_requires_key() -> None:
 
 
 def test_openai_generation_provider_reads_responses_output_text() -> None:
-    def handler(_request: httpx.Request) -> httpx.Response:
+    requests: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request.read())
         return httpx.Response(200, json={"output_text": "answer from provider"})
 
     provider = OpenAIGenerationProvider(
@@ -93,6 +100,97 @@ def test_openai_generation_provider_reads_responses_output_text() -> None:
     )
 
     assert provider.generate([{"role": "user", "content": "question"}]) == "answer from provider"
+    assert requests[0].decode() == (
+        '{"model":"gpt-5.5","input":[{"role":"user","content":"question"}],'
+        '"max_output_tokens":100}'
+    )
+
+
+def test_openai_generation_provider_preserves_multimodal_message_parts() -> None:
+    requests: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request.read())
+        return httpx.Response(200, json={"output_text": "visual answer"})
+
+    provider = OpenAIGenerationProvider(
+        model="gpt-5.5",
+        api_key="test-key",
+        api_base="https://example.test/v1",
+        timeout_seconds=2,
+        max_output_tokens=100,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "input_text", "text": "Analyze this region."},
+                {
+                    "type": "input_image",
+                    "image_url": "data:image/png;base64,Y3JvcHBlZC1wbmc=",
+                    "detail": "high",
+                },
+            ],
+        }
+    ]
+
+    assert provider.generate(messages) == "visual answer"
+    payload = httpx.Response(200, content=requests[0]).json()
+    assert payload["input"] == messages
+
+
+def test_openai_image_caption_provider_sends_canonical_png_as_responses_image_input() -> None:
+    requests: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append({"url": str(request.url), "body": request.read().decode()})
+        return httpx.Response(200, json={"output_text": "Visible chart caption."})
+
+    provider = OpenAIImageCaptionProvider(
+        model="gpt-5.5",
+        version="image-caption-v1",
+        detail="high",
+        api_key="test-key",
+        api_base="https://example.test/v1",
+        timeout_seconds=2,
+        max_output_tokens=320,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    caption = provider.caption(b"canonical-png", content_type="image/png")
+
+    assert caption == "Visible chart caption."
+    assert requests[0]["url"] == "https://example.test/v1/responses"
+    assert '"type":"input_text"' in requests[0]["body"]
+    assert '"type":"input_image"' in requests[0]["body"]
+    assert '"image_url":"data:image/png;base64,Y2Fub25pY2FsLXBuZw=="' in requests[0]["body"]
+    assert '"detail":"high"' in requests[0]["body"]
+
+
+def test_openai_image_caption_provider_rejects_invalid_input_and_empty_output() -> None:
+    provider = OpenAIImageCaptionProvider(
+        model="gpt-5.5",
+        version="image-caption-v1",
+        detail="high",
+        api_key="test-key",
+        api_base="https://example.test/v1",
+        timeout_seconds=2,
+        max_output_tokens=320,
+        client=httpx.Client(
+            transport=httpx.MockTransport(
+                lambda _request: httpx.Response(200, json={"output": [{"content": []}]})
+            )
+        ),
+    )
+
+    with pytest.raises(ModelProviderError) as invalid_input:
+        provider.caption(b"jpeg", content_type="image/jpeg")
+    assert invalid_input.value.code == "image_caption_input_invalid"
+
+    with pytest.raises(ModelProviderError) as empty_output:
+        provider.caption(b"png", content_type="image/png")
+    assert empty_output.value.code == "image_caption_invalid_response"
 
 
 def test_openai_generation_provider_streams_response_text_deltas() -> None:

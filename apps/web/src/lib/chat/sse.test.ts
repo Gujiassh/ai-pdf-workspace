@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { consumeChatStream, parseSseEvents } from "./sse";
+import { ChatStreamContractError, consumeChatStream, parseSseEvents } from "./sse";
 
 test("SSE parser retains incomplete frames across chunks", () => {
   const first = parseSseEvents('event: delta\ndata: {"text":"first"');
@@ -62,6 +62,293 @@ test("SSE parser dispatches provider errors", async () => {
   });
 
   assert.equal(error, "generation_failed:provider failed");
+});
+
+test("chat stream rejects malformed terminal events", async () => {
+  for (const frame of [
+    'event: done\ndata: {"threadId":"thread-1"}\n\n',
+    'event: error\ndata: {"code":"generation_failed"}\n\n',
+  ]) {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(frame));
+        controller.close();
+      },
+    });
+
+    await assert.rejects(
+      consumeChatStream(new Response(stream), {}),
+      ChatStreamContractError,
+    );
+  }
+});
+
+test("citation stream rejects an invalid evidence locator instead of filtering it", async () => {
+  const valid = {
+    id: "citation-1",
+    messageId: "message-1",
+    citationIndex: 0,
+    assetId: "asset-1",
+    assetKind: "pdf",
+    assetTitle: "paper.pdf",
+    sourceAvailable: true,
+    excerpt: "evidence",
+    locator: { kind: "pdf_page", version: 1, pageNumber: 3 },
+    sourceVersions: {
+      parserVersion: "parser-v1",
+      processingGeneration: 1,
+      representationId: "representation-1",
+      indexVersion: 1,
+    },
+  };
+  const invalidLocator = { ...valid, id: "citation-2", locator: { kind: "unknown", version: 1 } };
+  const payload = JSON.stringify({ items: [valid, invalidLocator] });
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(
+        `event: citations\ndata: ${payload}\n\nevent: done\ndata: {"threadId":"thread-1","assistantMessageId":"message-1"}\n\n`,
+      ));
+      controller.close();
+    },
+  });
+
+  await assert.rejects(
+    consumeChatStream(new Response(stream), {}),
+    {
+      name: "ChatStreamContractError",
+      message: "Chat citations event contains an invalid evidence envelope.",
+    },
+  );
+});
+
+test("citation stream rejects an incomplete evidence source version envelope", async () => {
+  const payload = JSON.stringify({
+    items: [{
+      id: "citation-1",
+      messageId: "message-1",
+      citationIndex: 0,
+      assetId: "asset-1",
+      assetKind: "pdf",
+      assetTitle: "paper.pdf",
+      sourceAvailable: true,
+      excerpt: "evidence",
+      locator: { kind: "pdf_page", version: 1, pageNumber: 3 },
+    }],
+  });
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(
+        `event: citations\ndata: ${payload}\n\nevent: done\ndata: {"threadId":"thread-1","assistantMessageId":"message-1"}\n\n`,
+      ));
+      controller.close();
+    },
+  });
+
+  await assert.rejects(
+    consumeChatStream(new Response(stream), {}),
+    /invalid evidence envelope/,
+  );
+});
+
+test("citation stream rejects an unsupported evidence locator version", async () => {
+  const payload = JSON.stringify({
+    items: [{
+      id: "citation-1",
+      messageId: "message-1",
+      citationIndex: 0,
+      assetId: "asset-1",
+      assetKind: "pdf",
+      assetTitle: "paper.pdf",
+      sourceAvailable: true,
+      excerpt: "evidence",
+      locator: { kind: "pdf_page", version: 2, pageNumber: 3 },
+      sourceVersions: {
+        parserVersion: "parser-v1",
+        processingGeneration: 1,
+        representationId: "representation-1",
+        indexVersion: 1,
+      },
+    }],
+  });
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(
+        `event: citations\ndata: ${payload}\n\nevent: done\ndata: {"threadId":"thread-1","assistantMessageId":"message-1"}\n\n`,
+      ));
+      controller.close();
+    },
+  });
+
+  await assert.rejects(
+    consumeChatStream(new Response(stream), {}),
+    /invalid evidence envelope/,
+  );
+});
+
+test("citation stream rejects inconsistent PDF region geometry", async () => {
+  const payload = JSON.stringify({
+    items: [{
+      id: "citation-1",
+      messageId: "message-1",
+      citationIndex: 0,
+      assetId: "asset-1",
+      assetKind: "pdf",
+      assetTitle: "paper.pdf",
+      sourceAvailable: true,
+      excerpt: "evidence",
+      locator: {
+        kind: "pdf_region",
+        version: 1,
+        pageNumber: 3,
+        coordinateSpace: "pdf_crop_box_normalized_top_left_v1",
+        pageGeometry: {
+          cropBoxPoints: [0, 0, 612, 792],
+          rotationDegrees: 90,
+          displayWidthPoints: 612,
+          displayHeightPoints: 792,
+        },
+        regions: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.1 }],
+      },
+      sourceVersions: {
+        parserVersion: "parser-v1",
+        processingGeneration: 1,
+        representationId: "representation-1",
+        indexVersion: 1,
+      },
+    }],
+  });
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(
+        `event: citations\ndata: ${payload}\n\nevent: done\ndata: {"threadId":"thread-1","assistantMessageId":"message-1"}\n\n`,
+      ));
+      controller.close();
+    },
+  });
+
+  await assert.rejects(
+    consumeChatStream(new Response(stream), {}),
+    /invalid evidence envelope/,
+  );
+});
+
+test("citation stream rejects unsupported evidence coordinate spaces", async () => {
+  const payload = JSON.stringify({
+    items: [{
+      id: "citation-1",
+      messageId: "message-1",
+      citationIndex: 0,
+      assetId: "asset-1",
+      assetKind: "pdf",
+      assetTitle: "paper.pdf",
+      sourceAvailable: true,
+      excerpt: "evidence",
+      locator: {
+        kind: "pdf_region",
+        version: 1,
+        pageNumber: 3,
+        coordinateSpace: "wrong_space",
+        pageGeometry: {
+          cropBoxPoints: [0, 0, 612, 792],
+          rotationDegrees: 0,
+          displayWidthPoints: 612,
+          displayHeightPoints: 792,
+        },
+        regions: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.1 }],
+      },
+      sourceVersions: {
+        parserVersion: "parser-v1",
+        processingGeneration: 1,
+        representationId: "representation-1",
+        indexVersion: 1,
+      },
+    }],
+  });
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(
+        `event: citations\ndata: ${payload}\n\nevent: done\ndata: {"threadId":"thread-1","assistantMessageId":"message-1"}\n\n`,
+      ));
+      controller.close();
+    },
+  });
+
+  await assert.rejects(
+    consumeChatStream(new Response(stream), {}),
+    /invalid evidence envelope/,
+  );
+});
+
+test("citation stream rejects image evidence outside canonical geometry", async () => {
+  for (const locator of [
+    {
+      kind: "image_region",
+      version: 1,
+      coordinateSpace: "image_normalized_top_left_v1",
+      widthPixels: 1200,
+      heightPixels: 800,
+      orientationApplied: false,
+      regions: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.1 }],
+    },
+    {
+      kind: "image_region",
+      version: 1,
+      coordinateSpace: "image_normalized_top_left_v1",
+      widthPixels: 1200,
+      heightPixels: 800,
+      orientationApplied: true,
+      regions: [{ x: 0.8, y: 0.2, width: 0.3, height: 0.1 }],
+    },
+  ]) {
+    const payload = JSON.stringify({
+      items: [{
+        id: "citation-1",
+        messageId: "message-1",
+        citationIndex: 0,
+        assetId: "asset-1",
+        assetKind: "image",
+        assetTitle: "evidence.png",
+        sourceAvailable: true,
+        excerpt: "evidence",
+        locator,
+        sourceVersions: {
+          parserVersion: "image-caption-v1",
+          processingGeneration: 1,
+          representationId: "representation-1",
+          indexVersion: 1,
+        },
+      }],
+    });
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(
+          `event: citations\ndata: ${payload}\n\nevent: done\ndata: {"threadId":"thread-1","assistantMessageId":"message-1"}\n\n`,
+        ));
+        controller.close();
+      },
+    });
+
+    await assert.rejects(
+      consumeChatStream(new Response(stream), {}),
+      /invalid evidence envelope/,
+    );
+  }
+});
+
+test("citation stream rejects a malformed citations event", async () => {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(
+        'event: citations\ndata: {"citations":[]}\n\nevent: done\ndata: {"threadId":"thread-1","assistantMessageId":"message-1"}\n\n',
+      ));
+      controller.close();
+    },
+  });
+
+  await assert.rejects(
+    consumeChatStream(new Response(stream), {}),
+    /invalid evidence envelope/,
+  );
 });
 
 

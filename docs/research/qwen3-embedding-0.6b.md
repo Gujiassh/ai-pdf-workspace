@@ -1,8 +1,8 @@
-# Qwen3-Embedding-0.6B for AI PDF Workspace
+# Qwen3-Embedding-0.6B for Citeframe
 
 ## Recommendation
 
-**Use `Qwen/Qwen3-Embedding-0.6B` as the leading open-source embedding candidate for a local-first AI PDF Workspace, especially if Chinese or multilingual retrieval matters.** It is a good planning fit when we want Apache-2.0 weights, self-hosting, and strong multilingual retrieval signals without jumping straight to a much larger model.
+**Use `Qwen/Qwen3-Embedding-0.6B` as the leading open-source embedding candidate for a local-first Citeframe, especially if Chinese or multilingual retrieval matters.** It is a good planning fit when we want Apache-2.0 weights, self-hosting, and strong multilingual retrieval signals without jumping straight to a much larger model.
 
 Recommended default evaluation setup:
 
@@ -41,7 +41,7 @@ Important implementation note from Qwen:
 - For retrieval, **queries should carry an instruction** and documents should not.
 - For multilingual scenarios, Qwen recommends writing the instruction **in English**.
 
-For an AI PDF Workspace, that means the query side should look more like:
+For an Citeframe, that means the query side should look more like:
 
 ```text
 Instruct: Given a user question, retrieve the most relevant PDF chunks that answer it.

@@ -11,13 +11,13 @@ import {
   deleteTag as deleteTagApi,
   listNotes,
   listTags,
-  setDocumentTags,
+  setAssetTags,
   setNoteTags,
   updateNote as updateNoteApi,
 } from "@/lib/notes/client";
 import { toUiNote, toUiTag } from "@/lib/notes/normalize";
 import type { TagDto } from "@/lib/notes/types";
-import type { Document, Note, NoteSource, Tag, Workspace } from "./workspace-context";
+import type { Asset, CreateNoteOptions, Note, Tag, Workspace } from "./workspace-context";
 
 export function getNextTagIds(currentTagIds: string[], toggledTagId: string): string[] {
   return currentTagIds.includes(toggledTagId)
@@ -25,20 +25,20 @@ export function getNextTagIds(currentTagIds: string[], toggledTagId: string): st
     : [...currentTagIds, toggledTagId];
 }
 
-export function updateDocumentTagRelations(
+export function updateAssetTagRelations(
   relations: TagDto[],
   workspaceId: string,
-  documentId: string,
+  assetId: string,
   nextTagIds: string[],
 ): TagDto[] {
   return relations.map((relation) => ({
     ...relation,
-    documentIds:
+    assetIds:
       relation.workspaceId !== workspaceId
-        ? relation.documentIds
+        ? relation.assetIds
         : nextTagIds.includes(relation.id)
-          ? [...new Set([...(relation.documentIds ?? []).filter((id) => id !== documentId), documentId])]
-          : (relation.documentIds ?? []).filter((id) => id !== documentId),
+          ? [...new Set([...(relation.assetIds ?? []).filter((id) => id !== assetId), assetId])]
+          : (relation.assetIds ?? []).filter((id) => id !== assetId),
   }));
 }
 
@@ -65,11 +65,11 @@ type UseNotesTagsOptions = {
   currentWorkspaceId: string;
   currentWorkspaceIdRef: MutableRefObject<string>;
   tagRelationsRef: MutableRefObject<TagDto[]>;
-  documentsRef: MutableRefObject<Document[]>;
+  assetsRef: MutableRefObject<Asset[]>;
   setSelectedTagIds: Dispatch<SetStateAction<string[]>>;
-  applyDocumentTags: (workspaceId: string, relations: TagDto[]) => void;
-  updateDocumentTags: (documentId: string, tagNames: string[]) => void;
-  removeDocumentTagName: (workspaceId: string, tagName: string) => void;
+  applyAssetTags: (workspaceId: string, relations: TagDto[]) => void;
+  updateAssetTags: (assetId: string, tagNames: string[]) => void;
+  removeAssetTagName: (workspaceId: string, tagName: string) => void;
   updateWorkspace: (workspaceId: string, updater: (workspace: Workspace) => Workspace) => void;
 };
 
@@ -79,11 +79,11 @@ export function useNotesTags({
   currentWorkspaceId,
   currentWorkspaceIdRef,
   tagRelationsRef,
-  documentsRef,
+  assetsRef,
   setSelectedTagIds,
-  applyDocumentTags,
-  updateDocumentTags,
-  removeDocumentTagName,
+  applyAssetTags,
+  updateAssetTags,
+  removeAssetTagName,
   updateWorkspace,
 }: UseNotesTagsOptions) {
   const [notes, setNotesState] = useState<Note[]>([]);
@@ -163,7 +163,7 @@ export function useNotesTags({
           ...previous.filter((note) => note.workspaceId !== workspaceId),
           ...workspaceNotes,
         ]);
-        applyDocumentTags(workspaceId, tagRelationsRef.current);
+        applyAssetTags(workspaceId, tagRelationsRef.current);
         updateWorkspace(workspaceId, (workspace) => ({
           ...workspace,
           noteCount: workspaceNotes.length,
@@ -180,7 +180,7 @@ export function useNotesTags({
     return () => {
       cancelled = true;
     };
-  }, [applyDocumentTags, currentWorkspaceId, isAuthHydrating, setNotes, setTags, updateWorkspace, user, tagRelationsRef]);
+  }, [applyAssetTags, currentWorkspaceId, isAuthHydrating, setNotes, setTags, updateWorkspace, user, tagRelationsRef]);
 
   const removeWorkspace = useCallback(
     (workspaceId: string) => {
@@ -192,7 +192,7 @@ export function useNotesTags({
   );
 
   const createNote = useCallback(
-    async (title: string, content: string, source?: NoteSource) => {
+    async (title: string, content: string, options: CreateNoteOptions = {}) => {
       const workspaceId = currentWorkspaceId;
       if (!workspaceId) {
         return;
@@ -201,7 +201,10 @@ export function useNotesTags({
       const payload = await createNoteApi(workspaceId, {
         title: title.trim() || null,
         bodyMd: content,
-        sourceCitationIds: source?.messageCitationId ? [source.messageCitationId] : [],
+        sourceCitationIds: options.source?.messageCitationId
+          ? [options.source.messageCitationId]
+          : [],
+        evidenceTargets: options.evidenceTargets ?? [],
       });
       const tagsById = new Map(tagsRef.current.map((tag) => [tag.id, tag]));
       const newNote = toUiNote(payload.note, tagsById);
@@ -270,7 +273,7 @@ export function useNotesTags({
       const newTag = toUiTag(payload.tag);
       tagRelationsRef.current = [
         ...tagRelationsRef.current.filter((tag) => tag.id !== newTag.id),
-        { ...payload.tag, documentIds: [], noteIds: [] },
+        { ...payload.tag, assetIds: [], noteIds: [] },
       ];
       setTags((previous) => [...previous.filter((tag) => tag.id !== newTag.id), newTag]);
     },
@@ -289,7 +292,7 @@ export function useNotesTags({
       tagRelationsRef.current = tagRelationsRef.current.filter((tag) => tag.id !== id);
       setTags((previous) => previous.filter((tag) => tag.id !== id));
       setSelectedTagIds((previous) => previous.filter((tagId) => tagId !== id));
-      removeDocumentTagName(workspaceId, deletedTag.name);
+      removeAssetTagName(workspaceId, deletedTag.name);
       setNotes((previous) => previous.map((note) => ({
         ...note,
         tags: note.workspaceId === workspaceId
@@ -297,38 +300,38 @@ export function useNotesTags({
           : note.tags,
       })));
     },
-    [currentWorkspaceId, removeDocumentTagName, setNotes, setSelectedTagIds, setTags, tagRelationsRef],
+    [currentWorkspaceId, removeAssetTagName, setNotes, setSelectedTagIds, setTags, tagRelationsRef],
   );
 
-  const toggleDocumentTag = useCallback(
-    async (documentId: string, tagName: string) => {
+  const toggleAssetTag = useCallback(
+    async (assetId: string, tagName: string) => {
       const workspaceId = currentWorkspaceIdRef.current;
-      const document = documentsRef.current.find((item) => item.id === documentId && item.workspaceId === workspaceId);
+      const asset = assetsRef.current.find((item) => item.id === assetId && item.workspaceId === workspaceId);
       const tag = tagsRef.current.find((item) => item.workspaceId === workspaceId && item.name === tagName);
-      if (!workspaceId || !document || !tag) {
+      if (!workspaceId || !asset || !tag) {
         return;
       }
 
       const currentTagIds = tagsRef.current
-        .filter((item) => item.workspaceId === workspaceId && document.tags.includes(item.name))
+        .filter((item) => item.workspaceId === workspaceId && asset.tags.includes(item.name))
         .map((item) => item.id);
       const nextTagIds = getNextTagIds(currentTagIds, tag.id);
-      await setDocumentTags(workspaceId, documentId, nextTagIds);
-      tagRelationsRef.current = updateDocumentTagRelations(
+      await setAssetTags(workspaceId, assetId, nextTagIds);
+      tagRelationsRef.current = updateAssetTagRelations(
         tagRelationsRef.current,
         workspaceId,
-        documentId,
+        assetId,
         nextTagIds,
       );
-      applyDocumentTags(workspaceId, tagRelationsRef.current);
-      updateDocumentTags(
-        documentId,
+      applyAssetTags(workspaceId, tagRelationsRef.current);
+      updateAssetTags(
+        assetId,
         nextTagIds
           .map((tagId) => tagsRef.current.find((candidate) => candidate.id === tagId)?.name)
           .filter((name): name is string => Boolean(name)),
       );
     },
-    [applyDocumentTags, currentWorkspaceIdRef, documentsRef, updateDocumentTags, tagRelationsRef],
+    [applyAssetTags, currentWorkspaceIdRef, assetsRef, updateAssetTags, tagRelationsRef],
   );
 
   const toggleNoteTag = useCallback(
@@ -374,7 +377,7 @@ export function useNotesTags({
     deleteNote,
     addTag,
     deleteTag,
-    toggleDocumentTag,
+    toggleAssetTag,
     toggleNoteTag,
     tagRelationsRef,
   };

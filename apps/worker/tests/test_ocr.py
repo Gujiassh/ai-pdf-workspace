@@ -1,9 +1,13 @@
-import fitz
+import numpy as np
 import pytest
 
 import ai_pdf_worker.ocr as ocr_module
-from ai_pdf_worker.ocr import _recognized_text
-from ai_pdf_worker.ocr import _recognized_blocks, extract_page_texts_with_ocr
+from ai_pdf_worker.ocr import (
+    _recognized_blocks,
+    _recognized_content,
+    _recognized_text,
+    recognize_pixels,
+)
 
 
 def test_recognized_text_unwraps_rapidocr_result() -> None:
@@ -46,27 +50,25 @@ def test_recognized_blocks_normalizes_and_clamps_bbox() -> None:
     assert blocks[1]["height"] == pytest.approx(0.2)
 
 
-def test_extract_page_texts_with_ocr_returns_page_blocks(monkeypatch: pytest.MonkeyPatch) -> None:
-    class FakePixmap:
-        width = 100
-        height = 200
-        n = 3
-        samples = bytes(width * height * n)
+def test_recognized_page_content_preserves_text_ranges_for_regions() -> None:
+    result = [
+        ([[0, 0], [50, 0], [50, 20], [0, 20]], "第一行", 0.9),
+        ([[0, 40], [80, 40], [80, 60], [0, 60]], "第二行", 0.8),
+    ]
 
-    class FakePage:
-        def get_pixmap(self, *, dpi: int, alpha: bool) -> FakePixmap:
-            assert dpi == 200
-            assert alpha is False
-            return FakePixmap()
+    recognized = _recognized_content(result, width=100, height=100)
 
-    class FakePdf:
-        def __iter__(self):
-            return iter([FakePage()])
+    assert recognized.text == "第一行\n第二行"
+    assert [region.text for region in recognized.regions] == ["第一行", "第二行"]
+    assert [(region.char_start, region.char_end) for region in recognized.regions] == [
+        (0, 3),
+        (4, 7),
+    ]
 
-        def close(self) -> None:
-            pass
 
-    monkeypatch.setattr(fitz, "open", lambda *, stream, filetype: FakePdf())
+def test_recognize_pixels_calls_engine_with_pixel_geometry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         ocr_module,
         "_build_ocr",
@@ -76,13 +78,11 @@ def test_extract_page_texts_with_ocr_returns_page_blocks(monkeypatch: pytest.Mon
         ),
     )
 
-    pages = extract_page_texts_with_ocr(b"pdf")
+    recognized = recognize_pixels(np.zeros((200, 100, 3), dtype=np.uint8))
 
-    assert len(pages) == 1
-    assert pages[0].page_number == 1
-    assert pages[0].text == "扫描文本"
-    assert pages[0].ocr_blocks[0]["text"] == "扫描文本"
-    assert pages[0].ocr_blocks[0]["x"] == pytest.approx(0.1)
-    assert pages[0].ocr_blocks[0]["y"] == pytest.approx(0.1)
-    assert pages[0].ocr_blocks[0]["width"] == pytest.approx(0.5)
-    assert pages[0].ocr_blocks[0]["height"] == pytest.approx(0.3)
+    assert recognized.text == "扫描文本"
+    assert len(recognized.regions) == 1
+    assert recognized.regions[0].x == pytest.approx(0.1)
+    assert recognized.regions[0].y == pytest.approx(0.1)
+    assert recognized.regions[0].width == pytest.approx(0.5)
+    assert recognized.regions[0].height == pytest.approx(0.3)

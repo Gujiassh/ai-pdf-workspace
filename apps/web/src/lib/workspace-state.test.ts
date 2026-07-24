@@ -2,18 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { getMessageParentId, getNextActiveThreadId } from "./use-chat";
-import { getNextTagIds, updateDocumentTagRelations, updateNoteTagRelations } from "./use-notes-tags";
+import { getNextTagIds, updateAssetTagRelations, updateNoteTagRelations } from "./use-notes-tags";
 import { getWorkspaceViewStateForWorkspace } from "./workspace-view-state";
 import type { ChatThread } from "./chat/types";
-import type { Document } from "./workspace-context";
+import type { Asset } from "./workspace-context";
 
-const document = (id: string, status: Document["status"]): Document => ({
+const asset = (id: string, status: Asset["status"]): Asset => ({
   id,
   workspaceId: "ws_1",
-  name: `${id}.pdf`,
+  kind: "pdf",
+  title: id,
+  sourceFilename: `${id}.pdf`,
+  mimeType: "application/pdf",
   size: "1 KB",
-  pagesCount: 1,
   status,
+  currentProcessingGeneration: 1,
   progress: 100,
   tags: [],
   createdAt: "2026-07-15T00:00:00Z",
@@ -27,16 +30,16 @@ const thread = (id: string, messages: ChatThread["messages"] = []): ChatThread =
   messages,
 });
 
-test("workspace view state opens the first viewable document only", () => {
+test("workspace view state opens the first viewable asset only", () => {
   assert.deepEqual(
     getWorkspaceViewStateForWorkspace("ws_1", [
-      document("pending", "parsing"),
-      document("ready", "ready"),
-      document("chunked", "chunked"),
+      asset("pending", "parsing"),
+      asset("ready", "ready"),
+      asset("chunked", "chunked"),
     ]),
     {
-      openDocumentIds: ["ready"],
-      activeDocumentId: "ready",
+      openAssetIds: ["ready"],
+      activeAssetId: "ready",
       activePdfPage: 1,
       evidencePanelOpen: false,
       evidencePanelExpanded: false,
@@ -59,14 +62,14 @@ test("chat parent resolution uses the edited question parent", () => {
 
 test("tag relation helpers preserve workspace isolation", () => {
   const relations = [
-    { id: "tag-1", workspaceId: "ws_1", name: "one", slug: "one", color: null, createdAt: "2026-07-15T00:00:00Z", documentIds: [], noteIds: [] },
-    { id: "tag-2", workspaceId: "ws_2", name: "two", slug: "two", color: null, createdAt: "2026-07-15T00:00:00Z", documentIds: ["foreign"], noteIds: ["foreign"] },
+    { id: "tag-1", workspaceId: "ws_1", name: "one", slug: "one", color: null, createdAt: "2026-07-15T00:00:00Z", assetIds: [], noteIds: [] },
+    { id: "tag-2", workspaceId: "ws_2", name: "two", slug: "two", color: null, createdAt: "2026-07-15T00:00:00Z", assetIds: ["foreign"], noteIds: ["foreign"] },
   ];
 
   assert.deepEqual(getNextTagIds(["tag-1"], "tag-1"), []);
-  const documentRelations = updateDocumentTagRelations(relations, "ws_1", "doc-1", ["tag-1"]);
-  const noteRelations = updateNoteTagRelations(documentRelations, "ws_1", "note-1", ["tag-1"]);
-  assert.deepEqual(noteRelations[0]?.documentIds, ["doc-1"]);
+  const assetRelations = updateAssetTagRelations(relations, "ws_1", "doc-1", ["tag-1"]);
+  const noteRelations = updateNoteTagRelations(assetRelations, "ws_1", "note-1", ["tag-1"]);
+  assert.deepEqual(noteRelations[0]?.assetIds, ["doc-1"]);
   assert.deepEqual(noteRelations[0]?.noteIds, ["note-1"]);
   assert.deepEqual(noteRelations[1], relations[1]);
 });

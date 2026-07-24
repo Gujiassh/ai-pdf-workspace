@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class JobStatus(BaseModel):
     id: str
     workspaceId: str
-    documentId: str
+    assetId: str
     jobType: str
     status: str
     attemptCount: int

@@ -19,9 +19,11 @@ from ai_pdf_api.core.metrics import (
 )
 from ai_pdf_api.core.settings import settings
 from ai_pdf_api.db.session import SessionLocal
+from ai_pdf_api.modalities.catalog import validate_database_catalog
+from ai_pdf_api.modalities.registry import build_production_registry
 from ai_pdf_api.routers.auth import router as auth_router
 from ai_pdf_api.routers.chat import router as chat_router
-from ai_pdf_api.routers.documents import router as documents_router
+from ai_pdf_api.routers.assets import router as assets_router
 from ai_pdf_api.routers.jobs import router as jobs_router
 from ai_pdf_api.routers.notes import router as notes_router
 from ai_pdf_api.routers.workspaces import router as workspaces_router
@@ -29,6 +31,7 @@ from ai_pdf_api.services.storage import build_storage_client
 
 configure_application_logging()
 logger = logging.getLogger(__name__)
+modality_registry = build_production_registry()
 
 HTTP_METHODS = {"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"}
 
@@ -72,10 +75,10 @@ class HttpMetricsMiddleware:
             )
 
 
-app = FastAPI(title="AI PDF Workspace API")
+app = FastAPI(title="Citeframe API")
 app.include_router(auth_router)
 app.include_router(workspaces_router)
-app.include_router(documents_router)
+app.include_router(assets_router)
 app.include_router(chat_router)
 app.include_router(jobs_router)
 app.include_router(notes_router)
@@ -96,6 +99,15 @@ def _check_database() -> str:
 def _check_storage() -> str:
     try:
         build_storage_client().list_buckets()
+        return "ok"
+    except Exception:
+        return "failed"
+
+
+def _check_modality_catalog() -> str:
+    try:
+        with SessionLocal() as db:
+            validate_database_catalog(db, modality_registry)
         return "ok"
     except Exception:
         return "failed"
@@ -131,6 +143,7 @@ def _check_generation_provider() -> str:
 def readiness_checks() -> dict[str, str]:
     return {
         "database": _check_database(),
+        "modalityCatalog": _check_modality_catalog(),
         "objectStorage": _check_storage(),
         "embeddingProvider": _check_embedding_provider(),
         "generationProvider": _check_generation_provider(),

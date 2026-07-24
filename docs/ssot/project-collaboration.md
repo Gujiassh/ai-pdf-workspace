@@ -4,7 +4,7 @@
 
 本项目后续协作默认采用 `直接执行 + 必要解释` 模式。
 
-也就是说，在推进 AI PDF Workspace 的设计、编码、调试、部署时，默认目标是：
+也就是说，在推进 Citeframe 的设计、编码、调试、部署时，默认目标是：
 
 - 直接推进项目主线
 - 在关键设计点和关键实现点给出必要解释
@@ -61,7 +61,7 @@
 
 ## 6. 当前项目范围提醒
 
-当前实现基线仍是 `文本 PDF + 扫描 PDF OCR`，当前开发阶段是用户任务验证与 Evidence 合同设计。
+当前实现基线仍是 `文本 PDF + 扫描 PDF OCR`；当前开发阶段是多模态 PDF + 独立图片工作区的合同审批与实施准备。
 
 当前主线包括：
 
@@ -76,7 +76,7 @@
 - 部署与观测
 - 扫描 PDF 的 Worker 内部 OCR fallback
 
-多模态 PDF 的布局、表格、图表和区域证据属于下一目标，但在 Evidence 合同获得明确批准前只做用户验证、评测与设计，不改持久化、Citation API 或保存语义。独立图片、音频、视频和 Omnilabel 不进入当前主线。
+当前 V3 主线包含多模态 PDF 与独立图片，目标设计见 `docs/architecture/multimodal-*` 和 `specs/v3/multimodal-workspace/`。在 Evidence 合同获得明确批准前可继续 fixture、解析实验和 UI/迁移设计，但不改持久化、Citation API 或保存语义。音频、视频和 Omnilabel 不进入 V3。
 
 ## 7. Git 提交约定
 

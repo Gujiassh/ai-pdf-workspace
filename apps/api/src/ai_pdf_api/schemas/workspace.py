@@ -15,7 +15,7 @@ class WorkspaceSummary(BaseModel):
     generationProvider: str
     generationModel: str
     role: str
-    documentCount: int
+    assetCount: int
     noteCount: int
     threadCount: int
     createdAt: str

@@ -26,6 +26,15 @@ services:
   postgres:
     image: pgvector/pgvector:pg17@sha256:dd467f03ca5c5581222490e5217e48a262864ccb659be559f8491bbafdc97da0
     restart: unless-stopped
+    stop_grace_period: 5m
+    command:
+      - postgres
+      - -c
+      - hnsw.iterative_scan=strict_order
+      - -c
+      - hnsw.ef_search=400
+      - -c
+      - hnsw.max_scan_tuples=200000
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 
-import type { OcrTextBlockDto } from "@/lib/documents/types";
+import type { OcrTextBlockDto } from "@/lib/assets/types";
 import type { OutlineNode } from "./outline-tree";
 import { createPdfLinkService } from "./pdf-viewer-links";
 
@@ -33,15 +33,24 @@ type PdfPageSurfaceProps = {
   ocrBlocks: OcrTextBlockDto[];
   onError: (error: unknown) => void;
   onNavigate: (page: number) => void;
+  onGeometry: (geometry: PdfRenderedGeometry) => void;
 };
 
-export function PdfPageSurface({ pdf, pageNumber, width, ocrBlocks, onError, onNavigate }: PdfPageSurfaceProps) {
+export type PdfRenderedGeometry = {
+  cropBoxPoints: [number, number, number, number];
+  rotationDegrees: number;
+  displayWidthPoints: number;
+  displayHeightPoints: number;
+};
+
+export function PdfPageSurface({ pdf, pageNumber, width, ocrBlocks, onError, onNavigate, onGeometry }: PdfPageSurfaceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const ocrTextLayerRef = useRef<HTMLDivElement>(null);
   const annotationLayerRef = useRef<HTMLDivElement>(null);
   const onErrorRef = useRef(onError);
   const onNavigateRef = useRef(onNavigate);
+  const onGeometryRef = useRef(onGeometry);
 
   useEffect(() => {
     onErrorRef.current = onError;
@@ -50,6 +59,10 @@ export function PdfPageSurface({ pdf, pageNumber, width, ocrBlocks, onError, onN
   useEffect(() => {
     onNavigateRef.current = onNavigate;
   }, [onNavigate]);
+
+  useEffect(() => {
+    onGeometryRef.current = onGeometry;
+  }, [onGeometry]);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +89,13 @@ export function PdfPageSurface({ pdf, pageNumber, width, ocrBlocks, onError, onN
         }
 
         const baseViewport = page.getViewport({ scale: 1 });
+        const cropBox = page.view;
+        onGeometryRef.current({
+          cropBoxPoints: [cropBox[0], cropBox[1], cropBox[2], cropBox[3]],
+          rotationDegrees: ((page.rotate % 360) + 360) % 360,
+          displayWidthPoints: baseViewport.width,
+          displayHeightPoints: baseViewport.height,
+        });
         const scale = width / baseViewport.width;
         const viewport = page.getViewport({ scale });
         const outputScale = window.devicePixelRatio || 1;

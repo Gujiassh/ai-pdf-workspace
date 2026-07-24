@@ -21,6 +21,10 @@ class SessionContext:
         return None
 
 
+def test_production_worker_keeps_image_adapter_dormant() -> None:
+    assert worker.INGESTION_ADAPTERS.asset_kinds == frozenset({"pdf"})
+
+
 def test_process_one_job_claims_and_handles_one_job(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -37,10 +41,11 @@ def test_process_one_job_claims_and_handles_one_job(
         received_db: object,
         job_id: str,
         *,
-        ocr_extract_page_texts: object,
+        ingestion_adapters: object,
         embedding_provider: object,
     ) -> None:
         assert worker.WORKER_ACTIVE_JOBS._value.get() == 1
+        assert ingestion_adapters is worker.INGESTION_ADAPTERS
         calls.append((received_db, job_id, embedding_provider))
 
     monkeypatch.setattr(worker, "process_ingestion_job", fake_process)

@@ -1,0 +1,24 @@
+version: "2.4"
+
+services:
+  provider-stub:
+    image: ${AI_PDF_API_IMAGE:-ai-pdf-workspace-api:local}
+    command: ["python", "scripts/provider_health_stub.py"]
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:11434/api/tags', timeout=5)",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  api:
+    depends_on:
+      provider-stub:
+        condition: service_healthy

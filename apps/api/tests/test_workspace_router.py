@@ -10,7 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from ai_pdf_api.db.base import Base
 from ai_pdf_api.db.session import get_db
-from ai_pdf_api.models import Document, User, Workspace, WorkspaceMembership
+from ai_pdf_api.models import Asset, User, Workspace, WorkspaceMembership
 from ai_pdf_api.routers.workspaces import router as workspaces_router
 
 
@@ -92,14 +92,15 @@ def create_workspace_with_membership(
 
 
 
-def create_document(db_session: Session, *, workspace: Workspace, user: User, source_filename: str = "attention.pdf") -> Document:
+def create_asset(db_session: Session, *, workspace: Workspace, user: User, source_filename: str = "attention.pdf") -> Asset:
     now = datetime.now(UTC)
-    document = Document(
+    asset = Asset(
+        asset_kind="pdf",
         workspace_id=workspace.id,
         created_by_user_id=user.id,
         title="Attention Is All You Need",
         source_filename=source_filename,
-        object_key=f"workspaces/{workspace.id}/documents/doc/original.pdf",
+        object_key=f"workspaces/{workspace.id}/assets/doc/original.pdf",
         mime_type="application/pdf",
         byte_size=1234,
         status="uploaded",
@@ -107,10 +108,10 @@ def create_document(db_session: Session, *, workspace: Workspace, user: User, so
         created_at=now,
         updated_at=now,
     )
-    db_session.add(document)
+    db_session.add(asset)
     db_session.commit()
-    db_session.refresh(document)
-    return document
+    db_session.refresh(asset)
+    return asset
 def test_list_workspaces_returns_only_current_user_memberships(client: TestClient, db_session: Session) -> None:
     owner = create_user(db_session, email="owner@example.com", name="Owner")
     stranger = create_user(db_session, email="stranger@example.com", name="Stranger")
@@ -137,7 +138,7 @@ def test_list_workspaces_returns_only_current_user_memberships(client: TestClien
             "generationProvider": "openai",
             "generationModel": "gpt-5.5",
             "role": "owner",
-            "documentCount": 0,
+            "assetCount": 0,
             "noteCount": 0,
             "threadCount": 0,
             "createdAt": payload["items"][0]["createdAt"],
@@ -148,18 +149,18 @@ def test_list_workspaces_returns_only_current_user_memberships(client: TestClien
 
 
 
-def test_workspace_summary_includes_real_document_count(client: TestClient, db_session: Session) -> None:
+def test_workspace_summary_includes_real_asset_count(client: TestClient, db_session: Session) -> None:
     owner = create_user(db_session, email="owner@example.com", name="Owner")
     workspace = create_workspace_with_membership(db_session, user=owner, name="Visible Workspace")
-    create_document(db_session, workspace=workspace, user=owner)
+    create_asset(db_session, workspace=workspace, user=owner)
 
     list_response = client.get("/v1/workspaces", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
     detail_response = client.get(f"/v1/workspaces/{workspace.id}", headers={"x-ai-pdf-internal-token": "local-development-internal-token", "x-user-id": owner.id})
 
     assert list_response.status_code == 200
     assert detail_response.status_code == 200
-    assert list_response.json()["items"][0]["documentCount"] == 1
-    assert detail_response.json()["workspace"]["documentCount"] == 1
+    assert list_response.json()["items"][0]["assetCount"] == 1
+    assert detail_response.json()["workspace"]["assetCount"] == 1
 def test_create_workspace_creates_owner_membership(client: TestClient, db_session: Session) -> None:
     user = create_user(db_session, email="owner@example.com", name="Owner")
 

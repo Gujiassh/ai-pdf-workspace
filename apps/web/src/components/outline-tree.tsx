@@ -11,14 +11,14 @@ export type OutlineNode = {
 };
 
 interface OutlineTreeProps {
-  activeDocumentId: string;
+  activeAssetId: string;
   activePdfPage: number;
   setActivePdfPage: (page: number) => void;
   outline: OutlineNode[];
 }
 
 export function OutlineTree({
-  activeDocumentId,
+  activeAssetId,
   activePdfPage,
   setActivePdfPage,
   outline,
@@ -27,7 +27,7 @@ export function OutlineTree({
   const [collapsedNodes, setCollapsedNodes] = React.useState<Record<string, boolean>>({});
 
   const getNodeKey = (node: OutlineNode) => {
-    return `${activeDocumentId}-${node.page ?? "unknown"}-${node.title}`;
+    return `${activeAssetId}-${node.page ?? "unknown"}-${node.title}`;
   };
 
   const toggleNode = (nodeKey: string) => {

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "multimodal-quality-report-v1",
+  "goldenSet": {
+    "caseCount": 21,
+    "fixtureCount": 3,
+    "layers": {
+      "retrieval": 7,
+      "evidence": 7,
+      "answer": 7
+    },
+    "modalities": {
+      "pdf": 11,
+      "image": 6,
+      "mixed": 4
+    },
+    "taskTypes": {
+      "chart": 3,
+      "cross_asset_compare": 3,
+      "exact_fact": 3,
+      "image": 4,
+      "method_constraints": 3,
+      "no_answer": 2,
+      "table": 3
+    },
+    "refusalCaseCount": 2,
+    "referenceBaselines": {
+      "retrieval-pdf-real-v1": {
+        "caseCount": 40,
+        "modalities": [
+          "pdf"
+        ]
+      }
+    }
+  },
+  "failureRegistry": {
+    "sampleCount": 6,
+    "regressionLockedCount": 6,
+    "categories": {
+      "asset_parse": 1,
+      "retrieval_candidate": 1,
+      "rrf_ranking": 1,
+      "answer_support": 0,
+      "evidence_localization": 1,
+      "table_structure": 1,
+      "visual_semantics": 1,
+      "false_answer": 0,
+      "viewer_rendering": 0,
+      "workflow": 0
+    },
+    "reproductionArgv": [
+      [
+        "uv",
+        "run",
+        "--project",
+        "apps/worker",
+        "pytest",
+        "apps/worker/tests/test_pdf.py::test_page_word_mapping_rejects_any_non_whitespace_parser_mismatch"
+      ],
+      [
+        "uv",
+        "run",
+        "--project",
+        "apps/api",
+        "pytest",
+        "apps/api/tests/test_multimodal_retrieval.py::test_mixed_text_channel_is_stable_and_filters_invalid_candidate_chains"
+      ],
+      [
+        "uv",
+        "run",
+        "--project",
+        "apps/api",
+        "pytest",
+        "apps/api/tests/test_multimodal_retrieval.py::test_candidate_limits_count_unique_evidence_locations_before_fusion"
+      ],
+      [
+        "uv",
+        "run",
+        "--project",
+        "apps/worker",
+        "pytest",
+        "apps/worker/tests/test_pdf.py::test_approved_regions_are_normalized_in_rotated_display_space"
+      ],
+      [
+        "uv",
+        "run",
+        "--project",
+        "apps/worker",
+        "pytest",
+        "apps/worker/tests/test_pdf.py::test_artifact_matrix_combines_rotation_cropbox_and_spatial_text_mapping"
+      ],
+      [
+        "uv",
+        "run",
+        "--project",
+        "apps/worker",
+        "pytest",
+        "apps/worker/tests/test_pdf.py::test_pdf_figure_detection_requires_an_explicit_caption_marker"
+      ]
+    ]
+  },
+  "coveragePassed": true
+}
